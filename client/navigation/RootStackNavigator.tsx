@@ -12,6 +12,13 @@ import { MainStackParamList } from "@/types/navigation";
 import DashboardScreen from "@/screens/DashboardScreen";
 import CategoryDetailScreen from "@/screens/CategoryDetailScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
+import VitalsLogScreen from "@/screens/tools/VitalsLogScreen";
+import PainJournalScreen from "@/screens/tools/PainJournalScreen";
+import MedicationTrackerScreen from "@/screens/tools/MedicationTrackerScreen";
+import HydrationTrackerScreen from "@/screens/tools/HydrationTrackerScreen";
+import { MorningRoutineScreen, EveningRoutineScreen } from "@/screens/tools/RoutineScreen";
+import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScreen";
+import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -58,6 +65,70 @@ export default function RootStackNavigator() {
         options={{
           ...opaqueScreenOptions,
           headerTitle: "Settings",
+        }}
+      />
+      <Stack.Screen
+        name="VitalsLog"
+        component={VitalsLogScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Vital Signs Log",
+        }}
+      />
+      <Stack.Screen
+        name="PainJournal"
+        component={PainJournalScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Pain Journal",
+        }}
+      />
+      <Stack.Screen
+        name="MedicationTracker"
+        component={MedicationTrackerScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Medications",
+        }}
+      />
+      <Stack.Screen
+        name="HydrationTracker"
+        component={HydrationTrackerScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Hydration Tracker",
+        }}
+      />
+      <Stack.Screen
+        name="MorningRoutine"
+        component={MorningRoutineScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Morning Routine",
+        }}
+      />
+      <Stack.Screen
+        name="EveningRoutine"
+        component={EveningRoutineScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Evening Routine",
+        }}
+      />
+      <Stack.Screen
+        name="AppointmentScheduler"
+        component={AppointmentSchedulerScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Appointments",
+        }}
+      />
+      <Stack.Screen
+        name="EmergencyContacts"
+        component={EmergencyContactsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Emergency Contacts",
         }}
       />
     </Stack.Navigator>

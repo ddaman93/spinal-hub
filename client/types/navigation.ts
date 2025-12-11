@@ -5,6 +5,14 @@ export type MainStackParamList = {
     title: string;
   };
   Settings: undefined;
+  VitalsLog: undefined;
+  PainJournal: undefined;
+  MedicationTracker: undefined;
+  MorningRoutine: undefined;
+  EveningRoutine: undefined;
+  HydrationTracker: undefined;
+  AppointmentScheduler: undefined;
+  EmergencyContacts: undefined;
 };
 
 declare global {
