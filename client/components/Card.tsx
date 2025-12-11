@@ -103,7 +103,7 @@ export function Card({
 const styles = StyleSheet.create({
   card: {
     padding: Spacing.xl,
-    borderRadius: BorderRadius["2xl"],
+    borderRadius: BorderRadius.large,
   },
   cardTitle: {
     marginBottom: Spacing.sm,

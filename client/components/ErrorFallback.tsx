@@ -59,11 +59,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
       <View style={styles.content}>
         <ThemedText type="h1" style={styles.title}>
-          Something went wrong
+          Spinal Hub needs a restart
         </ThemedText>
 
         <ThemedText type="body" style={styles.message}>
-          Please reload the app to continue.
+          Something unexpected happened. Tap below to get back on track.
         </ThemedText>
 
         <Pressable
@@ -71,17 +71,20 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           style={({ pressed }) => [
             styles.button,
             {
-              backgroundColor: theme.link,
+              backgroundColor: theme.primary,
               opacity: pressed ? 0.9 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
             },
           ]}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Restart Spinal Hub"
         >
           <ThemedText
             type="body"
             style={[styles.buttonText, { color: theme.buttonText }]}
           >
-            Try Again
+            Restart Spinal Hub
           </ThemedText>
         </Pressable>
       </View>
@@ -150,7 +153,7 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    padding: Spacing["2xl"],
+    padding: Spacing.xxl,
   },
   content: {
     alignItems: "center",
@@ -161,20 +164,18 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    lineHeight: 40,
   },
   message: {
     textAlign: "center",
     opacity: 0.7,
-    lineHeight: 24,
   },
   topButton: {
     position: "absolute",
-    top: Spacing["2xl"] + Spacing.lg,
+    top: Spacing.xxl + Spacing.lg,
     right: Spacing.lg,
     width: 44,
     height: 44,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.medium,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -182,8 +183,8 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing["2xl"],
+    borderRadius: BorderRadius.medium,
+    paddingHorizontal: Spacing.xxl,
     minWidth: 200,
     shadowColor: "#000",
     shadowOffset: {
@@ -207,8 +208,8 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: "100%",
     height: "90%",
-    borderTopLeftRadius: BorderRadius.lg,
-    borderTopRightRadius: BorderRadius.lg,
+    borderTopLeftRadius: BorderRadius.large,
+    borderTopRightRadius: BorderRadius.large,
   },
   modalHeader: {
     flexDirection: "row",
@@ -234,13 +235,11 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     width: "100%",
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.medium,
     overflow: "hidden",
     padding: Spacing.lg,
   },
   errorText: {
     fontSize: 12,
-    lineHeight: 18,
-    width: "100%",
   },
 });
