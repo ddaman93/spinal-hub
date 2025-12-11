@@ -1,0 +1,118 @@
+You are an expert senior React Native engineer.  
+Your job is to generate a clean, correct, maintainable **Expo React Native + TypeScript** project shell for my app called **Spinal Hub**.  
+This is a real project for a C5 quadriplegic user — accessibility, clarity, and simplicity are critical.  
+Do not hallucinate libraries.  
+Do not break imports.  
+Do not skip files.  
+Do not rename components without updating paths.  
+Do not output placeholder code that cannot run.  
+Every screen must import correctly.
+
+--------------------------------------------------
+APP OVERVIEW
+--------------------------------------------------
+Spinal Hub is a personal health + daily management app that includes:
+
+1. **Dashboard Screen**
+   - A 3-column grid of category tiles.
+   - Tiles have icons, labels, and animated press effects.
+   - Categories:
+       • Daily Routine  
+       • Health Tracking  
+       • Care & Support  
+       • Appointments  
+       • Life Management  
+       • Custom Tools  
+   - A floating microphone button at the bottom center.
+   - A voice status bar that appears when listening.
+   - Voice feedback through text‐to‐speech.
+
+2. **Category Detail Screen**
+   - Shows the category title.
+   - Placeholder list of tools inside that category.
+
+3. **Theme + Styling System**
+   - Light + dark themes.
+   - Shared constants:
+       • Spacing  
+       • Typography  
+       • Colors  
+       • BorderRadius  
+   - A hook: `useTheme()` that returns `{ theme, isDark }`
+
+4. **Navigation**
+   Use React Navigation (Native Stack):
+   - `Dashboard`
+   - `CategoryDetail`
+   - Screens must have typed params using TypeScript:
+     e.g. `MainStackParamList = { Dashboard: undefined; CategoryDetail: { category: string; title: string }; }`
+
+5. **Voice System**
+   - Use `expo-speech` for speaking.
+   - Include a placeholder function for speech recognition (we will implement later).
+   - The microphone button should animate when listening (pulse effect).
+   - When pressed, it toggles listening state.
+
+6. **Accessibility**
+   - All tiles must have accessible labels.
+   - The microphone button must have `accessibilityLabel="Voice Control"`
+
+--------------------------------------------------
+YOUR TASK
+--------------------------------------------------
+Generate a complete, minimal but production-ready project shell with:
+
+✔ Full folder structure  
+✔ Correct file imports  
+✔ Each file fully written (no “…” placeholders)  
+✔ Working DashboardScreen with tile grid + animations  
+✔ Working CategoryDetailScreen  
+✔ Working theme system with hook  
+✔ Working navigation  
+✔ Working voice button animation  
+✔ Clear placeholder spaces for future features  
+✔ Zero errors, zero missing imports
+
+--------------------------------------------------
+FOLDER STRUCTURE REQUIRED
+--------------------------------------------------
+
+/App.tsx
+/navigation/
+    MainStackNavigator.tsx
+/screens/
+    DashboardScreen.tsx
+    CategoryDetailScreen.tsx
+/components/
+    ThemedText.tsx
+    VoiceButton.tsx
+    CategoryTile.tsx
+/constants/
+    theme.ts
+/hooks/
+    useTheme.ts
+/types/
+    navigation.ts
+
+--------------------------------------------------
+ADDITIONAL RULES
+--------------------------------------------------
+• Write code using React Native + Expo Router conventions.  
+• Use only libraries that ship with Expo or can be installed with `expo install`.  
+• Use Reanimated for animation only if necessary (you may use it just for the tile/mic button animations).  
+• Ensure all code compiles with TypeScript.  
+• Do not invent API endpoints or backend logic.  
+• Keep screens minimal, clean, and fully functional.  
+
+--------------------------------------------------
+OUTPUT FORMAT
+--------------------------------------------------
+Format your answer like this:
+
+1. Show the final folder structure.
+2. Provide each file’s full TypeScript code in separate blocks, with correct imports.
+3. Ensure that the resulting code can be pasted into a fresh Expo project and run immediately.
+
+--------------------------------------------------
+BEGIN NOW
+--------------------------------------------------
