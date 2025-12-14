@@ -5,8 +5,8 @@ import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import { useScreenOptions } from "@/hooks/useScreenOptions";
-import { useTheme } from "@/hooks/useTheme";
+import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
+import { useTheme } from "@/constants/hooks/useTheme";
 import { MainStackParamList } from "@/types/navigation";
 
 import DashboardScreen from "@/screens/DashboardScreen";
