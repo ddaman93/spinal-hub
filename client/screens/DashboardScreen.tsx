@@ -9,21 +9,8 @@ import { ThemedView } from "@/components/ThemedView";
 import { CategoryTile } from "@/components/CategoryTile";
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
+import { CATEGORIES } from "@/config/catalog"
 
-type Category = {
-  id: string;
-  title: string;
-  icon: "sun" | "activity" | "users" | "calendar" | "briefcase" | "tool";
-};
-
-const categories: Category[] = [
-  { id: "daily-routine", title: "Daily Routine", icon: "sun" },
-  { id: "health-tracking", title: "Health Tracking", icon: "activity" },
-  { id: "care-support", title: "Care & Support", icon: "users" },
-  { id: "appointments", title: "Appointments", icon: "calendar" },
-  { id: "life-management", title: "Life Management", icon: "briefcase" },
-  { id: "custom-tools", title: "Custom Tools", icon: "tool" },
-];
 
 export default function DashboardScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
@@ -52,7 +39,7 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.grid}>
-          {categories.map((category) => (
+          {CATEGORIES.map((category) => (
             <CategoryTile
               key={category.id}
               title={category.title}
