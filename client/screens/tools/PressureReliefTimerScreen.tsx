@@ -6,63 +6,6 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "pressureReliefTimerState";
-
-useEffect(() => {
-  const saveState = async () => {
-    try {
-      await AsyncStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          remainingSeconds,
-          isRunning,
-          lastUpdatedAt: Date.now(),
-        })
-      );
-    } catch (e) {
-      // Silent fail — persistence should never break the timer
-    }
-  };
-
-  saveState();
-}, [remainingSeconds, isRunning]);
-
-useEffect(() => {
-  const restoreState = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!stored) return;
-
-      const parsed = JSON.parse(stored);
-      const { remainingSeconds, isRunning, lastUpdatedAt } = parsed;
-
-      if (isRunning && lastUpdatedAt) {
-        const elapsedSeconds = Math.floor(
-          (Date.now() - lastUpdatedAt) / 1000
-        );
-
-        const updatedRemaining = remainingSeconds - elapsedSeconds;
-
-        if (updatedRemaining > 0) {
-          setRemainingSeconds(updatedRemaining);
-          setIsRunning(true);
-        } else {
-          // Timer expired while app was closed
-          setRemainingSeconds(DEFAULT_INTERVAL_MINUTES * 60);
-          setIsRunning(false);
-        }
-      } else {
-        setRemainingSeconds(remainingSeconds);
-        setIsRunning(false);
-      }
-    } catch (e) {
-      // If restore fails, fall back to defaults
-    }
-  };
-
-  restoreState();
-}, []);
-
-
 const DEFAULT_INTERVAL_MINUTES = 20;
 
 export default function PressureReliefTimerScreen() {
@@ -74,7 +17,60 @@ export default function PressureReliefTimerScreen() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Timer loop
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!stored) return;
+
+        const parsed = JSON.parse(stored);
+        const { remainingSeconds: storedSeconds, isRunning: storedRunning, lastUpdatedAt } = parsed;
+
+        if (storedRunning && lastUpdatedAt) {
+          const elapsedSeconds = Math.floor(
+            (Date.now() - lastUpdatedAt) / 1000
+          );
+
+          const updatedRemaining = storedSeconds - elapsedSeconds;
+
+          if (updatedRemaining > 0) {
+            setRemainingSeconds(updatedRemaining);
+            setIsRunning(true);
+          } else {
+            setRemainingSeconds(DEFAULT_INTERVAL_MINUTES * 60);
+            setIsRunning(false);
+          }
+        } else {
+          setRemainingSeconds(storedSeconds);
+          setIsRunning(false);
+        }
+      } catch (e) {
+        // If restore fails, fall back to defaults
+      }
+    };
+
+    restoreState();
+  }, []);
+
+  useEffect(() => {
+    const saveState = async () => {
+      try {
+        await AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            remainingSeconds,
+            isRunning,
+            lastUpdatedAt: Date.now(),
+          })
+        );
+      } catch (e) {
+        // Silent fail — persistence should never break the timer
+      }
+    };
+
+    saveState();
+  }, [remainingSeconds, isRunning]);
+
   useEffect(() => {
     if (!isRunning) return;
 
