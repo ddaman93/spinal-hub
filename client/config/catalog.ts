@@ -6,7 +6,7 @@ export type ToolConfig = {
   name: string;
   description: string;
   icon: keyof typeof Feather.glyphMap;
-  route?: MedicationTracker;
+  route?: keyof MainStackParamList
   comingSoon?: boolean;
 };
 
@@ -58,6 +58,14 @@ export const CATEGORIES: CategoryConfig[] = [
         icon: "heart",
         route: "VitalsLog",
       },
+      {
+        id: "pressure-relief",
+        name: "Pressure Relief Timer",
+        description: "Timed reminders to shift weight and reduce pressure",
+        icon: "clock",
+        route: "PressureReliefTimer",
+      },
+
       {
         id: "pain",
         name: "Pain Journal",

@@ -13,6 +13,8 @@ export type MainStackParamList = {
   HydrationTracker: undefined;
   AppointmentScheduler: undefined;
   EmergencyContacts: undefined;
+  PressureReliefTimer: undefined;
+
 };
 
 declare global {

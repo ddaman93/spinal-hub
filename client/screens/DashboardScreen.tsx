@@ -10,6 +10,7 @@ import { CategoryTile } from "@/components/CategoryTile";
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { CATEGORIES } from "@/config/catalog"
+import type { CategoryConfig } from "@/config/catalog";
 
 
 export default function DashboardScreen() {
@@ -17,7 +18,8 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  const handleCategoryPress = useCallback((category: Category) => {
+  const handleCategoryPress = useCallback((category: CategoryConfig) => {
+
     navigation.navigate("CategoryDetail", {
       category: category.id,
       title: category.title,

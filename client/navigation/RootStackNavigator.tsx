@@ -8,6 +8,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
 import { MainStackParamList } from "@/types/navigation";
+import PressureReliefTimerScreen from "@/screens/tools/PressureReliefTimerScreen";
+
 
 import DashboardScreen from "@/screens/DashboardScreen";
 import CategoryDetailScreen from "@/screens/CategoryDetailScreen";
@@ -121,6 +123,14 @@ export default function RootStackNavigator() {
         options={{
           ...opaqueScreenOptions,
           headerTitle: "Appointments",
+        }}
+      />
+      <Stack.Screen
+        name="PressureReliefTimer"
+        component={PressureReliefTimerScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Pressure Relief",
         }}
       />
       <Stack.Screen
