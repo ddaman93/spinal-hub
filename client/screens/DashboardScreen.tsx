@@ -53,19 +53,20 @@ export default function DashboardScreen() {
             />
           ))}
         </View>
-        <View style={styles.sectionHeader}>
-          <ThemedText type="heading">Assistive Technology</ThemedText>
-           <ThemedText
-            type="link"
-            onPress={() => navigation.navigate("AssistiveTechList")}
-          >
-            View all →
-          </ThemedText>
-        </View>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="heading">Assistive Technology</ThemedText>
+            <ThemedText
+              type="link"
+              onPress={() => navigation.navigate("AssistiveTechList")}
+            >
+              View all →
+            </ThemedText>
+          </View>
 
-        <ThemedText type="small" style={styles.sectionSubtitle}>
-          Tools and equipment that improve independence
-        </ThemedText>
+          <ThemedText type="small" style={styles.sectionSubtitle}>
+            Tools and equipment that improve independence
+          </ThemedText>
 
           <ScrollView
             horizontal
