@@ -22,6 +22,8 @@ import { MorningRoutineScreen, EveningRoutineScreen } from "@/screens/tools/Rout
 import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScreen";
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
+import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
+import AssistiveTechListScreen from "@/screens/AssistiveTechListScreen";
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -52,6 +54,16 @@ export default function RootStackNavigator() {
           headerTitle: () => <HeaderTitle title="Spinal Hub" />,
           headerRight: () => <SettingsHeaderButton />,
         }}
+      />
+      <Stack.Screen
+        name="AssistiveTechList"
+        component={AssistiveTechListScreen}
+        options={{ title: "Assistive Technology" }}
+      />
+      <Stack.Screen
+        name="AssistiveTechDetail"
+        component={AssistiveTechDetailScreen}
+        options={{ title: "Assistive Technology" }}
       />
       <Stack.Screen
         name="CategoryDetail"

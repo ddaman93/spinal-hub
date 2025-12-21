@@ -1,15 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Svg, { Circle } from "react-native-svg";
+
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const STORAGE_KEY = "pressureReliefTimerState";
 const DEFAULT_INTERVAL_MINUTES = 20;
+const INTERVAL_OPTIONS = [15, 20, 30];
+const STORAGE_KEY = "pressureReliefTimerState";
+
+const RING_SIZE = 220;
+const STROKE_WIDTH = 12;
+const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export default function PressureReliefTimerScreen() {
-  const [durationMinutes] = useState(DEFAULT_INTERVAL_MINUTES);
+  const [durationMinutes, setDurationMinutes] = useState(
+    DEFAULT_INTERVAL_MINUTES
+  );
   const [remainingSeconds, setRemainingSeconds] = useState(
     DEFAULT_INTERVAL_MINUTES * 60
   );
@@ -17,60 +27,55 @@ export default function PressureReliefTimerScreen() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  /* =========================
+     RESTORE STATE
+     ========================= */
   useEffect(() => {
     const restoreState = async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
         if (!stored) return;
 
-        const parsed = JSON.parse(stored);
-        const { remainingSeconds: storedSeconds, isRunning: storedRunning, lastUpdatedAt } = parsed;
+        const parsed: {
+          durationMinutes: number;
+          remainingSeconds: number;
+          isRunning: boolean;
+          lastUpdatedAt: number;
+        } = JSON.parse(stored);
 
-        if (storedRunning && lastUpdatedAt) {
+        const savedDuration =
+          parsed.durationMinutes ?? DEFAULT_INTERVAL_MINUTES;
+
+        setDurationMinutes(savedDuration);
+
+        if (parsed.isRunning && parsed.lastUpdatedAt) {
           const elapsedSeconds = Math.floor(
-            (Date.now() - lastUpdatedAt) / 1000
+            (Date.now() - parsed.lastUpdatedAt) / 1000
           );
 
-          const updatedRemaining = storedSeconds - elapsedSeconds;
+          const updatedRemaining =
+            parsed.remainingSeconds - elapsedSeconds;
 
           if (updatedRemaining > 0) {
             setRemainingSeconds(updatedRemaining);
             setIsRunning(true);
           } else {
-            setRemainingSeconds(DEFAULT_INTERVAL_MINUTES * 60);
+            setRemainingSeconds(savedDuration * 60);
             setIsRunning(false);
           }
         } else {
-          setRemainingSeconds(storedSeconds);
+          setRemainingSeconds(parsed.remainingSeconds);
           setIsRunning(false);
         }
-      } catch (e) {
-        // If restore fails, fall back to defaults
-      }
+      } catch {}
     };
 
     restoreState();
   }, []);
 
-  useEffect(() => {
-    const saveState = async () => {
-      try {
-        await AsyncStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            remainingSeconds,
-            isRunning,
-            lastUpdatedAt: Date.now(),
-          })
-        );
-      } catch (e) {
-        // Silent fail — persistence should never break the timer
-      }
-    };
-
-    saveState();
-  }, [remainingSeconds, isRunning]);
-
+  /* =========================
+     TIMER LOOP
+     ========================= */
   useEffect(() => {
     if (!isRunning) return;
 
@@ -91,6 +96,30 @@ export default function PressureReliefTimerScreen() {
     };
   }, [isRunning, durationMinutes]);
 
+  /* =========================
+     PERSIST STATE
+     ========================= */
+  useEffect(() => {
+    const saveState = async () => {
+      try {
+        await AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            durationMinutes,
+            remainingSeconds,
+            isRunning,
+            lastUpdatedAt: Date.now(),
+          })
+        );
+      } catch {}
+    };
+
+    saveState();
+  }, [durationMinutes, remainingSeconds, isRunning]);
+
+  /* =========================
+     HANDLERS
+     ========================= */
   const handleStartPause = () => {
     setIsRunning((prev) => !prev);
   };
@@ -100,11 +129,20 @@ export default function PressureReliefTimerScreen() {
     setRemainingSeconds(durationMinutes * 60);
   };
 
+  const totalSeconds = durationMinutes * 60;
+  const progress = remainingSeconds / totalSeconds;
+  const strokeDashoffset =
+    CIRCUMFERENCE * (1 - progress);
+
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
+  const formattedTime = `${minutes}:${seconds
+    .toString()
+    .padStart(2, "0")}`;
 
-  const formattedTime = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-
+  /* =========================
+     RENDER
+     ========================= */
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
@@ -114,21 +152,70 @@ export default function PressureReliefTimerScreen() {
           Regular pressure relief helps protect skin and improve circulation.
         </ThemedText>
 
-        <View style={styles.timer}>
-          <ThemedText type="h1">{formattedTime}</ThemedText>
+        {/* Interval Selector */}
+        <View style={styles.intervalSelector}>
+          {INTERVAL_OPTIONS.map((minutes) => {
+            const isSelected = minutes === durationMinutes;
+
+            return (
+              <Pressable
+                key={minutes}
+                onPress={() => {
+                  setIsRunning(false);
+                  setDurationMinutes(minutes);
+                  setRemainingSeconds(minutes * 60);
+                }}
+                style={[
+                  styles.intervalButton,
+                  isSelected && styles.intervalButtonActive,
+                ]}
+              >
+                <ThemedText type="heading">
+                  {minutes} min
+                </ThemedText>
+              </Pressable>
+            );
+          })}
         </View>
 
+        {/* Progress Ring */}
+        <View style={styles.ringContainer}>
+          <Svg width={RING_SIZE} height={RING_SIZE}>
+            <Circle
+              stroke="rgba(0,0,0,0.1)"
+              fill="none"
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RADIUS}
+              strokeWidth={STROKE_WIDTH}
+            />
+            <Circle
+              stroke="#007AFF"
+              fill="none"
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RADIUS}
+              strokeWidth={STROKE_WIDTH}
+              strokeDasharray={CIRCUMFERENCE}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              rotation="-90"
+              origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+            />
+          </Svg>
+
+          <View style={styles.timeOverlay}>
+            <ThemedText type="h1">{formattedTime}</ThemedText>
+          </View>
+        </View>
+
+        {/* Controls */}
         <View style={styles.controls}>
           <Pressable
             onPress={handleStartPause}
-            style={[
-              styles.primaryButton,
-              isRunning && styles.primaryButtonActive,
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={isRunning ? "Pause timer" : "Start timer"}
+            style={styles.primaryButton}
           >
-            <ThemedText type="button">
+            <ThemedText type="heading">
               {isRunning ? "Pause" : "Start"}
             </ThemedText>
           </Pressable>
@@ -136,10 +223,8 @@ export default function PressureReliefTimerScreen() {
           <Pressable
             onPress={handleReset}
             style={styles.secondaryButton}
-            accessibilityRole="button"
-            accessibilityLabel="Reset timer"
           >
-            <ThemedText type="button">Reset</ThemedText>
+            <ThemedText type="heading">Reset</ThemedText>
           </Pressable>
         </View>
       </View>
@@ -147,26 +232,44 @@ export default function PressureReliefTimerScreen() {
   );
 }
 
+/* =========================
+   STYLES
+   ========================= */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   content: {
     flex: 1,
     padding: Spacing.xl,
     justifyContent: "center",
     gap: Spacing.lg,
   },
-  description: {
-    opacity: 0.8,
+  description: { opacity: 0.8 },
+
+  intervalSelector: {
+    flexDirection: "row",
+    gap: Spacing.sm,
   },
-  timer: {
-    height: 180,
-    borderRadius: BorderRadius.large,
-    justifyContent: "center",
+  intervalButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.medium,
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
+  intervalButtonActive: {
+    backgroundColor: "#007AFF",
+  },
+
+  ringContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeOverlay: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   controls: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -177,9 +280,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.medium,
     alignItems: "center",
     backgroundColor: "#007AFF",
-  },
-  primaryButtonActive: {
-    opacity: 0.85,
   },
   secondaryButton: {
     flex: 1,

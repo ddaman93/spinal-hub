@@ -4,6 +4,11 @@ export type MainStackParamList = {
     category: string;
     title: string;
   };
+  AssistiveTechDetail: {
+    itemId: string;
+    };
+  AssistiveTechList: undefined;
+  };
   Settings: undefined;
   VitalsLog: undefined;
   PainJournal: undefined;
