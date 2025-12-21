@@ -73,15 +73,16 @@ export default function DashboardScreen() {
             contentContainerStyle={styles.horizontalList}
           >
             {ASSISTIVE_TECH_ITEMS.map((item) => (
-            <AssistiveTechCard
-              key={item.id}
-              item={item}
-              onPress={() =>
-                navigation.navigate("AssistiveTechDetail", {
-                  itemId: item.id,
-                })
-              }
-            />
+              <AssistiveTechCard
+                key={item.id}
+                title={item.title}
+                description={item.description}
+                onPress={() => {
+                  navigation.navigate("AssistiveTechDetail", {
+                    itemId: item.id,
+                  });
+                }}
+              />
             ))}
           </ScrollView>
         </View>
@@ -109,7 +110,13 @@ const styles = StyleSheet.create({
   section: {
     marginTop: Spacing.xl,
   },
-
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
