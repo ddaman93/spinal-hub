@@ -3,13 +3,14 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
-
+import clinicalTrials from "./routes/clinicalTrials";
 import clinicalTrialsRouter from "./routes/clinicalTrials";
 
 const app = express();
 const log = console.log;
 
 app.use("/api", clinicalTrialsRouter);
+app.use("/api", clinicalTrials);
 
 declare module "http" {
   interface IncomingMessage {
