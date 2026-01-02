@@ -11,13 +11,13 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
-import { AssistiveTechCard } from "@/components/AssistiveTechCard";
+import { ClinicalTrialCard } from "@/components/ClinicalTrialCard";
 
-import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
+import { CLINICAL_TRIALS } from "@/data/clinicalTrials";
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 
-export default function AssistiveTechListScreen() {
+export default function ClinicalTrialsListScreen() {
   const insets = useSafeAreaInsets();
   const navigation =
     useNavigation<NativeStackNavigationProp<MainStackParamList>>();
@@ -31,7 +31,7 @@ export default function AssistiveTechListScreen() {
   // Extract unique tags
   const allTags = Array.from(
     new Set(
-      ASSISTIVE_TECH_ITEMS.flatMap(
+      CLINICAL_TRIALS.flatMap(
         (item) => item.tags
       )
     )
@@ -40,14 +40,14 @@ export default function AssistiveTechListScreen() {
   // Extract unique eligibility options
   const allEligibility = Array.from(
     new Set(
-      ASSISTIVE_TECH_ITEMS.flatMap(
+      CLINICAL_TRIALS.flatMap(
         (item) => item.eligibility
       )
     )
   );
 
   // Combined filtering logic
-  const filteredItems = ASSISTIVE_TECH_ITEMS.filter(
+  const filteredTrials = CLINICAL_TRIALS.filter(
     (item) => {
       const tagMatch = activeTag
         ? item.tags.includes(activeTag)
@@ -78,14 +78,14 @@ export default function AssistiveTechListScreen() {
         {/* HEADER */}
         <View>
           <ThemedText type="h2">
-            Assistive Technology
+            Clinical Trials & Research
           </ThemedText>
           <ThemedText
             type="small"
             style={styles.subtitle}
           >
-            Tools and equipment that improve
-            independence
+            Global research related to spinal
+            cord injury
           </ThemedText>
         </View>
 
@@ -181,15 +181,15 @@ export default function AssistiveTechListScreen() {
         </ScrollView>
 
         {/* FILTERED LIST */}
-        {filteredItems.map((item) => (
-          <AssistiveTechCard
-            key={item.id}
-            item={item}
+        {filteredTrials.map((trial) => (
+          <ClinicalTrialCard
+            key={trial.id}
+            item={trial}
             onPress={() =>
               navigation.navigate(
-                "AssistiveTechDetail",
+                "ClinicalTrialDetail",
                 {
-                  itemId: item.id,
+                  trialId: trial.id,
                 }
               )
             }

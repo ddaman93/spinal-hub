@@ -9,6 +9,8 @@ export type MainStackParamList = {
     };
   AssistiveTechList: undefined;
   };
+  ClinicalTrialsList: undefined;
+  ClinicalTrialDetail: { trialId: string };
   Settings: undefined;
   VitalsLog: undefined;
   PainJournal: undefined;

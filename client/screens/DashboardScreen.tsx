@@ -6,28 +6,33 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedView } from "@/components/ThemedView";
+import { ThemedText } from "@/components/ThemedText";
 import { CategoryTile } from "@/components/CategoryTile";
+import { AssistiveTechCard } from "@/components/AssistiveTechCard";
+
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
-import { CATEGORIES } from "@/config/catalog"
+import { CATEGORIES } from "@/config/catalog";
 import type { CategoryConfig } from "@/config/catalog";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
-import { AssistiveTechCard } from "@/components/AssistiveTechCard";
-import { ThemedText } from "@/components/ThemedText";
-
+import { CLINICAL_TRIALS } from "@/data/clinicalTrials";
+import { ClinicalTrialCard } from "@/components/ClinicalTrialCard";
 
 export default function DashboardScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
-  const handleCategoryPress = useCallback((category: CategoryConfig) => {
-
-    navigation.navigate("CategoryDetail", {
-      category: category.id,
-      title: category.title,
-    });
-  }, [navigation]);
+  const handleCategoryPress = useCallback(
+    (category: CategoryConfig) => {
+      navigation.navigate("CategoryDetail", {
+        category: category.id,
+        title: category.title,
+      });
+    },
+    [navigation]
+  );
 
   return (
     <ThemedView style={styles.container}>
@@ -43,6 +48,7 @@ export default function DashboardScreen() {
         scrollIndicatorInsets={{ bottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
+        {/* CATEGORY GRID */}
         <View style={styles.grid}>
           {CATEGORIES.map((category) => (
             <CategoryTile
@@ -53,9 +59,12 @@ export default function DashboardScreen() {
             />
           ))}
         </View>
+
+        {/* ASSISTIVE TECHNOLOGY SECTION */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText type="heading">Assistive Technology</ThemedText>
+
             <ThemedText
               type="link"
               onPress={() => navigation.navigate("AssistiveTechList")}
@@ -76,13 +85,47 @@ export default function DashboardScreen() {
             {ASSISTIVE_TECH_ITEMS.map((item) => (
               <AssistiveTechCard
                 key={item.id}
-                title={item.title}
-                description={item.description}
-                onPress={() => {
+                item={item}
+                onPress={() =>
                   navigation.navigate("AssistiveTechDetail", {
                     itemId: item.id,
-                  });
-                }}
+                  })
+                }
+              />
+            ))}
+          </ScrollView>
+        </View>
+        {/* CLINICAL TRIALS SECTION */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="heading">Clinical Trials & Research</ThemedText>
+
+            <ThemedText
+              type="link"
+              onPress={() => navigation.navigate("ClinicalTrialsList")}
+            >
+              View all →
+            </ThemedText>
+          </View>
+
+          <ThemedText type="small" style={styles.sectionSubtitle}>
+            Global research and trials related to spinal cord injury
+          </ThemedText>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+          >
+            {CLINICAL_TRIALS.map((item) => (
+              <ClinicalTrialCard
+                key={item.id}
+                item={item}
+                onPress={() =>
+                  navigation.navigate("ClinicalTrialDetail", {
+                    trialId: item.id,
+                  })
+                }
               />
             ))}
           </ScrollView>
@@ -115,24 +158,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: Spacing.xl,
     marginBottom: Spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: Spacing.xs,
-    marginTop: Spacing.xl,
-  },
-
   sectionSubtitle: {
-    fontSize: 14,
     opacity: 0.7,
     marginBottom: Spacing.md,
   },
-
   horizontalList: {
     gap: Spacing.md,
     paddingRight: Spacing.lg,
+  },
+  card: {
+    width: 280, // 👈 important
+    padding: Spacing.md,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(255,255,255,0.15)",
+    gap: Spacing.sm,
   },
 });

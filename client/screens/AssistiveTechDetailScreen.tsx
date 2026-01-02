@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { useRoute } from "@react-navigation/native";
 import { RouteProp } from "@react-navigation/native";
@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing } from "@/constants/theme";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
 import { MainStackParamList } from "@/types/navigation";
+import * as WebBrowser from "expo-web-browser";
 
 type RouteProps = RouteProp<
   MainStackParamList,
@@ -72,6 +73,48 @@ export default function AssistiveTechDetailScreen() {
             {item.summary}
           </ThemedText>
 
+          {/* ELIGIBILITY */}
+          {item.eligibility?.length > 0 && (
+            <>
+              <ThemedText type="heading" style={styles.sectionTitle}>
+                Who this may help
+              </ThemedText>
+
+              <View style={styles.pillRow}>
+                {item.eligibility.map((entry) => (
+                  <View key={entry} style={styles.eligibilityPill}>
+                    <ThemedText type="caption">
+                      {entry}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+          
+          {/* SOURCES */}
+          {item.sources?.length > 0 && (
+            <>
+              <ThemedText type="heading" style={{ marginTop: Spacing.lg }}>
+                Sources & Further Reading
+              </ThemedText>
+
+              {item.sources.map((source) => (
+                <Pressable
+                  key={source.url}
+                  onPress={() =>
+                    WebBrowser.openBrowserAsync(source.url)
+                  }
+                  style={styles.sourceLink}
+                >
+                  <ThemedText type="link">
+                    {source.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </>
+          )}
+
           {/* Placeholder sections (safe now, expandable later) */}
           <ThemedText type="heading" style={styles.sectionTitle}>
             Who it’s for
@@ -124,5 +167,20 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  sourceLink: {
+    marginTop: Spacing.xs,
+  },
+  pillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Spacing.xs,
+  },
+
+  eligibilityPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(77,163,255,0.25)",
   },
 });

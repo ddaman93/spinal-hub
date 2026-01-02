@@ -24,6 +24,8 @@ import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
 import AssistiveTechListScreen from "@/screens/AssistiveTechListScreen";
+import ClinicalTrialsListScreen from "@/screens/ClinicalTrialsListScreen";
+import ClinicalTrialDetailScreen from "@/screens/ClinicalTrialDetailScreen";
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -54,6 +56,17 @@ export default function RootStackNavigator() {
           headerTitle: () => <HeaderTitle title="Spinal Hub" />,
           headerRight: () => <SettingsHeaderButton />,
         }}
+      />
+      <Stack.Screen
+        name="ClinicalTrialsList"
+        component={ClinicalTrialsListScreen}
+        options={{ title: "Clinical Trials" }}
+      />
+
+      <Stack.Screen
+        name="ClinicalTrialDetail"
+        component={ClinicalTrialDetailScreen}
+        options={{ title: "Clinical Trial" }}
       />
       <Stack.Screen
         name="AssistiveTechList"
