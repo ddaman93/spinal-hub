@@ -6,27 +6,6 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing } from "@/constants/theme";
 import type { ClinicalTrialItem } from "@/data/clinicalTrials";
 import { useBookmarks } from "@/hooks/useBookmarks";
-import { Router } from "express";
-import fetch from "node-fetch";
-
-const router = Router();
-
-router.get("/clinical-trials", async (_req, res) => {
-  try {
-    const response = await fetch(
-      "https://clinicaltrials.gov/api/v2/studies?query.term=spinal%20cord%20injury&pageSize=10"
-    );
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch clinical trials",
-    });
-  }
-});
-
-export default router;
 
 const STAGE_COLORS: Record<
   string,
