@@ -142,6 +142,7 @@ function serveLandingPage({
   const host = forwardedHost || req.get("host");
   const baseUrl = `${protocol}://${host}`;
   const expsUrl = `${host}`;
+  const webUrl = `${protocol}://${host.replace(':5000', '')}:8081`;
 
   log(`baseUrl`, baseUrl);
   log(`expsUrl`, expsUrl);
@@ -149,6 +150,7 @@ function serveLandingPage({
   const html = landingPageTemplate
     .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
     .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl)
+    .replace(/WEB_URL_PLACEHOLDER/g, webUrl)
     .replace(/APP_NAME_PLACEHOLDER/g, appName);
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
