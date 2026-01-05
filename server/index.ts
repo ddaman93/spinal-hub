@@ -3,6 +3,8 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { spawn } from "child_process";
 
 const app = express();
 const log = console.log;
@@ -142,7 +144,7 @@ function serveLandingPage({
   const host = forwardedHost || req.get("host");
   const baseUrl = `${protocol}://${host}`;
   const expsUrl = `${host}`;
-  const webUrl = `${protocol}://${host.replace(':5000', '')}:8081`;
+  const webUrl = `${protocol}://${host || ''}/expo-web`;
 
   log(`baseUrl`, baseUrl);
   log(`expsUrl`, expsUrl);
@@ -218,10 +220,55 @@ function setupErrorHandler(app: express.Application) {
   });
 }
 
+function startExpoDevServer() {
+  if (process.env.NODE_ENV === "development") {
+    log("Starting Expo dev server on port 8081...");
+    const expoProcess = spawn("npx", ["expo", "start", "--localhost", "--port", "8081"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        EXPO_PACKAGER_PROXY_URL: `https://${process.env.REPLIT_DEV_DOMAIN}`,
+        REACT_NATIVE_PACKAGER_HOSTNAME: process.env.REPLIT_DEV_DOMAIN,
+        EXPO_PUBLIC_DOMAIN: `${process.env.REPLIT_DEV_DOMAIN}:5000`,
+      },
+      stdio: "inherit",
+    });
+
+    expoProcess.on("error", (err) => {
+      log("Failed to start Expo dev server:", err);
+    });
+
+    expoProcess.on("close", (code) => {
+      if (code !== 0) {
+        log(`Expo dev server exited with code ${code}`);
+      }
+    });
+  }
+}
+
+function setupExpoProxy(app: express.Application) {
+  if (process.env.NODE_ENV === "development") {
+    const expoProxy = createProxyMiddleware({
+      target: "http://localhost:8081",
+      changeOrigin: true,
+      ws: true,
+    });
+
+    app.use("/expo-web", (req, res, next) => {
+      req.url = req.url.replace(/^\/expo-web/, "") || "/";
+      expoProxy(req, res, next);
+    });
+  }
+}
+
 (async () => {
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
+
+  startExpoDevServer();
+
+  setupExpoProxy(app);
 
   configureExpoAndLanding(app);
 
