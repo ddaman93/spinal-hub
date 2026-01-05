@@ -7,11 +7,10 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run expo:static:build && npm run server:build"]
-run = ["npm", "run", "server:prod"]
+run = ["npm", "run", "all:dev"]
 
 [[ports]]
 localPort = 5000
-externalPort = 5000
 
 [[ports]]
 localPort = 8081
@@ -46,10 +45,9 @@ args = "Start dev servers"
 [[workflows.workflow]]
 name = "Start dev servers"
 author = "agent"
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run all:dev"
-waitForPort = 8081
-ensurePreviewReachable = "/status"
+args = "npm run server:dev"
 

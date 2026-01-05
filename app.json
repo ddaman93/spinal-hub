@@ -8,6 +8,11 @@
     "scheme": "spinalhub",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
+    "extra": {
+      "replitAppUrl": "https://YOUR-REPL-NAME.replit.app"
+    },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.spinalhub.app"

@@ -9,14 +9,16 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { CategoryTile } from "@/components/CategoryTile";
 import { AssistiveTechCard } from "@/components/AssistiveTechCard";
+import { ClinicalTrialCard } from "@/components/ClinicalTrialCard";
 
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { CATEGORIES } from "@/config/catalog";
 import type { CategoryConfig } from "@/config/catalog";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
-import { CLINICAL_TRIALS } from "@/data/clinicalTrials";
-import { ClinicalTrialCard } from "@/components/ClinicalTrialCard";
+
+import { useQuery } from "@tanstack/react-query";
+import { fetchClinicalTrials } from "../api/clinicalTrials";
 
 export default function DashboardScreen() {
   const navigation =
@@ -33,6 +35,18 @@ export default function DashboardScreen() {
     },
     [navigation]
   );
+
+  // 🔴 LIVE DATA: Clinical trials
+  const {
+    data: clinicalTrialsData,
+    isLoading: clinicalTrialsLoading,
+    error: clinicalTrialsError,
+  } = useQuery({
+    queryKey: ["clinicalTrials", "dashboard"],
+    queryFn: () => fetchClinicalTrials("spinal cord injury"),
+  });
+
+  const trials = clinicalTrialsData?.studies ?? [];
 
   return (
     <ThemedView style={styles.container}>
@@ -95,7 +109,8 @@ export default function DashboardScreen() {
             ))}
           </ScrollView>
         </View>
-        {/* CLINICAL TRIALS SECTION */}
+
+        {/* CLINICAL TRIALS SECTION — LIVE DATA */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText type="heading">Clinical Trials & Research</ThemedText>
@@ -112,23 +127,38 @@ export default function DashboardScreen() {
             Global research and trials related to spinal cord injury
           </ThemedText>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          >
-            {CLINICAL_TRIALS.map((item) => (
-              <ClinicalTrialCard
-                key={item.id}
-                item={item}
-                onPress={() =>
-                  navigation.navigate("ClinicalTrialDetail", {
-                    trialId: item.id,
-                  })
-                }
-              />
-            ))}
-          </ScrollView>
+          {clinicalTrialsLoading && (
+            <ThemedText type="small">Loading clinical trials…</ThemedText>
+          )}
+
+          {clinicalTrialsError && (
+            <ThemedText type="small">
+              Unable to load clinical trials
+            </ThemedText>
+          )}
+
+          {!clinicalTrialsLoading && !clinicalTrialsError && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            >
+              {trials.slice(0, 5).map((trial: any) => (
+                <ClinicalTrialCard
+                  key={
+                    trial.protocolSection.identificationModule.nctId
+                  }
+                  item={trial}
+                  onPress={() =>
+                    navigation.navigate("ClinicalTrialDetail", {
+                      trialId:
+                        trial.protocolSection.identificationModule.nctId,
+                    })
+                  }
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
       </ScrollView>
     </ThemedView>
@@ -167,14 +197,5 @@ const styles = StyleSheet.create({
   horizontalList: {
     gap: Spacing.md,
     paddingRight: Spacing.lg,
-  },
-  card: {
-    width: 280, // 👈 important
-    padding: Spacing.md,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.15)",
-    gap: Spacing.sm,
   },
 });
