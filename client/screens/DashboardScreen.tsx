@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -16,9 +16,13 @@ import { MainStackParamList } from "@/types/navigation";
 import { CATEGORIES } from "@/config/catalog";
 import type { CategoryConfig } from "@/config/catalog";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
+import { CLINICAL_TRIALS } from "@/data/clinicalTrials";
 
-import { useQuery } from "@tanstack/react-query";
-import { fetchClinicalTrials } from "../api/clinicalTrials";
+type LiveTrial = {
+  id: string;
+  title: string;
+  status: string;
+};
 
 export default function DashboardScreen() {
   const navigation =
@@ -36,17 +40,40 @@ export default function DashboardScreen() {
     [navigation]
   );
 
-  // 🔴 LIVE DATA: Clinical trials
-  const {
-    data: clinicalTrialsData,
-    isLoading: clinicalTrialsLoading,
-    error: clinicalTrialsError,
-  } = useQuery({
-    queryKey: ["clinicalTrials", "dashboard"],
-    queryFn: () => fetchClinicalTrials("spinal cord injury"),
-  });
+  // Web-only live data proof (no React Query yet)
+  const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
 
-  const trials = clinicalTrialsData?.studies ?? [];
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLiveLoading(true);
+      setLiveError(null);
+
+      try {
+        const res = await fetch("/api/clinical-trials?condition=spinal%20cord%20injury&pageSize=5");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (!cancelled) {
+          setLiveTrials(data.studies ?? []);
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          setLiveError(e?.message ?? "Failed to load");
+        }
+      } finally {
+        if (!cancelled) setLiveLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <ThemedView style={styles.container}>
@@ -110,7 +137,7 @@ export default function DashboardScreen() {
           </ScrollView>
         </View>
 
-        {/* CLINICAL TRIALS SECTION — LIVE DATA */}
+        {/* CLINICAL TRIALS SECTION */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText type="heading">Clinical Trials & Research</ThemedText>
@@ -127,38 +154,40 @@ export default function DashboardScreen() {
             Global research and trials related to spinal cord injury
           </ThemedText>
 
-          {clinicalTrialsLoading && (
-            <ThemedText type="small">Loading clinical trials…</ThemedText>
+          {/* LIVE DATA PROOF (web-only for now) */}
+          {liveLoading && <ThemedText type="small">Loading live trials…</ThemedText>}
+          {liveError && (
+            <ThemedText type="small">Live trials error: {liveError}</ThemedText>
           )}
-
-          {clinicalTrialsError && (
-            <ThemedText type="small">
-              Unable to load clinical trials
-            </ThemedText>
-          )}
-
-          {!clinicalTrialsLoading && !clinicalTrialsError && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-            >
-              {trials.slice(0, 5).map((trial: any) => (
-                <ClinicalTrialCard
-                  key={
-                    trial.protocolSection.identificationModule.nctId
-                  }
-                  item={trial}
-                  onPress={() =>
-                    navigation.navigate("ClinicalTrialDetail", {
-                      trialId:
-                        trial.protocolSection.identificationModule.nctId,
-                    })
-                  }
-                />
+          {!liveLoading && !liveError && liveTrials.length > 0 && (
+            <View style={{ marginBottom: Spacing.md }}>
+              <ThemedText type="small">Live trials loaded: {liveTrials.length}</ThemedText>
+              {liveTrials.slice(0, 3).map((t) => (
+                <ThemedText key={t.id} type="small" style={{ opacity: 0.85 }}>
+                  • {t.title} ({t.status})
+                </ThemedText>
               ))}
-            </ScrollView>
+            </View>
           )}
+
+          {/* Keep your existing static cards until we adapt ClinicalTrialCard */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+          >
+            {CLINICAL_TRIALS.map((item) => (
+              <ClinicalTrialCard
+                key={item.id}
+                item={item}
+                onPress={() =>
+                  navigation.navigate("ClinicalTrialDetail", {
+                    trialId: item.id,
+                  })
+                }
+              />
+            ))}
+          </ScrollView>
         </View>
       </ScrollView>
     </ThemedView>
@@ -166,24 +195,16 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingHorizontal: Spacing.lg },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: Spacing.md,
   },
-  section: {
-    marginTop: Spacing.xl,
-  },
+  section: { marginTop: Spacing.xl },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
