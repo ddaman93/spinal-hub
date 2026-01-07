@@ -1,19 +1,32 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { Platform } from "react-native";
 
 /**
- * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
+ * Gets the base URL for the Express API server (e.g., "http://localhost:5000")
  * @returns {string} The API base URL
  */
 export function getApiUrl(): string {
-  let host = process.env.EXPO_PUBLIC_DOMAIN;
+  const host = process.env.EXPO_PUBLIC_DOMAIN;
 
-  if (!host) {
-    throw new Error("EXPO_PUBLIC_DOMAIN is not set");
+  if (host) {
+    return `https://${host}`;
   }
 
-  let url = new URL(`https://${host}`);
+  // Fallback for web development
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    // In Replit, use the current origin - both Expo and API are proxied through the same domain
+    // Check if we're on localhost with ports (dev) or Replit (proxied)
+    const origin = window.location.origin;
+    if (origin.includes("localhost:8081")) {
+      // Local development - API is on port 5000
+      return origin.replace(":8081", ":5000");
+    }
+    // Replit proxied environment - use origin directly (API accessible via same domain)
+    return origin;
+  }
 
-  return url.href;
+  // Fallback for native development
+  return "http://localhost:5000";
 }
 
 async function throwIfResNotOk(res: Response) {

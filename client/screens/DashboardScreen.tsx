@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { CategoryTile } from "@/components/CategoryTile";
 import { AssistiveTechCard } from "@/components/AssistiveTechCard";
 import { ClinicalTrialCard } from "@/components/ClinicalTrialCard";
+import { getApiUrl } from "@/lib/query-client";
 
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
@@ -53,7 +54,9 @@ export default function DashboardScreen() {
       setLiveError(null);
 
       try {
-        const res = await fetch("/api/clinical-trials?condition=spinal%20cord%20injury&pageSize=5");
+        const apiUrl = getApiUrl();
+        const url = new URL("/api/clinical-trials?condition=spinal%20cord%20injury&pageSize=5", apiUrl);
+        const res = await fetch(url.toString());
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 

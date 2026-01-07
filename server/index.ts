@@ -222,8 +222,19 @@ function setupExpoProxy(app: express.Application) {
       ws: true,
     });
 
+    // Proxy /expo-web route
     app.use("/expo-web", (req, res, next) => {
       req.url = req.url.replace(/^\/expo-web/, "") || "/";
+      expoProxy(req, res, next);
+    });
+
+    // Proxy all other non-API requests to Expo (must come after API routes)
+    app.use((req, res, next) => {
+      // Skip API routes - they're handled by Express
+      if (req.path.startsWith("/api")) {
+        return next();
+      }
+      // Proxy everything else to Expo dev server
       expoProxy(req, res, next);
     });
   }

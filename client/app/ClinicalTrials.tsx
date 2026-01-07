@@ -1,7 +1,5 @@
 import { View, Text, ActivityIndicator, FlatList } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { fetchClinicalTrials } from "../api/clinicalTrials";
-import { useQuery } from "@tanstack/react-query";
 
 export default function ClinicalTrialsScreen() {
   const { data, isLoading, error } = useQuery({
