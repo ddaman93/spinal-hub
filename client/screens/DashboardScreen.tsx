@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import * as Location from "expo-location";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -19,11 +20,29 @@ import type { CategoryConfig } from "@/config/catalog";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
 import { CLINICAL_TRIALS } from "@/data/clinicalTrials";
 
+/* ───────────────────────── helpers ───────────────────────── */
+
+function getGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+/* ───────────────────────── types ───────────────────────── */
+
 type LiveTrial = {
   id: string;
   title: string;
   status: string;
 };
+
+type WeatherData = {
+  temp: number;
+  icon: string;
+};
+
+/* ───────────────────────── screen ───────────────────────── */
 
 export default function DashboardScreen() {
   const navigation =
@@ -31,6 +50,52 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
 
+  // TODO: Replace with real auth user
+  const userName = "Dylan";
+
+  /* ───────── weather state ───────── */
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWeather() {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+
+        const apiKey = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
+        if (!apiKey) return;
+
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${apiKey}`
+        );
+
+        if (!res.ok) throw new Error("Weather fetch failed");
+
+        const data = await res.json();
+
+        if (!cancelled) {
+          setWeather({
+            temp: Math.round(data.main.temp),
+            icon: data.weather[0].icon,
+          });
+        }
+      } catch {
+        // Silently fail – dashboard should never break
+      }
+    }
+
+    loadWeather();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ───────── category nav ───────── */
   const handleCategoryPress = useCallback(
     (category: CategoryConfig) => {
       navigation.navigate("CategoryDetail", {
@@ -41,7 +106,7 @@ export default function DashboardScreen() {
     [navigation]
   );
 
-  // Web-only live data proof (no React Query yet)
+  /* ───────── live trials (unchanged) ───────── */
   const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveError, setLiveError] = useState<string | null>(null);
@@ -55,7 +120,10 @@ export default function DashboardScreen() {
 
       try {
         const apiUrl = getApiUrl();
-        const url = new URL("/api/clinical-trials?condition=spinal%20cord%20injury&pageSize=5", apiUrl);
+        const url = new URL(
+          "/api/clinical-trials?condition=spinal%20cord%20injury&pageSize=5",
+          apiUrl
+        );
         const res = await fetch(url.toString());
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -64,9 +132,7 @@ export default function DashboardScreen() {
           setLiveTrials(data.studies ?? []);
         }
       } catch (e: any) {
-        if (!cancelled) {
-          setLiveError(e?.message ?? "Failed to load");
-        }
+        if (!cancelled) setLiveError(e?.message ?? "Failed to load");
       } finally {
         if (!cancelled) setLiveLoading(false);
       }
@@ -78,10 +144,11 @@ export default function DashboardScreen() {
     };
   }, []);
 
+  /* ───────────────────────── render ───────────────────────── */
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
           {
@@ -89,9 +156,32 @@ export default function DashboardScreen() {
             paddingBottom: insets.bottom + Spacing.xl,
           },
         ]}
-        scrollIndicatorInsets={{ bottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
+        {/* GREETING + WEATHER */}
+        <View style={styles.topRow}>
+          <View>
+            <ThemedText type="heading">
+              {getGreeting()}, {userName}
+            </ThemedText>
+            <ThemedText type="small" style={styles.subtitle}>
+              Welcome back to Spinal Hub
+            </ThemedText>
+          </View>
+
+          {weather && (
+            <View style={styles.weather}>
+              <Image
+                source={{
+                  uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png`,
+                }}
+                style={styles.weatherIcon}
+              />
+              <ThemedText type="small">{weather.temp}°C</ThemedText>
+            </View>
+          )}
+        </View>
+
         {/* CATEGORY GRID */}
         <View style={styles.grid}>
           {CATEGORIES.map((category) => (
@@ -104,91 +194,31 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* ASSISTIVE TECHNOLOGY SECTION */}
+        {/* ASSISTIVE TECH */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="heading">Assistive Technology</ThemedText>
-
-            <ThemedText
-              type="link"
-              onPress={() => navigation.navigate("AssistiveTechList")}
-            >
-              View all →
-            </ThemedText>
-          </View>
-
-          <ThemedText type="small" style={styles.sectionSubtitle}>
-            Tools and equipment that improve independence
-          </ThemedText>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          >
+          <ThemedText type="heading">Assistive Technology</ThemedText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {ASSISTIVE_TECH_ITEMS.map((item) => (
-              <AssistiveTechCard
-                key={item.id}
-                item={item}
-                onPress={() =>
-                  navigation.navigate("AssistiveTechDetail", {
-                    itemId: item.id,
-                  })
-                }
-              />
+              <AssistiveTechCard key={item.id} item={item} />
             ))}
           </ScrollView>
         </View>
 
-        {/* CLINICAL TRIALS SECTION */}
+        {/* CLINICAL TRIALS */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ThemedText type="heading">Clinical Trials & Research</ThemedText>
+          <ThemedText type="heading">Clinical Trials</ThemedText>
 
-            <ThemedText
-              type="link"
-              onPress={() => navigation.navigate("ClinicalTrialsList")}
-            >
-              View all →
-            </ThemedText>
-          </View>
+          {liveLoading && (
+            <ThemedText type="small">Loading live trials…</ThemedText>
+          )}
 
-          <ThemedText type="small" style={styles.sectionSubtitle}>
-            Global research and trials related to spinal cord injury
-          </ThemedText>
-
-          {/* LIVE DATA PROOF (web-only for now) */}
-          {liveLoading && <ThemedText type="small">Loading live trials…</ThemedText>}
           {liveError && (
-            <ThemedText type="small">Live trials error: {liveError}</ThemedText>
-          )}
-          {!liveLoading && !liveError && liveTrials.length > 0 && (
-            <View style={{ marginBottom: Spacing.md }}>
-              <ThemedText type="small">Live trials loaded: {liveTrials.length}</ThemedText>
-              {liveTrials.slice(0, 3).map((t) => (
-                <ThemedText key={t.id} type="small" style={{ opacity: 0.85 }}>
-                  • {t.title} ({t.status})
-                </ThemedText>
-              ))}
-            </View>
+            <ThemedText type="small">Error: {liveError}</ThemedText>
           )}
 
-          {/* Keep your existing static cards until we adapt ClinicalTrialCard */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          >
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {CLINICAL_TRIALS.map((item) => (
-              <ClinicalTrialCard
-                key={item.id}
-                item={item}
-                onPress={() =>
-                  navigation.navigate("ClinicalTrialDetail", {
-                    trialId: item.id,
-                  })
-                }
-              />
+              <ClinicalTrialCard key={item.id} item={item} />
             ))}
           </ScrollView>
         </View>
@@ -197,29 +227,43 @@ export default function DashboardScreen() {
   );
 }
 
+/* ───────────────────────── styles ───────────────────────── */
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollView: { flex: 1 },
   scrollContent: { paddingHorizontal: Spacing.lg },
+
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+
+  subtitle: {
+    opacity: 0.7,
+    marginTop: Spacing.xs,
+  },
+
+  weather: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  weatherIcon: {
+    width: 36,
+    height: 36,
+  },
+
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     gap: Spacing.md,
   },
-  section: { marginTop: Spacing.xl },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-  sectionSubtitle: {
-    opacity: 0.7,
-    marginBottom: Spacing.md,
-  },
-  horizontalList: {
-    gap: Spacing.md,
-    paddingRight: Spacing.lg,
+
+  section: {
+    marginTop: Spacing.xl,
   },
 });
