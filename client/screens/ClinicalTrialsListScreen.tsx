@@ -1,226 +1,198 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  ScrollView,
   View,
   StyleSheet,
-  ScrollView,
+  RefreshControl,
+  Switch,
   Pressable,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
-import { ClinicalTrialCard } from "@/components/ClinicalTrialCard";
-
-import { CLINICAL_TRIALS } from "@/data/clinicalTrials";
+import { LiveClinicalTrialCard } from "@/components/LiveClinicalTrialCard";
 import { Spacing } from "@/constants/theme";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { MainStackParamList } from "@/types/navigation";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function ClinicalTrialsListScreen() {
+type Props = NativeStackScreenProps<
+  MainStackParamList,
+  "ClinicalTrialsList"
+>;
+
+const CACHE_KEY = "clinical_trials_cache";
+
+export default function ClinicalTrialsListScreen({ route }: Props) {
+  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
-  const navigation =
-    useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
-  // Filters
-  const [activeTag, setActiveTag] =
-    useState<string | null>(null);
-  const [activeEligibility, setActiveEligibility] =
-    useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showRecruitingOnly, setShowRecruitingOnly] =
+    useState(false);
 
-  // Extract unique tags
-  const allTags = Array.from(
-    new Set(
-      CLINICAL_TRIALS.flatMap(
-        (item) => item.tags
-      )
-    )
+  // ✅ SAFE DEFAULT
+  const [allTrials, setAllTrials] = useState(
+    route.params?.trials ?? []
   );
 
-  // Extract unique eligibility options
-  const allEligibility = Array.from(
-    new Set(
-      CLINICAL_TRIALS.flatMap(
-        (item) => item.eligibility
-      )
-    )
-  );
+  /* ───────── filtered list ───────── */
+  const filteredTrials = useMemo(() => {
+    if (!showRecruitingOnly) return allTrials;
 
-  // Combined filtering logic
-  const filteredTrials = CLINICAL_TRIALS.filter(
-    (item) => {
-      const tagMatch = activeTag
-        ? item.tags.includes(activeTag)
-        : true;
+    return allTrials.filter(
+      (t) => t.status === "RECRUITING"
+    );
+  }, [showRecruitingOnly, allTrials]);
 
-      const eligibilityMatch = activeEligibility
-        ? item.eligibility.includes(
-            activeEligibility
-          )
-        : true;
+  /* ───────── pull to refresh ───────── */
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
 
-      return tagMatch && eligibilityMatch;
+      const res = await fetch(
+        "https://clinicaltrials.gov/api/v2/studies?query.term=spinal%20cord%20injury&pageSize=25&sort=LastUpdatePostDate:desc"
+      );
+
+      if (!res.ok) throw new Error();
+
+      const data = await res.json();
+
+      const refreshed =
+        data.studies?.map((study: any) => {
+          const protocol = study.protocolSection;
+          const locations =
+            protocol.contactsLocationsModule?.locations ??
+            [];
+
+          return {
+            id: protocol.identificationModule.nctId,
+            title:
+              protocol.identificationModule.briefTitle ??
+              "Untitled study",
+            status:
+              protocol.statusModule.overallStatus ??
+              "Unknown",
+            phase:
+              protocol.designModule?.phases?.[0],
+            summary:
+              protocol.descriptionModule?.briefSummary,
+            country: locations[0]?.country,
+          };
+        }) ?? [];
+
+      setAllTrials(refreshed);
+
+      await AsyncStorage.setItem(
+        CACHE_KEY,
+        JSON.stringify({
+          timestamp: Date.now(),
+          trials: refreshed,
+        })
+      );
+    } catch {
+      // silent fail
+    } finally {
+      setRefreshing(false);
     }
-  );
+  };
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={{ flex: 1 }}>
       <ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.lg,
-          paddingTop: Spacing.lg,
-          paddingBottom:
-            insets.bottom + Spacing.xl,
-          gap: Spacing.lg,
-        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00C896"
+          />
+        }
+        contentContainerStyle={[
+          styles.container,
+          {
+            paddingTop: headerHeight + Spacing.lg,
+            paddingBottom: insets.bottom + Spacing.lg,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* HEADER */}
-        <View>
-          <ThemedText type="h2">
-            Clinical Trials & Research
+        <View style={styles.headerRow}>
+          <ThemedText type="heading">
+            Clinical Trials
           </ThemedText>
-          <ThemedText
-            type="small"
-            style={styles.subtitle}
+
+          <Pressable
+            onPress={() =>
+              setShowRecruitingOnly((v) => !v)
+            }
+            style={styles.toggle}
           >
-            Global research related to spinal
-            cord injury
-          </ThemedText>
+            <ThemedText type="small">
+              Recruiting only
+            </ThemedText>
+            <Switch
+              value={showRecruitingOnly}
+              onValueChange={setShowRecruitingOnly}
+            />
+          </Pressable>
         </View>
 
-        {/* TAG FILTERS */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <Pressable
-            onPress={() => setActiveTag(null)}
-            style={[
-              styles.filterPill,
-              !activeTag &&
-                styles.filterPillActive,
-            ]}
+        {/* EMPTY STATE */}
+        {filteredTrials.length === 0 && (
+          <ThemedText
+            type="small"
+            style={{ opacity: 0.6 }}
           >
-            <ThemedText type="caption">
-              All tags
-            </ThemedText>
-          </Pressable>
+            No trials to display.
+          </ThemedText>
+        )}
 
-          {allTags.map((tag) => {
-            const active = activeTag === tag;
-
-            return (
-              <Pressable
-                key={tag}
-                onPress={() =>
-                  setActiveTag(
-                    active ? null : tag
-                  )
-                }
-                style={[
-                  styles.filterPill,
-                  active &&
-                    styles.filterPillActive,
-                ]}
-              >
-                <ThemedText type="caption">
-                  {tag.replace("-", " ")}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* ELIGIBILITY FILTERS */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-        >
-          <Pressable
-            onPress={() =>
-              setActiveEligibility(null)
-            }
-            style={[
-              styles.filterPill,
-              !activeEligibility &&
-                styles.filterPillActive,
-            ]}
-          >
-            <ThemedText type="caption">
-              All eligibility
-            </ThemedText>
-          </Pressable>
-
-          {allEligibility.map((entry) => {
-            const active =
-              activeEligibility === entry;
-
-            return (
-              <Pressable
-                key={entry}
-                onPress={() =>
-                  setActiveEligibility(
-                    active ? null : entry
-                  )
-                }
-                style={[
-                  styles.filterPill,
-                  active &&
-                    styles.filterPillActive,
-                ]}
-              >
-                <ThemedText type="caption">
-                  {entry}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* FILTERED LIST */}
-        {filteredTrials.map((trial) => (
-          <ClinicalTrialCard
-            key={trial.id}
-            item={trial}
-            onPress={() =>
-              navigation.navigate(
-                "ClinicalTrialDetail",
-                {
-                  trialId: trial.id,
-                }
-              )
-            }
-          />
-        ))}
+        {/* GRID */}
+        <View style={styles.grid}>
+          {filteredTrials.map((trial) => (
+            <View key={trial.id} style={styles.gridItem}>
+              <LiveClinicalTrialCard
+                {...trial}
+                variant="grid"
+              />
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </ThemedView>
   );
 }
 
+/* ───────── styles ───────── */
+
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    padding: Spacing.lg,
   },
-  subtitle: {
-    opacity: 0.7,
-    marginTop: Spacing.xs,
+
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.md,
   },
-  filterRow: {
-    gap: Spacing.sm,
-    paddingBottom: Spacing.md,
+
+  toggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.xs,
   },
-  filterPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor:
-      "rgba(255,255,255,0.12)",
+
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
-  filterPillActive: {
-    backgroundColor:
-      "rgba(77,163,255,0.35)",
+
+  gridItem: {
+    width: "48%",
+    marginBottom: Spacing.lg,
   },
 });

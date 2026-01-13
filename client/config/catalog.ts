@@ -1,21 +1,25 @@
 import { Feather } from "@expo/vector-icons";
 import { MainStackParamList } from "@/types/navigation";
 
+/* ───────────────────────── types ───────────────────────── */
+
 export type ToolConfig = {
   id: string;
   name: string;
   description: string;
   icon: keyof typeof Feather.glyphMap;
-  route?: keyof MainStackParamList
+  route?: keyof MainStackParamList;
   comingSoon?: boolean;
 };
 
 export type CategoryConfig = {
   id: string;
   title: string;
-  icon: "sun" | "activity" | "users" | "calendar" | "briefcase" | "tool";
+  icon: "sun" | "activity" | "users" | "calendar";
   tools: ToolConfig[];
 };
+
+/* ───────────────────────── categories ───────────────────────── */
 
 export const CATEGORIES: CategoryConfig[] = [
   {
@@ -46,6 +50,7 @@ export const CATEGORIES: CategoryConfig[] = [
       },
     ],
   },
+
   {
     id: "health-tracking",
     title: "Health Tracking",
@@ -54,34 +59,38 @@ export const CATEGORIES: CategoryConfig[] = [
       {
         id: "vitals",
         name: "Vital Signs Log",
-        description: "Record blood pressure, heart rate, and more",
+        description:
+          "Record blood pressure, heart rate, and more",
         icon: "heart",
         route: "VitalsLog",
       },
       {
         id: "pressure-relief",
         name: "Pressure Relief Timer",
-        description: "Timed reminders to shift weight and reduce pressure",
+        description:
+          "Timed reminders to shift weight and reduce pressure",
         icon: "clock",
         route: "PressureReliefTimer",
       },
-
       {
         id: "pain",
         name: "Pain Journal",
-        description: "Track pain levels and locations",
+        description:
+          "Track pain levels and locations",
         icon: "activity",
         route: "PainJournal",
       },
       {
         id: "medications",
         name: "Medications",
-        description: "Manage and track your medications",
+        description:
+          "Manage and track your medications",
         icon: "clipboard",
         route: "MedicationTracker",
       },
     ],
   },
+
   {
     id: "care-support",
     title: "Care & Support",
@@ -90,19 +99,22 @@ export const CATEGORIES: CategoryConfig[] = [
       {
         id: "emergency",
         name: "Emergency Contacts",
-        description: "Quick access to important contacts",
+        description:
+          "Quick access to important contacts",
         icon: "phone",
         route: "EmergencyContacts",
       },
       {
         id: "caregiver-notes",
         name: "Caregiver Notes",
-        description: "Share notes with your care team",
+        description:
+          "Share notes with your care team",
         icon: "file-text",
         comingSoon: true,
       },
     ],
   },
+
   {
     id: "appointments",
     title: "Appointments",
@@ -111,37 +123,10 @@ export const CATEGORIES: CategoryConfig[] = [
       {
         id: "schedule",
         name: "Schedule",
-        description: "Manage upcoming appointments",
+        description:
+          "Manage upcoming appointments",
         icon: "calendar",
         route: "AppointmentScheduler",
-      },
-    ],
-  },
-  {
-    id: "life-management",
-    title: "Life Management",
-    icon: "briefcase",
-    tools: [
-      {
-        id: "notes",
-        name: "Notes & Journal",
-        description: "Personal thoughts and reflections",
-        icon: "edit-3",
-        comingSoon: true,
-      },
-    ],
-  },
-  {
-    id: "custom-tools",
-    title: "Custom Tools",
-    icon: "tool",
-    tools: [
-      {
-        id: "create",
-        name: "Create New Tool",
-        description: "Build a custom tracking tool",
-        icon: "plus-circle",
-        comingSoon: true,
       },
     ],
   },

@@ -8,29 +8,46 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
 import { MainStackParamList } from "@/types/navigation";
-import PressureReliefTimerScreen from "@/screens/tools/PressureReliefTimerScreen";
-
 
 import DashboardScreen from "@/screens/DashboardScreen";
 import CategoryDetailScreen from "@/screens/CategoryDetailScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
+
+import PressureReliefTimerScreen from "@/screens/tools/PressureReliefTimerScreen";
 import VitalsLogScreen from "@/screens/tools/VitalsLogScreen";
 import PainJournalScreen from "@/screens/tools/PainJournalScreen";
 import MedicationTrackerScreen from "@/screens/tools/MedicationTrackerScreen";
 import HydrationTrackerScreen from "@/screens/tools/HydrationTrackerScreen";
-import { MorningRoutineScreen, EveningRoutineScreen } from "@/screens/tools/RoutineScreen";
+import {
+  MorningRoutineScreen,
+  EveningRoutineScreen,
+} from "@/screens/tools/RoutineScreen";
 import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScreen";
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
-import { HeaderTitle } from "@/components/HeaderTitle";
-import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
+
 import AssistiveTechListScreen from "@/screens/AssistiveTechListScreen";
+import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
+
 import ClinicalTrialsListScreen from "@/screens/ClinicalTrialsListScreen";
 import ClinicalTrialDetailScreen from "@/screens/ClinicalTrialDetailScreen";
 
-const Stack = createNativeStackNavigator<MainStackParamList>();
+import MobilityAssistiveTechScreen from "@/screens/MobilityAssistiveTechScreen";
+import ManualWheelchairTechScreen from "@/screens/ManualWheelchairTechScreen";
+import PowerWheelchairTechScreen from "@/screens/PowerWheelchairTechScreen";
+import ProductDetailScreen from "@/screens/ProductDetailScreen";
+
+import { HeaderTitle } from "@/components/HeaderTitle";
+
+const Stack =
+  createNativeStackNavigator<MainStackParamList>();
+
+/* ───────────────── header button ───────────────── */
 
 function SettingsHeaderButton() {
-  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const navigation =
+    useNavigation<
+      NativeStackNavigationProp<MainStackParamList>
+    >();
   const { theme } = useTheme();
 
   return (
@@ -38,25 +55,70 @@ function SettingsHeaderButton() {
       onPress={() => navigation.navigate("Settings")}
       accessibilityLabel="Settings"
     >
-      <Feather name="settings" size={22} color={theme.text} />
+      <Feather
+        name="settings"
+        size={22}
+        color={theme.text}
+      />
     </HeaderButton>
   );
 }
 
+/* ───────────────── navigator ───────────────── */
+
 export default function RootStackNavigator() {
   const screenOptions = useScreenOptions();
-  const opaqueScreenOptions = useScreenOptions({ transparent: false });
+  const opaqueScreenOptions =
+    useScreenOptions({ transparent: false });
 
   return (
     <Stack.Navigator screenOptions={screenOptions}>
+      {/* DASHBOARD */}
       <Stack.Screen
         name="Dashboard"
         component={DashboardScreen}
         options={{
-          headerTitle: () => <HeaderTitle title="Spinal Hub" />,
-          headerRight: () => <SettingsHeaderButton />,
+          headerTitle: () => (
+            <HeaderTitle title="Spinal Hub" />
+          ),
+          headerRight: () => (
+            <SettingsHeaderButton />
+          ),
         }}
       />
+
+      {/* ASSISTIVE TECH */}
+      <Stack.Screen
+        name="AssistiveTechList"
+        component={AssistiveTechListScreen}
+        options={{ title: "Assistive Technology" }}
+      />
+
+      <Stack.Screen
+        name="AssistiveTechDetail"
+        component={AssistiveTechDetailScreen}
+        options={{ title: "Assistive Technology" }}
+      />
+
+      <Stack.Screen
+        name="MobilityAssistiveTech"
+        component={MobilityAssistiveTechScreen}
+        options={{ title: "Mobility Assistive Tech" }}
+      />
+
+      <Stack.Screen
+        name="ManualWheelchairTech"
+        component={ManualWheelchairTechScreen}
+        options={{ title: "Manual Wheelchair Tech" }}
+      />
+
+      <Stack.Screen
+        name="PowerWheelchairTech"
+        component={PowerWheelchairTechScreen}
+        options={{ title: "Power Wheelchair Tech" }}
+      />
+
+      {/* CLINICAL TRIALS */}
       <Stack.Screen
         name="ClinicalTrialsList"
         component={ClinicalTrialsListScreen}
@@ -68,16 +130,8 @@ export default function RootStackNavigator() {
         component={ClinicalTrialDetailScreen}
         options={{ title: "Clinical Trial" }}
       />
-      <Stack.Screen
-        name="AssistiveTechList"
-        component={AssistiveTechListScreen}
-        options={{ title: "Assistive Technology" }}
-      />
-      <Stack.Screen
-        name="AssistiveTechDetail"
-        component={AssistiveTechDetailScreen}
-        options={{ title: "Assistive Technology" }}
-      />
+
+      {/* CATEGORY */}
       <Stack.Screen
         name="CategoryDetail"
         component={CategoryDetailScreen}
@@ -86,6 +140,8 @@ export default function RootStackNavigator() {
           headerTitle: route.params.title,
         })}
       />
+
+      {/* SETTINGS */}
       <Stack.Screen
         name="Settings"
         component={SettingsScreen}
@@ -94,6 +150,15 @@ export default function RootStackNavigator() {
           headerTitle: "Settings",
         }}
       />
+
+      {/* TOOLS */}
+
+      <Stack.Screen
+        name="ProductDetail"
+        component={ProductDetailScreen}
+        options={{ title: "Product" }}
+      />
+      
       <Stack.Screen
         name="VitalsLog"
         component={VitalsLogScreen}
@@ -102,6 +167,7 @@ export default function RootStackNavigator() {
           headerTitle: "Vital Signs Log",
         }}
       />
+
       <Stack.Screen
         name="PainJournal"
         component={PainJournalScreen}
@@ -110,6 +176,7 @@ export default function RootStackNavigator() {
           headerTitle: "Pain Journal",
         }}
       />
+
       <Stack.Screen
         name="MedicationTracker"
         component={MedicationTrackerScreen}
@@ -118,6 +185,7 @@ export default function RootStackNavigator() {
           headerTitle: "Medications",
         }}
       />
+
       <Stack.Screen
         name="HydrationTracker"
         component={HydrationTrackerScreen}
@@ -126,6 +194,7 @@ export default function RootStackNavigator() {
           headerTitle: "Hydration Tracker",
         }}
       />
+
       <Stack.Screen
         name="MorningRoutine"
         component={MorningRoutineScreen}
@@ -134,6 +203,7 @@ export default function RootStackNavigator() {
           headerTitle: "Morning Routine",
         }}
       />
+
       <Stack.Screen
         name="EveningRoutine"
         component={EveningRoutineScreen}
@@ -142,6 +212,7 @@ export default function RootStackNavigator() {
           headerTitle: "Evening Routine",
         }}
       />
+
       <Stack.Screen
         name="AppointmentScheduler"
         component={AppointmentSchedulerScreen}
@@ -150,6 +221,7 @@ export default function RootStackNavigator() {
           headerTitle: "Appointments",
         }}
       />
+
       <Stack.Screen
         name="PressureReliefTimer"
         component={PressureReliefTimerScreen}
@@ -158,6 +230,7 @@ export default function RootStackNavigator() {
           headerTitle: "Pressure Relief",
         }}
       />
+
       <Stack.Screen
         name="EmergencyContacts"
         component={EmergencyContactsScreen}
@@ -168,4 +241,4 @@ export default function RootStackNavigator() {
       />
     </Stack.Navigator>
   );
-}
+} 

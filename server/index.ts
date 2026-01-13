@@ -42,7 +42,6 @@ function setupCors(app: express.Application) {
       res.header("Access-Control-Allow-Headers", "Content-Type");
       res.header("Access-Control-Allow-Credentials", "true");
     }
-
     if (req.method === "OPTIONS") {
       return res.sendStatus(200);
     }

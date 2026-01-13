@@ -1,72 +1,98 @@
 import React from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Pressable,
+} from "react-native";
 import { Image } from "expo-image";
-import { Feather } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { Spacing } from "@/constants/theme";
-import type { AssistiveTechItem } from "@/data/assistiveTech";
-import { useBookmarks } from "@/hooks/useBookmarks";
+import { AssistiveTechItem } from "@/data/assistiveTech";
+
+const TAG_COLORS: Record<string, string> = {
+  mobility: "#FACC15",
+  "manual-wheelchair": "#F59E0B",
+  "power-wheelchair": "#EF4444",
+  "computer-access": "#22C55E",
+  "smart-home": "#06B6D4",
+  voice: "#3B82F6",
+  communication: "#8B5CF6",
+  "eye-tracking": "#EC4899",
+  accessibility: "#10B981",
+};
 
 type Props = {
   item: AssistiveTechItem;
-  onPress?: () => void;
+  variant?: "carousel" | "grid";
 };
 
-export function AssistiveTechCard({ item, onPress }: Props) {
-  const { toggle, isSaved } = useBookmarks();
-  const saved = isSaved("assistiveTech", item.id);
+export function AssistiveTechCard({
+  item,
+  variant = "grid",
+}: Props) {
+  const navigation = useNavigation<any>();
 
   return (
     <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
+      onPress={() =>
+        navigation.navigate(
+          "AssistiveTechDetail",
+          { itemId: item.id }
+        )
+      }
+      style={[
         styles.card,
-        pressed && { opacity: 0.9 },
+        variant === "carousel" && styles.carouselCard,
       ]}
     >
-      {/* Image */}
-      <View style={styles.imageContainer}>
+      {item.heroImageUrl && (
         <Image
           source={{ uri: item.heroImageUrl }}
           style={styles.image}
           contentFit="cover"
         />
-        <View style={styles.imageOverlay} />
+      )}
 
-        {/* Save Button */}
-        <Pressable
-          onPress={() => toggle("assistiveTech", item.id)}
-          style={styles.saveButton}
-          hitSlop={10}
-        >
-          <Feather
-            name="bookmark"
-            size={18}
-            color={saved ? "#4DA3FF" : "rgba(255,255,255,0.85)"}
-          />
-        </Pressable>
-      </View>
-
-      {/* Text */}
       <View style={styles.content}>
-        <ThemedText type="heading" numberOfLines={2}>
-          {item.title}
-        </ThemedText>
-
-        <ThemedText type="small" numberOfLines={2} style={{ opacity: 0.85 }}>
-          {item.summary}
-        </ThemedText>
-
-        <View style={styles.tags}>
-          {item.tags.slice(0, 2).map((tag) => (
-            <View key={tag} style={styles.tag}>
-              <ThemedText type="caption">
+        {/* TAGS */}
+        <View style={styles.tagRow}>
+          {item.tags.slice(0, 3).map((tag) => (
+            <View
+              key={tag}
+              style={[
+                styles.tag,
+                {
+                  backgroundColor:
+                    TAG_COLORS[tag] ??
+                    "#6B7280",
+                },
+              ]}
+            >
+              <ThemedText style={styles.tagText}>
                 {tag.replace("-", " ")}
               </ThemedText>
             </View>
           ))}
         </View>
+
+        {/* TITLE */}
+        <ThemedText
+          type="h3"
+          numberOfLines={2}
+        >
+          {item.title}
+        </ThemedText>
+
+        {/* SUMMARY */}
+        <ThemedText
+          type="small"
+          numberOfLines={2}
+          style={{ opacity: 0.7 }}
+        >
+          {item.summary}
+        </ThemedText>
       </View>
     </Pressable>
   );
@@ -74,49 +100,42 @@ export function AssistiveTechCard({ item, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 280,
+    width: "48%",
     borderRadius: 16,
+    backgroundColor: "#1C1C1E",
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.15)",
   },
-  imageContainer: {
-    position: "relative",
+
+  carouselCard: {
+    width: 260,
   },
+
   image: {
-    height: 140,
     width: "100%",
+    height: 110,
   },
-  imageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 48,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
-  saveButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    padding: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.35)",
-  },
+
   content: {
     padding: Spacing.md,
-    gap: Spacing.xs,
+    gap: 6,
   },
-  tags: {
+
+  tagRow: {
     flexDirection: "row",
-    gap: Spacing.xs,
-    marginTop: Spacing.xs,
+    gap: 6,
+    marginBottom: 4,
   },
+
   tag: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+
+  tagText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textTransform: "capitalize",
   },
 });

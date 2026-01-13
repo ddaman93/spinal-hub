@@ -1,16 +1,45 @@
 export type MainStackParamList = {
   Dashboard: undefined;
+
   CategoryDetail: {
     category: string;
     title: string;
   };
+  MobilityAssistiveTech: undefined;
+    ManualWheelchairTech: undefined;
+    PowerWheelchairTech: undefined;
+
+
+  ClinicalTrialsList: {
+    trials: {
+      id: string;
+      title: string;
+      status: string;
+      phase?: string;
+      summary?: string;
+      country?: string;
+    }[];
+  };
+
+  ClinicalTrialDetail: {
+    trialId: string;
+  };
+
+  AssistiveTechList: undefined;
+
   AssistiveTechDetail: {
     itemId: string;
-    };
-  AssistiveTechList: undefined;
   };
-  ClinicalTrialsList: undefined;
-  ClinicalTrialDetail: { trialId: string };
+
+  ProductDetail: {
+    product: {
+      id: string;
+      title: string;
+      description: string;
+      image: string;
+    };
+  };
+
   Settings: undefined;
   VitalsLog: undefined;
   PainJournal: undefined;
@@ -21,7 +50,6 @@ export type MainStackParamList = {
   AppointmentScheduler: undefined;
   EmergencyContacts: undefined;
   PressureReliefTimer: undefined;
-
 };
 
 declare global {
