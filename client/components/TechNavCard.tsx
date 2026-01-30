@@ -3,16 +3,18 @@ import {
   View,
   StyleSheet,
   Pressable,
+  ImageSourcePropType,
 } from "react-native";
-import { Image } from "expo-image";
+import { Image, ImageSource } from "expo-image";
 
 import { ThemedText } from "@/components/ThemedText";
+import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 
 type TechNavCardProps = {
   title: string;
   subtitle: string;
-  image: string;
+  image: string | ImageSource;
   onPress: () => void;
 };
 
@@ -22,11 +24,14 @@ export function TechNavCard({
   image,
   onPress,
 }: TechNavCardProps) {
+  const imageSource = typeof image === "string" ? { uri: image } : image;
+  const { theme } = useTheme();
+
   return (
-    <Pressable onPress={onPress} style={styles.card}>
+    <Pressable onPress={onPress} style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
       <Image
-        source={{ uri: image }}
-        style={styles.image}
+        source={imageSource}
+        style={[styles.image, { backgroundColor: theme.backgroundTertiary }]}
         contentFit="cover"
       />
 
@@ -37,8 +42,8 @@ export function TechNavCard({
 
         <ThemedText
           type="caption"
-          style={{ opacity: 0.7 }}
           numberOfLines={2}
+          style={{ color: theme.textSecondary }}
         >
           {subtitle}
         </ThemedText>
@@ -49,20 +54,18 @@ export function TechNavCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 220,
+    width: 160,
     borderRadius: 16,
-    backgroundColor: "#1C1C1E",
     overflow: "hidden",
   },
 
   image: {
     width: "100%",
-    height: 120,
-    backgroundColor: "#000",
+    height: 100,
   },
 
   content: {
-    padding: Spacing.md,
-    gap: 6,
+    padding: Spacing.sm,
+    gap: 4,
   },
 });

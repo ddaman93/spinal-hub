@@ -11,6 +11,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 
@@ -87,10 +88,12 @@ function TechOptionCard({
   description: string;
   onPress: () => void;
 }) {
+  const { theme } = useTheme();
+
   return (
     <Pressable
       onPress={onPress}
-      style={styles.card}
+      style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
     >
       <ThemedText type="h3">
         {title}
@@ -98,7 +101,7 @@ function TechOptionCard({
 
       <ThemedText
         type="caption"
-        style={{ opacity: 0.7 }}
+        style={{ color: theme.textSecondary }}
       >
         {description}
       </ThemedText>
@@ -121,7 +124,6 @@ const styles = StyleSheet.create({
   card: {
     padding: Spacing.lg,
     borderRadius: 16,
-    backgroundColor: "#1C1C1E",
     gap: Spacing.xs,
   },
 });

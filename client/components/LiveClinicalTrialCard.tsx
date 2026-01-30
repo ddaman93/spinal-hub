@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Pressable, Linking } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
+import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 
 type Props = {
@@ -24,6 +25,7 @@ export function LiveClinicalTrialCard({
   country,
   variant = "carousel",
 }: Props) {
+  const { theme } = useTheme();
   const isRecruiting = status.toLowerCase().includes("recruiting");
 
   return (
@@ -31,6 +33,7 @@ export function LiveClinicalTrialCard({
       onPress={() => Linking.openURL(`https://clinicaltrials.gov/study/${id}`)}
       style={({ pressed }) => [
         styles.cardBase,
+        { backgroundColor: theme.backgroundDefault },
         variant === "carousel" ? styles.cardCarousel : styles.cardGrid,
         pressed && { opacity: 0.88 },
       ]}
@@ -52,7 +55,7 @@ export function LiveClinicalTrialCard({
         <ThemedText
           type={variant === "carousel" ? "small" : "caption"}
           numberOfLines={variant === "carousel" ? 3 : 2}
-          style={styles.description}
+          style={{ color: theme.textSecondary, marginBottom: Spacing.sm }}
         >
           {summary}
         </ThemedText>
@@ -63,7 +66,9 @@ export function LiveClinicalTrialCard({
         <View
           style={[
             styles.badge,
-            isRecruiting ? styles.recruiting : styles.notRecruiting,
+            isRecruiting
+              ? { backgroundColor: theme.success + "20" }
+              : { backgroundColor: theme.backgroundTertiary },
           ]}
         >
           <ThemedText type="small">
@@ -72,13 +77,13 @@ export function LiveClinicalTrialCard({
         </View>
 
         {phase ? (
-          <ThemedText type="small" style={styles.metaText}>
+          <ThemedText type="small" style={{ color: theme.textSecondary }}>
             {phase}
           </ThemedText>
         ) : null}
 
         {country ? (
-          <ThemedText type="small" style={styles.metaText}>
+          <ThemedText type="small" style={{ color: theme.textSecondary }}>
             {country}
           </ThemedText>
         ) : null}
@@ -91,7 +96,6 @@ const styles = StyleSheet.create({
   cardBase: {
     borderRadius: 18,
     padding: Spacing.md,
-    backgroundColor: "rgba(255,255,255,0.06)",
   },
 
   // Dashboard horizontal carousel: fixed width feels good
@@ -133,14 +137,14 @@ const styles = StyleSheet.create({
   },
 
   recruiting: {
-    backgroundColor: "rgba(0,200,150,0.25)",
+    // inline color applied using theme in component
   },
 
   notRecruiting: {
-    backgroundColor: "rgba(255,255,255,0.15)",
+    // inline color applied using theme in component
   },
 
   metaText: {
-    opacity: 0.65,
+    // color applied via theme in component
   },
 });

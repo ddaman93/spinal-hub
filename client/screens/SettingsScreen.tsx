@@ -1,12 +1,16 @@
 import React from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
+import { MainStackParamList } from "@/types/navigation";
 
 type SettingItem = {
   id: string;
@@ -26,11 +30,20 @@ const settingsItems: SettingItem[] = [
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+
+  const handleSettingPress = (id: string) => {
+    if (id === "display") {
+      navigation.navigate("DisplaySettings");
+    }
+  };
 
   const renderSettingItem = (item: SettingItem) => (
     <Pressable
       key={item.id}
+      onPress={() => handleSettingPress(item.id)}
       style={({ pressed }) => [
         styles.settingItem,
         { backgroundColor: theme.backgroundDefault },
@@ -63,12 +76,12 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingBottom: insets.bottom + Spacing.xl },
-        ]}
-        scrollIndicatorInsets={{ bottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: headerHeight + Spacing.lg,
+          paddingBottom: insets.bottom + Spacing.lg,
+          paddingHorizontal: Spacing.lg,
+        }}
       >
         <View style={styles.section}>
           {settingsItems.map(renderSettingItem)}
@@ -81,10 +94,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  scrollContent: {
-    paddingTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
   },
   section: {
     gap: Spacing.sm,

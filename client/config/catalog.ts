@@ -15,8 +15,9 @@ export type ToolConfig = {
 export type CategoryConfig = {
   id: string;
   title: string;
-  icon: "sun" | "activity" | "users" | "calendar";
+  icon: "sun" | "activity" | "users" | "calendar" | "heart";
   tools: ToolConfig[];
+  route?: keyof MainStackParamList; // Optional direct route (bypasses CategoryDetail)
 };
 
 /* ───────────────────────── categories ───────────────────────── */
@@ -129,5 +130,13 @@ export const CATEGORIES: CategoryConfig[] = [
         route: "AppointmentScheduler",
       },
     ],
+  },
+
+  {
+    id: "nz-spinal-trust",
+    title: "NZ Spinal Trust",
+    icon: "heart",
+    route: "NZSpinalTrust",
+    tools: [],
   },
 ];

@@ -1,5 +1,9 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
+# Environment variables
+.env
+.env.local
+
 # dependencies
 node_modules/
 
@@ -41,3 +45,15 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Windows reserved device names
+nul
+NUL
+**/nul
+**/NUL
+
+
+# Replit / semgrep rules (can trigger GitHub push protection)
+.config/replit/.semgrep/
+
+

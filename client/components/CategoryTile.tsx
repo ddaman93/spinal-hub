@@ -67,11 +67,11 @@ export function CategoryTile({ title, icon, onPress, style }: CategoryTileProps)
     >
       <Feather
         name={icon}
-        size={36}
+        size={24}
         color={theme.primary}
         style={styles.icon}
       />
-      <ThemedText type="body" style={styles.label} numberOfLines={2}>
+      <ThemedText type="small" style={styles.label} numberOfLines={2}>
         {title}
       </ThemedText>
     </AnimatedPressable>
@@ -80,7 +80,7 @@ export function CategoryTile({ title, icon, onPress, style }: CategoryTileProps)
 
 const styles = StyleSheet.create({
   tile: {
-    width: "31%",
+    flex: 1,
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
   },
   icon: {
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   label: {
     textAlign: "center",

@@ -3,6 +3,7 @@ import { View, StyleSheet, Pressable } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
+import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import type { ClinicalTrialItem } from "@/data/clinicalTrials";
 import { useBookmarks } from "@/hooks/useBookmarks";
@@ -45,6 +46,7 @@ type Props = {
 };
 
 export function ClinicalTrialCard({ item, onPress }: Props) {
+  const { theme } = useTheme();
   const stageStyle =
     STAGE_COLORS[item.stage] ?? STAGE_COLORS["Pre-clinical"];
   // Bookmark logic
@@ -56,19 +58,20 @@ export function ClinicalTrialCard({ item, onPress }: Props) {
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
+        { backgroundColor: theme.backgroundDefault, borderColor: theme.border },
         pressed && styles.pressed,
       ]}
     >
       {/* Save button */}
       <Pressable
         onPress={() => toggle("clinicalTrials", item.id)}
-        style={styles.saveButton}
+        style={[styles.saveButton, { backgroundColor: theme.backgroundSecondary }]}
         hitSlop={10}
       >
         <Feather
           name="bookmark"
           size={18}
-          color={saved ? "#4DA3FF" : "rgba(255,255,255,0.85)"}
+          color={saved ? theme.primary : theme.textSecondary}
         />
       </Pressable>
 
@@ -81,7 +84,7 @@ export function ClinicalTrialCard({ item, onPress }: Props) {
       <ThemedText
         type="small"
         numberOfLines={3}
-        style={{ opacity: 0.85 }}
+        style={{ color: theme.textSecondary }}
       >
         {item.summary}
       </ThemedText>
@@ -91,18 +94,23 @@ export function ClinicalTrialCard({ item, onPress }: Props) {
         <View
           style={[
             styles.badge,
-            { backgroundColor: stageStyle.bg },
+            {
+              backgroundColor:
+                stageStyle.bg && stageStyle.bg.includes("255,255,255")
+                  ? theme.backgroundTertiary
+                  : stageStyle.bg ?? theme.backgroundTertiary,
+            },
           ]}
         >
           <ThemedText
             type="caption"
-            style={{ color: stageStyle.text }}
+            style={{ color: stageStyle.text && !stageStyle.text.includes("255,255,255") ? stageStyle.text : theme.text }}
           >
             {item.stage}
           </ThemedText>
         </View>
 
-        <ThemedText type="caption" style={{ opacity: 0.7 }}>
+        <ThemedText type="caption" style={{ color: theme.textSecondary }}>
           {item.location}
         </ThemedText>
       </View>
@@ -115,9 +123,7 @@ const styles = StyleSheet.create({
     width: 280, // IMPORTANT for horizontal scroll
     padding: Spacing.md,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.15)",
     gap: Spacing.sm,
     position: "relative",
   },
@@ -133,7 +139,6 @@ const styles = StyleSheet.create({
     right: 10,
     padding: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.35)",
   },
 
   metaRow: {
@@ -147,6 +152,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.12)",
   },
 });

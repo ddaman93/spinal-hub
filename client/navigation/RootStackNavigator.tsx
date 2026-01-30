@@ -12,6 +12,7 @@ import { MainStackParamList } from "@/types/navigation";
 import DashboardScreen from "@/screens/DashboardScreen";
 import CategoryDetailScreen from "@/screens/CategoryDetailScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
+import DisplaySettingsScreen from "@/screens/DisplaySettingsScreen";
 
 import PressureReliefTimerScreen from "@/screens/tools/PressureReliefTimerScreen";
 import VitalsLogScreen from "@/screens/tools/VitalsLogScreen";
@@ -27,6 +28,7 @@ import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 
 import AssistiveTechListScreen from "@/screens/AssistiveTechListScreen";
 import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
+import AllAssistiveTechScreen from "@/screens/AllAssistiveTechScreen";
 
 import ClinicalTrialsListScreen from "@/screens/ClinicalTrialsListScreen";
 import ClinicalTrialDetailScreen from "@/screens/ClinicalTrialDetailScreen";
@@ -37,6 +39,7 @@ import PowerWheelchairTechScreen from "@/screens/PowerWheelchairTechScreen";
 import ProductDetailScreen from "@/screens/ProductDetailScreen";
 
 import { HeaderTitle } from "@/components/HeaderTitle";
+import { ThemeSwitchButton } from "@/components/ThemeSwitchButton";
 
 const Stack =
   createNativeStackNavigator<MainStackParamList>();
@@ -101,9 +104,9 @@ export default function RootStackNavigator() {
       />
 
       <Stack.Screen
-        name="MobilityAssistiveTech"
-        component={MobilityAssistiveTechScreen}
-        options={{ title: "Mobility Assistive Tech" }}
+        name="AllAssistiveTech"
+        component={AllAssistiveTechScreen}
+        options={{ title: "Assistive Technology" }}
       />
 
       <Stack.Screen
@@ -151,12 +154,23 @@ export default function RootStackNavigator() {
         }}
       />
 
+      <Stack.Screen
+        name="DisplaySettings"
+        component={DisplaySettingsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Display",
+        }}
+      />
+
       {/* TOOLS */}
 
       <Stack.Screen
         name="ProductDetail"
         component={ProductDetailScreen}
-        options={{ title: "Product" }}
+        options={({ route }) => ({
+          title: route.params.product.title,
+        })}
       />
       
       <Stack.Screen

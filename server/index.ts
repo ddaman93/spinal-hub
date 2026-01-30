@@ -5,6 +5,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { spawn } from "child_process";
+import "dotenv/config";
 
 const app = express();
 const log = console.log;
@@ -20,6 +21,10 @@ declare module "http" {
 function setupCors(app: express.Application) {
   app.use((req, res, next) => {
     const origins = new Set<string>();
+
+    // Add localhost for development
+    origins.add("http://localhost:8081");
+    origins.add("http://127.0.0.1:8081");
 
     if (process.env.REPLIT_DEV_DOMAIN) {
       origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
@@ -199,17 +204,10 @@ function configureExpoAndLanding(app: express.Application) {
 
 function startExpoDevServer() {
   if (process.env.NODE_ENV === "development") {
-    log("Starting Expo dev server on port 8081...");
-    spawn("npx", ["expo", "start", "--localhost", "--port", "8081"], {
-      cwd: process.cwd(),
-      env: {
-        ...process.env,
-        EXPO_PACKAGER_PROXY_URL: `https://${process.env.REPLIT_DEV_DOMAIN}`,
-        REACT_NATIVE_PACKAGER_HOSTNAME: process.env.REPLIT_DEV_DOMAIN,
-        EXPO_PUBLIC_DOMAIN: `${process.env.REPLIT_DEV_DOMAIN}:5000`,
-      },
-      stdio: "inherit",
-    });
+    log("Note: Expo dev server should be running separately on port 8081");
+    log("Start it with: npm run expo:dev");
+    // Don't spawn npx - let the user run Expo separately
+    // This avoids issues with npx not being found on all systems
   }
 }
 
@@ -254,7 +252,7 @@ function setupExpoProxy(app: express.Application) {
   configureExpoAndLanding(app);
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen({ port, host: "0.0.0.0", reusePort: true }, () => {
+  server.listen({ port, host: "localhost" }, () => {
     log(`express server serving on port ${port}`);
   });
 })();

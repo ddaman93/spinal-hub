@@ -12,10 +12,12 @@ import { ThemedText } from "@/components/ThemedText";
 import { ProductCard } from "@/components/ProductCard";
 import { Spacing } from "@/constants/theme";
 
+import type { PowerWheelchairProduct } from "@/data/powerWheelchairProducts";
 import {
   POWER_WHEELCHAIR_ACCESSORIES,
   SEATING_AND_POSITIONING,
   CONTROL_INTERFACES,
+  ENVIRONMENTAL_ACCESS,
 } from "@/data/powerWheelchairProducts";
 
 /* ───────────────────────── screen ───────────────────────── */
@@ -29,42 +31,40 @@ export default function PowerWheelchairTechScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
-          paddingBottom: insets.bottom + Spacing.xl,
+          paddingTop: headerHeight + Spacing.md,
+          paddingBottom: insets.bottom + Spacing.lg,
           paddingHorizontal: Spacing.lg,
         }}
       >
         {/* HEADER */}
         <View style={styles.header}>
-          <ThemedText type="heading">
+          <ThemedText type="heading" style={styles.screenTitle}>
             Power Wheelchair Assistive Tech
           </ThemedText>
-
-          <ThemedText
-            type="small"
-            style={{ opacity: 0.7 }}
-          >
+          <ThemedText type="small" style={styles.subtitle}>
             Accessories, controls, and seating systems that improve comfort,
-            independence, and daily usability for power wheelchair users.
+            independence, and daily usability.
           </ThemedText>
         </View>
 
-        {/* POWER & MOBILITY */}
         <Section
           title="Power & Mobility Accessories"
           data={POWER_WHEELCHAIR_ACCESSORIES}
         />
 
-        {/* SEATING */}
         <Section
           title="Seating & Positioning"
           data={SEATING_AND_POSITIONING}
         />
 
-        {/* CONTROLS */}
         <Section
           title="Control Interfaces"
           data={CONTROL_INTERFACES}
+        />
+
+        <Section
+          title="Environmental Access"
+          data={ENVIRONMENTAL_ACCESS}
         />
       </ScrollView>
     </ThemedView>
@@ -73,25 +73,21 @@ export default function PowerWheelchairTechScreen() {
 
 /* ───────────────────────── section helper ───────────────────────── */
 
-type Product = {
-  id: string;
-  title: string;
-  description: string;
-  image: string;
-};
-
 function Section({
   title,
   data,
 }: {
   title: string;
-  data: Product[];
+  data: PowerWheelchairProduct[];
 }) {
   if (!data || data.length === 0) return null;
 
   return (
     <View style={styles.section}>
-      <ThemedText type="h3">
+      <ThemedText
+        type="heading"
+        style={styles.sectionTitle}
+      >
         {title}
       </ThemedText>
 
@@ -99,8 +95,8 @@ function Section({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          gap: Spacing.md,
-          paddingTop: Spacing.sm,
+          gap: Spacing.sm,
+          paddingTop: Spacing.xs,
         }}
       >
         {data.map((product) => (
@@ -118,11 +114,21 @@ function Section({
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     gap: Spacing.xs,
   },
-
+  screenTitle: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    lineHeight: 22,
   },
 });

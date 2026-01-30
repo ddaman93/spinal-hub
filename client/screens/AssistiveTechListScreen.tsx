@@ -13,6 +13,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { AssistiveTechCard } from "@/components/AssistiveTechCard";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
 import { Spacing } from "@/constants/theme";
+import { useTheme } from "@/hooks/useTheme";
 import { filterAssistiveTech } from "@/utils/filterAssistiveTech";
 
 /* ───────────────────────── helpers ───────────────────────── */
@@ -61,6 +62,8 @@ export default function AssistiveTechListScreen() {
     );
   };
 
+  const { theme } = useTheme();
+
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView
@@ -87,8 +90,8 @@ export default function AssistiveTechListScreen() {
                 }
                 style={[
                   styles.filterChip,
-                  active &&
-                    styles.filterChipActive,
+                  { backgroundColor: theme.backgroundSecondary },
+                  active && { backgroundColor: theme.primary + '35' },
                 ]}
               >
                 <ThemedText type="caption">
@@ -111,8 +114,8 @@ export default function AssistiveTechListScreen() {
                 onPress={() => toggleTag(tag)}
                 style={[
                   styles.filterChip,
-                  active &&
-                    styles.filterChipActive,
+                  { backgroundColor: theme.backgroundSecondary },
+                  active && { backgroundColor: theme.primary + '35' },
                 ]}
               >
                 <ThemedText type="caption">
@@ -152,11 +155,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.12)",
   },
 
   filterChipActive: {
-    backgroundColor: "rgba(77,163,255,0.35)",
   },
 
   grid: {

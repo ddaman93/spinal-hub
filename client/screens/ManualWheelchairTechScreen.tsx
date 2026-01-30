@@ -31,41 +31,37 @@ export default function ManualWheelchairTechScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.lg,
-          paddingBottom: insets.bottom + Spacing.xl,
+          paddingTop: headerHeight + Spacing.md,
+          paddingBottom: insets.bottom + Spacing.lg,
           paddingHorizontal: Spacing.lg,
         }}
       >
         {/* HEADER */}
         <View style={styles.header}>
-          <ThemedText type="heading">
+          <ThemedText type="heading" style={styles.screenTitle}>
             Manual Wheelchair Assistive Tech
           </ThemedText>
-          <ThemedText type="small" style={{ opacity: 0.7 }}>
+          <ThemedText type="small" style={styles.subtitle}>
             Products designed to reduce effort, improve mobility,
             and protect shoulders.
           </ThemedText>
         </View>
 
-        {/* POWER ASSIST */}
         <Section
           title="Power-Assist Wheels"
           data={POWER_ASSIST_WHEELS}
         />
 
-        {/* HANDCYCLES */}
         <Section
           title="Handcycle & Trike Attachments"
           data={HANDCYCLE_ATTACHMENTS}
         />
 
-        {/* PROPULSION */}
         <Section
           title="Push & Propulsion Aids"
           data={PROPULSION_AIDS}
         />
 
-        {/* TRANSFER */}
         <Section
           title="Transfer & Setup Aids"
           data={TRANSFER_AND_SETUP_AIDS}
@@ -88,7 +84,10 @@ function Section({
 
   return (
     <View style={styles.section}>
-      <ThemedText type="h3">
+      <ThemedText
+        type="heading"
+        style={styles.sectionTitle}
+      >
         {title}
       </ThemedText>
 
@@ -96,8 +95,8 @@ function Section({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{
-          gap: Spacing.md,
-          paddingTop: Spacing.sm,
+          gap: Spacing.sm,
+          paddingTop: Spacing.xs,
         }}
       >
         {data.map((product) => (
@@ -115,10 +114,21 @@ function Section({
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     gap: Spacing.xs,
   },
+  screenTitle: {
+    fontSize: 22,
+    lineHeight: 26,
+  },
+  subtitle: {
+    opacity: 0.7,
+  },
   section: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    lineHeight: 22,
   },
 });

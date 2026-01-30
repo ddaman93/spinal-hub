@@ -8,6 +8,7 @@ import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
 
 import { ThemedText } from "@/components/ThemedText";
+import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { AssistiveTechItem } from "@/data/assistiveTech";
 
@@ -33,6 +34,7 @@ export function AssistiveTechCard({
   variant = "grid",
 }: Props) {
   const navigation = useNavigation<any>();
+  const { theme } = useTheme();
 
   return (
     <Pressable
@@ -45,12 +47,13 @@ export function AssistiveTechCard({
       style={[
         styles.card,
         variant === "carousel" && styles.carouselCard,
+        { backgroundColor: theme.backgroundDefault },
       ]}
     >
       {item.heroImageUrl && (
         <Image
           source={{ uri: item.heroImageUrl }}
-          style={styles.image}
+          style={[styles.image, { backgroundColor: theme.backgroundTertiary }]}
           contentFit="cover"
         />
       )}
@@ -70,7 +73,7 @@ export function AssistiveTechCard({
                 },
               ]}
             >
-              <ThemedText style={styles.tagText}>
+              <ThemedText style={[styles.tagText, { color: theme.buttonText }]}>
                 {tag.replace("-", " ")}
               </ThemedText>
             </View>
@@ -79,17 +82,18 @@ export function AssistiveTechCard({
 
         {/* TITLE */}
         <ThemedText
-          type="h3"
+          type="small"
           numberOfLines={2}
+          style={{ fontWeight: "600" }}
         >
           {item.title}
         </ThemedText>
 
         {/* SUMMARY */}
         <ThemedText
-          type="small"
+          type="caption"
           numberOfLines={2}
-          style={{ opacity: 0.7 }}
+          style={{ color: theme.textSecondary }}
         >
           {item.summary}
         </ThemedText>
@@ -100,24 +104,28 @@ export function AssistiveTechCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: "48%",
+    width: "100%",
+    flex: 1,
     borderRadius: 16,
-    backgroundColor: "#1C1C1E",
     overflow: "hidden",
   },
 
   carouselCard: {
-    width: 260,
+    width: 160,
+    height: 160,
+    flex: undefined,
   },
 
   image: {
     width: "100%",
-    height: 110,
+    height: 60,
   },
 
   content: {
-    padding: Spacing.md,
-    gap: 6,
+    flex: 1,
+    padding: Spacing.sm,
+    gap: 3,
+    justifyContent: "space-between",
   },
 
   tagRow: {
@@ -135,7 +143,6 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#FFFFFF",
     textTransform: "capitalize",
   },
 });

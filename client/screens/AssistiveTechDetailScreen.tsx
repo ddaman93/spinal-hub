@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
 import { MainStackParamList } from "@/types/navigation";
@@ -20,6 +21,7 @@ type RouteProps = RouteProp<
 export default function AssistiveTechDetailScreen() {
   const { params } = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   const item = ASSISTIVE_TECH_ITEMS.find(
     (i) => i.id === params.itemId
@@ -57,7 +59,7 @@ export default function AssistiveTechDetailScreen() {
           {/* Tags */}
           <View style={styles.tags}>
             {item.tags.map((tag) => (
-              <View key={tag} style={styles.tag}>
+              <View key={tag} style={[styles.tag, { backgroundColor: theme.backgroundSecondary }] }>
                 <ThemedText type="caption">
                   {tag.replace("-", " ")}
                 </ThemedText>
@@ -82,7 +84,7 @@ export default function AssistiveTechDetailScreen() {
 
               <View style={styles.pillRow}>
                 {item.eligibility.map((entry) => (
-                  <View key={entry} style={styles.eligibilityPill}>
+                  <View key={entry} style={[styles.eligibilityPill, { backgroundColor: theme.primary + '25' }]}>
                     <ThemedText type="caption">
                       {entry}
                     </ThemedText>
@@ -166,7 +168,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.12)",
   },
   sourceLink: {
     marginTop: Spacing.xs,
@@ -181,6 +182,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "rgba(77,163,255,0.25)",
   },
 });
