@@ -103,6 +103,7 @@ function Section({
           <ProductCard
             key={product.id}
             product={product}
+            compact={true}
           />
         ))}
       </ScrollView>

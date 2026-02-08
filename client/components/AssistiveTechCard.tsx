@@ -6,10 +6,12 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
+import { MainStackParamList } from "@/types/navigation";
 import { AssistiveTechItem } from "@/data/assistiveTech";
 
 const TAG_COLORS: Record<string, string> = {
@@ -33,7 +35,7 @@ export function AssistiveTechCard({
   item,
   variant = "grid",
 }: Props) {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const { theme } = useTheme();
 
   return (

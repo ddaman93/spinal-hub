@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, StyleSheet, ScrollView, Image, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -11,11 +12,13 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { LiveClinicalTrialCard } from "@/components/LiveClinicalTrialCard";
 import { TechNavCard } from "@/components/TechNavCard";
+import { SciNewsCard } from "@/components/SciNewsCard";
 
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
 import { TECH_CATEGORIES } from "@/data/techCategories";
+import { WHEELCHAIR_CATEGORIES } from "@/data/wheelchairCategories";
 
 /* ───────────────── helpers ───────────────── */
 
@@ -43,10 +46,38 @@ type LiveTrial = {
   country?: string;
 };
 
+type NewsArticle = {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  imageUrl?: string;
+};
+
 /* ───────────────── constants ───────────────── */
 
 const TRIALS_CACHE_KEY = "clinical_trials_cache";
 const CACHE_TTL = 1000 * 60 * 60 * 24;
+
+/* ───────────────── fetch functions ───────────────── */
+
+async function fetchSciNews(): Promise<NewsArticle[]> {
+  try {
+    const baseUrl = getApiUrl();
+    const response = await fetch(`${baseUrl}/api/sci-news`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch news: ${response.status}`);
+    }
+
+    const articles: NewsArticle[] = await response.json();
+    return articles;
+  } catch (error) {
+    console.error("Error fetching SCI news:", error);
+    throw error;
+  }
+}
 
 /* ───────────────── screen ───────────────── */
 
@@ -62,6 +93,20 @@ export default function DashboardScreen() {
 
   const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
+
+  // Fetch news articles
+  const { data: newsArticles = [] } = useQuery({
+    queryKey: ["sciNews"],
+    queryFn: fetchSciNews,
+    staleTime: 6 * 60 * 60 * 1000, // 6 hours
+  });
+
+  // Select 5 random articles - shuffle on each dashboard visit
+  const randomNews = useMemo(() => {
+    if (newsArticles.length === 0) return [];
+    const shuffled = [...newsArticles].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 5);
+  }, [newsArticles]);
 
   /* ───────── weather ───────── */
   React.useEffect(() => {
@@ -216,7 +261,7 @@ export default function DashboardScreen() {
             <ThemedText type="heading">Assistive Technology</ThemedText>
 
             <Pressable
-              onPress={() => navigation.navigate("AllAssistiveTech")}
+              onPress={() => navigation.navigate("AllAssistiveTech", {})}
             >
               <ThemedText style={styles.viewAll}>View all →</ThemedText>
             </Pressable>
@@ -246,6 +291,35 @@ export default function DashboardScreen() {
           </ScrollView>
         </View>
 
+        {/* WHEELCHAIRS */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ThemedText type="heading">Wheelchairs</ThemedText>
+          </View>
+
+          {/* WHEELCHAIR CATEGORY CARDS HORIZONTAL SCROLL */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              gap: Spacing.md,
+            }}
+          >
+            {WHEELCHAIR_CATEGORIES.map((category) => (
+              <TechNavCard
+                key={category.id}
+                title={category.title}
+                subtitle={category.subtitle}
+                image={category.image}
+                onPress={() => {
+                  // TODO: Navigate to wheelchair category detail
+                  console.log("Navigate to:", category.id);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </View>
+
         {/* SCI NEWS */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -254,13 +328,31 @@ export default function DashboardScreen() {
             <Pressable
               onPress={() => navigation.navigate("SciNewsList")}
             >
-              <ThemedText style={styles.viewAll}>View all →</ThemedText>
+              <ThemedText style={styles.viewAll}>See all →</ThemedText>
             </Pressable>
           </View>
 
-          <ThemedText style={styles.placeholder}>
-            Latest research and breakthroughs in spinal cord injury treatment.
-          </ThemedText>
+          {randomNews.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: Spacing.md,
+              }}
+            >
+              {randomNews.map((article) => (
+                <SciNewsCard
+                  key={article.id}
+                  {...article}
+                  variant="carousel"
+                />
+              ))}
+            </ScrollView>
+          ) : (
+            <ThemedText style={styles.placeholder}>
+              Latest research and breakthroughs in spinal cord injury treatment.
+            </ThemedText>
+          )}
         </View>
 
         {/* LIVE CLINICAL TRIALS */}

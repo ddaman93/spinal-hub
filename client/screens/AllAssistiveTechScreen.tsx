@@ -15,16 +15,30 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { AssistiveTechCard } from "@/components/AssistiveTechCard";
+import { ProductCard } from "@/components/ProductCard";
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { ASSISTIVE_TECH_ITEMS } from "@/data/assistiveTech";
 import { TECH_CATEGORIES } from "@/data/techCategories";
 import { TECH_SUBSECTIONS, getSubsectionItems } from "@/config/techSubsections";
+import { MANUAL_WHEELCHAIR_PRODUCTS } from "@/data/manualWheelchairProducts";
+import { POWER_WHEELCHAIR_PRODUCTS } from "@/data/powerWheelchairProducts";
 
 type AllAssistiveTechScreenProps = NativeStackScreenProps<
   MainStackParamList,
   "AllAssistiveTech"
 >;
+
+/* ──────────────── helpers ──────────────── */
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
 
 /* ───────────────────────── screen ───────────────────────── */
 
@@ -38,6 +52,13 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
     route.params?.categoryId
   );
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [randomManualProducts] = useState(() =>
+    shuffleArray(MANUAL_WHEELCHAIR_PRODUCTS).slice(0, 5)
+  );
+  const [randomPowerProducts] = useState(() =>
+    shuffleArray(POWER_WHEELCHAIR_PRODUCTS).slice(0, 5)
+  );
 
   // Check if category has subsections
   const hasSubsections = selectedCategory && TECH_SUBSECTIONS[selectedCategory];
@@ -203,7 +224,19 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
         {hasSubsections && selectedCategory ? (
           <View style={styles.subsectionsContainer}>
             {TECH_SUBSECTIONS[selectedCategory].map((subsection) => {
-              const subsectionItems = getSubsectionItemsLocal(subsection.filterTags);
+              const productOverride =
+                subsection.id === "manual-wheelchair"
+                  ? randomManualProducts
+                  : subsection.id === "power-wheelchair"
+                    ? randomPowerProducts
+                    : null;
+              const subsectionItems = productOverride
+                ? []
+                : getSubsectionItemsLocal(subsection.filterTags);
+              const hasItems = productOverride
+                ? productOverride.length > 0
+                : subsectionItems.length > 0;
+
               return (
                 <View key={subsection.id} style={styles.subsectionBlock}>
                   {/* SUBSECTION HEADER */}
@@ -211,34 +244,50 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
                     <ThemedText type="small" style={{ fontWeight: "600" }}>
                       {subsection.title}
                     </ThemedText>
-                    <Pressable
-                      onPress={() => navigation.navigate(subsection.seeAllRoute)}
-                    >
-                      <ThemedText type="caption" style={styles.seeAllLink}>
-                        See all →
-                      </ThemedText>
-                    </Pressable>
+                    {subsection.seeAllRoute && (
+                      <Pressable
+                        onPress={() => navigation.navigate(subsection.seeAllRoute as any)}
+                      >
+                        <ThemedText type="caption" style={styles.seeAllLink}>
+                          See all →
+                        </ThemedText>
+                      </Pressable>
+                    )}
                   </View>
 
                   {/* SUBSECTION PREVIEW ITEMS */}
-                  {subsectionItems.length > 0 ? (
+                  {hasItems ? (
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={{ paddingVertical: Spacing.sm }}
                     >
-                      {subsectionItems.map((item, index) => (
-                        <View
-                          key={item.id}
-                          style={[
-                            styles.previewCardWrapper,
-                            index < subsectionItems.length - 1 &&
-                              styles.previewCardMargin,
-                          ]}
-                        >
-                          <AssistiveTechCard item={item} variant="carousel" />
-                        </View>
-                      ))}
+                      {productOverride
+                        ? productOverride.map((product, index) => (
+                            <View
+                              key={product.id}
+                              style={[
+                                styles.previewCardWrapper,
+                                index < productOverride.length - 1 &&
+                                  styles.previewCardMargin,
+                              ]}
+                            >
+                              <ProductCard product={product} compact />
+                            </View>
+                          ))
+                        : subsectionItems.map((item, index) => (
+                            <View
+                              key={item.id}
+                              style={[
+                                styles.previewCardWrapper,
+                                index < subsectionItems.length - 1 &&
+                                  styles.previewCardMargin,
+                              ]}
+                            >
+                              <AssistiveTechCard item={item} variant="carousel" />
+                            </View>
+                          ))
+                      }
                     </ScrollView>
                   ) : (
                     <ThemedText type="caption" style={styles.noItems}>
@@ -376,9 +425,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  previewCardWrapper: {
-    width: 220,
-  },
+  previewCardWrapper: {},
 
   previewCardMargin: {
     marginRight: Spacing.md,

@@ -5,10 +5,8 @@ import { HeaderButton } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
-import { Colors } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 
 import DashboardScreen from "@/screens/DashboardScreen";
@@ -30,6 +28,8 @@ import {
 import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScreen";
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import NZSpinalTrustScreen from "@/screens/NZSpinalTrustScreen";
+import SCIMedicationsScreen from "@/screens/tools/SCIMedicationsScreen";
+import SCIMedicationDetailScreen from "@/screens/tools/SCIMedicationDetailScreen";
 
 import AssistiveTechListScreen from "@/screens/AssistiveTechListScreen";
 import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
@@ -45,6 +45,7 @@ import ProductDetailScreen from "@/screens/ProductDetailScreen";
 
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { ThemeSwitchButton } from "@/components/ThemeSwitchButton";
+import AnimatedGlassTabBar from "@/components/AnimatedGlassTabBar";
 
 const HomeStack = createNativeStackNavigator<MainStackParamList>();
 const ToolsStack = createNativeStackNavigator<MainStackParamList>();
@@ -276,6 +277,25 @@ function ToolsStackNavigator() {
           headerTitle: "New Zealand Spinal Trust",
         }}
       />
+
+      {/* SCI MEDICATIONS */}
+      <ToolsStack.Screen
+        name="SCIMedications"
+        component={SCIMedicationsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "SCI Medications",
+        }}
+      />
+
+      <ToolsStack.Screen
+        name="SCIMedicationDetail"
+        component={SCIMedicationDetailScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: route.params.name,
+        })}
+      />
     </ToolsStack.Navigator>
   );
 }
@@ -333,30 +353,12 @@ function ProfileStackNavigator() {
 /* ───────────────── tabs navigator ───────────────── */
 
 export default function RootTabsNavigator() {
-  const { isDark } = useTheme();
-
-  // Use theme-aware colors for tab bar
-  const tabColors = isDark ? Colors.dark : Colors.light;
-  const activeColor = tabColors.tabIconSelected;
-  const inactiveColor = tabColors.tabIconDefault;
-  const backgroundColor = tabColors.backgroundDefault;
-
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: activeColor,
-        tabBarInactiveTintColor: inactiveColor,
-        tabBarStyle: {
-          backgroundColor: backgroundColor,
-          borderTopColor: tabColors.border,
-          borderTopWidth: 1,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "500",
-        },
       }}
+      tabBar={(props) => <AnimatedGlassTabBar {...props} />}
     >
       <Tab.Screen
         name="HomeTab"
@@ -364,10 +366,10 @@ export default function RootTabsNavigator() {
         options={{
           title: "Home",
           tabBarLabel: "Home",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Feather
               name="home"
-              size={size}
+              size={19}
               color={color}
               accessible={true}
               accessibilityLabel="Home Tab"
@@ -382,10 +384,10 @@ export default function RootTabsNavigator() {
         options={{
           title: "Tools",
           tabBarLabel: "Tools",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Feather
               name="tool"
-              size={size}
+              size={19}
               color={color}
               accessible={true}
               accessibilityLabel="Tools Tab"
@@ -400,10 +402,10 @@ export default function RootTabsNavigator() {
         options={{
           title: "Settings",
           tabBarLabel: "Settings",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Feather
               name="settings"
-              size={size}
+              size={19}
               color={color}
               accessible={true}
               accessibilityLabel="Settings Tab"
@@ -418,10 +420,10 @@ export default function RootTabsNavigator() {
         options={{
           title: "Profile",
           tabBarLabel: "Profile",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color }) => (
             <Feather
               name="user"
-              size={size}
+              size={19}
               color={color}
               accessible={true}
               accessibilityLabel="Profile Tab"

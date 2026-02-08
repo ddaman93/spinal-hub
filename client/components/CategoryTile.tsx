@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Pressable, ViewStyle } from "react-native";
+import { StyleSheet, Pressable, ViewStyle, View } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -17,6 +17,12 @@ interface CategoryTileProps {
   icon: keyof typeof Feather.glyphMap;
   onPress: () => void;
   style?: ViewStyle;
+  /** When supplied, rendered in place of the Feather icon. */
+  customIcon?: React.ReactNode;
+  /** Colour of the 3 px accent bar along the bottom edge. */
+  accentColor?: string;
+  /** Background colour of the icon container (e.g. a faint brand tint). */
+  iconBg?: string;
 }
 
 const springConfig: WithSpringConfig = {
@@ -29,7 +35,15 @@ const springConfig: WithSpringConfig = {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function CategoryTile({ title, icon, onPress, style }: CategoryTileProps) {
+export function CategoryTile({
+  title,
+  icon,
+  onPress,
+  style,
+  customIcon,
+  accentColor,
+  iconBg,
+}: CategoryTileProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
@@ -65,22 +79,32 @@ export function CategoryTile({ title, icon, onPress, style }: CategoryTileProps)
       accessibilityLabel={title}
       accessibilityHint={`Opens ${title}`}
     >
-      <Feather
-        name={icon}
-        size={24}
-        color={theme.primary}
-        style={styles.icon}
-      />
+      <View
+        style={[
+          styles.iconContainer,
+          iconBg && { backgroundColor: iconBg },
+        ]}
+      >
+        {customIcon ?? (
+          <Feather name={icon} size={24} color={theme.primary} />
+        )}
+      </View>
       <ThemedText type="small" style={styles.label} numberOfLines={2}>
         {title}
       </ThemedText>
+
+      {/* Brand accent bar – only rendered when accentColor is provided */}
+      {accentColor && (
+        <View
+          style={[styles.accentBar, { backgroundColor: accentColor }]}
+        />
+      )}
     </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   tile: {
-    flex: 1,
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -88,8 +112,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: Spacing.sm,
   },
-  icon: {
+  iconContainer: {
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: Spacing.xs,
+    borderRadius: BorderRadius.small,
+    padding: 4,
+  },
+  accentBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderBottomLeftRadius: BorderRadius.medium,
+    borderBottomRightRadius: BorderRadius.medium,
   },
   label: {
     textAlign: "center",

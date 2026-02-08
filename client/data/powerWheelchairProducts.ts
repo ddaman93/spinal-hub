@@ -97,7 +97,7 @@ export const SEATING_AND_POSITIONING: PowerWheelchairProduct[] = [
     description:
       "Air-cell cushion that distributes pressure evenly to prevent pressure injuries.",
     image:
-      "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/seating/roho-cushions/roho-custom-product-v2.webp",
     tags: ["power-wheelchair", "cushion", "pressure-relief"],
     category: "seating",
     whatItIs:

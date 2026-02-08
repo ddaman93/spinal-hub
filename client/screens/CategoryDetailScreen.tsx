@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
-import { CATEGORIES } from "@/config/catalog";
+import { CATEGORIES, ToolConfig } from "@/config/catalog";
 
 
 import { ThemedView } from "@/components/ThemedView";
@@ -27,14 +27,14 @@ export default function CategoryDetailScreen() {
   const categoryConfig = CATEGORIES.find(c => c.id === category);
   const tools = categoryConfig?.tools ?? [];
 
-  const handleToolPress = (tool) => {
+  const handleToolPress = (tool: ToolConfig) => {
     if (tool.route) {
-      navigation.navigate(tool.route);
+      navigation.navigate(tool.route as any);
     }
   };
 
 
-  const renderTool = ({ item }: { item: Tool }) => (
+  const renderTool = ({ item }: { item: ToolConfig }) => (
     <Pressable
       onPress={() => handleToolPress(item)}
       disabled={item.comingSoon}

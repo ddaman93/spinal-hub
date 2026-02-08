@@ -20,7 +20,7 @@ type Product = {
   productUrl?: string;
 };
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, compact = false }: { product: Product; compact?: boolean }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
@@ -28,19 +28,19 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <Pressable
-      style={[styles.card, { backgroundColor: theme.backgroundDefault }]}
+      style={[styles.card, compact && styles.cardCompact, { backgroundColor: theme.backgroundDefault }]}
       onPress={() =>
         navigation.navigate("ProductDetail", {
           product,
         })
       }
     >
-      <Image source={product.image} style={[styles.image, { backgroundColor: theme.backgroundTertiary }]} contentFit="cover" />
+      <Image source={product.image} style={[styles.image, compact && styles.imageCompact, { backgroundColor: theme.backgroundTertiary }]} contentFit="cover" />
 
-      <View style={styles.content}>
-        <ThemedText type="small">{product.title}</ThemedText>
+      <View style={[styles.content, compact && styles.contentCompact]}>
+        <ThemedText type="small" style={compact ? { fontSize: 13 } : undefined}>{product.title}</ThemedText>
 
-        <ThemedText type="caption" numberOfLines={2} style={{ color: theme.textSecondary }}>
+        <ThemedText type="caption" numberOfLines={2} style={[{ color: theme.textSecondary }, compact && { fontSize: 11 }]}>
           {product.description}
         </ThemedText>
       </View>
@@ -63,5 +63,18 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.md,
     gap: 6,
+  },
+
+  cardCompact: {
+    width: 160,
+  },
+
+  imageCompact: {
+    height: 88,
+  },
+
+  contentCompact: {
+    padding: 10,
+    gap: 4,
   },
 });

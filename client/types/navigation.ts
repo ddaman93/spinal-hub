@@ -62,6 +62,12 @@ export type MainStackParamList = {
   EmergencyContacts: undefined;
   PressureReliefTimer: undefined;
   NZSpinalTrust: undefined;
+
+  SCIMedications: undefined;
+  SCIMedicationDetail: {
+    medicationId: string;
+    name: string;
+  };
 };
 
 declare global {

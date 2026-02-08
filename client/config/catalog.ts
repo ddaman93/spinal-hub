@@ -139,4 +139,12 @@ export const CATEGORIES: CategoryConfig[] = [
     route: "NZSpinalTrust",
     tools: [],
   },
+
+  {
+    id: "sci-medications",
+    title: "SCI Medications",
+    icon: "activity",
+    route: "SCIMedications",
+    tools: [],
+  },
 ];
