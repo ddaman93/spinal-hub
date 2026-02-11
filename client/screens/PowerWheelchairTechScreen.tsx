@@ -14,10 +14,12 @@ import { Spacing } from "@/constants/theme";
 
 import type { PowerWheelchairProduct } from "@/data/powerWheelchairProducts";
 import {
-  POWER_WHEELCHAIR_ACCESSORIES,
   SEATING_AND_POSITIONING,
-  CONTROL_INTERFACES,
-  ENVIRONMENTAL_ACCESS,
+  MOUNTS_AND_CARRYING,
+  SAFETY_AND_AWARENESS,
+  POWER_AND_CHARGING,
+  SMART_TECH_AND_CONNECTIVITY,
+  ALTERNATIVE_DRIVE_CONTROLS,
 } from "@/data/powerWheelchairProducts";
 
 /* ───────────────────────── screen ───────────────────────── */
@@ -48,23 +50,33 @@ export default function PowerWheelchairTechScreen() {
         </View>
 
         <Section
-          title="Power & Mobility Accessories"
-          data={POWER_WHEELCHAIR_ACCESSORIES}
-        />
-
-        <Section
           title="Seating & Positioning"
           data={SEATING_AND_POSITIONING}
         />
 
         <Section
-          title="Control Interfaces"
-          data={CONTROL_INTERFACES}
+          title="Mounts & Carrying"
+          data={MOUNTS_AND_CARRYING}
         />
 
         <Section
-          title="Environmental Access"
-          data={ENVIRONMENTAL_ACCESS}
+          title="Safety & Awareness"
+          data={SAFETY_AND_AWARENESS}
+        />
+
+        <Section
+          title="Power & Charging"
+          data={POWER_AND_CHARGING}
+        />
+
+        <Section
+          title="Smart Tech & Connectivity"
+          data={SMART_TECH_AND_CONNECTIVITY}
+        />
+
+        <Section
+          title="Alternative Drive Controls"
+          data={ALTERNATIVE_DRIVE_CONTROLS}
         />
       </ScrollView>
     </ThemedView>

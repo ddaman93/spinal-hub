@@ -4,7 +4,7 @@ export type TechSubsection = {
   id: string;
   title: string;
   filterTags: string[];
-  seeAllRoute?: "ManualWheelchairTech" | "PowerWheelchairTech";
+  seeAllRoute?: "ManualWheelchairTech" | "PowerWheelchairTech" | "ComputerProductivityTech";
 };
 
 export const TECH_SUBSECTIONS: Record<string, TechSubsection[]> = {
@@ -35,6 +35,12 @@ export const TECH_SUBSECTIONS: Record<string, TechSubsection[]> = {
     },
   ],
   "computer-access": [
+    {
+      id: "computer-productivity",
+      title: "Computer & Productivity Tech",
+      filterTags: ["computer-access", "alternative-input", "voice-dictation"],
+      seeAllRoute: "ComputerProductivityTech",
+    },
     {
       id: "head-eye-tracking",
       title: "Head & Eye Tracking",

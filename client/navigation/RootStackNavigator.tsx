@@ -36,6 +36,7 @@ import ClinicalTrialDetailScreen from "@/screens/ClinicalTrialDetailScreen";
 import MobilityAssistiveTechScreen from "@/screens/MobilityAssistiveTechScreen";
 import ManualWheelchairTechScreen from "@/screens/ManualWheelchairTechScreen";
 import PowerWheelchairTechScreen from "@/screens/PowerWheelchairTechScreen";
+import ComputerProductivityTechScreen from "@/screens/ComputerProductivityTechScreen";
 import ProductDetailScreen from "@/screens/ProductDetailScreen";
 
 import { HeaderTitle } from "@/components/HeaderTitle";
@@ -119,6 +120,12 @@ export default function RootStackNavigator() {
         name="PowerWheelchairTech"
         component={PowerWheelchairTechScreen}
         options={{ title: "Power Wheelchair Tech" }}
+      />
+
+      <Stack.Screen
+        name="ComputerProductivityTech"
+        component={ComputerProductivityTechScreen}
+        options={{ title: "Computer & Productivity Tech" }}
       />
 
       {/* CLINICAL TRIALS */}

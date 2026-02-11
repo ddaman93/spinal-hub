@@ -12,6 +12,7 @@ export type MainStackParamList = {
 
   ManualWheelchairTech: undefined;
   PowerWheelchairTech: undefined;
+  ComputerProductivityTech: undefined;
   AllAssistiveTech: {
     categoryId?: string;
   };

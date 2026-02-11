@@ -23,6 +23,7 @@ import { TECH_CATEGORIES } from "@/data/techCategories";
 import { TECH_SUBSECTIONS, getSubsectionItems } from "@/config/techSubsections";
 import { MANUAL_WHEELCHAIR_PRODUCTS } from "@/data/manualWheelchairProducts";
 import { POWER_WHEELCHAIR_PRODUCTS } from "@/data/powerWheelchairProducts";
+import { COMPUTER_PRODUCTIVITY_PRODUCTS } from "@/data/computerProductivityProducts";
 
 type AllAssistiveTechScreenProps = NativeStackScreenProps<
   MainStackParamList,
@@ -58,6 +59,9 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
   );
   const [randomPowerProducts] = useState(() =>
     shuffleArray(POWER_WHEELCHAIR_PRODUCTS).slice(0, 5)
+  );
+  const [randomComputerProducts] = useState(() =>
+    shuffleArray(COMPUTER_PRODUCTIVITY_PRODUCTS).slice(0, 5)
   );
 
   // Check if category has subsections
@@ -229,7 +233,9 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
                   ? randomManualProducts
                   : subsection.id === "power-wheelchair"
                     ? randomPowerProducts
-                    : null;
+                    : subsection.id === "computer-productivity"
+                      ? randomComputerProducts
+                      : null;
               const subsectionItems = productOverride
                 ? []
                 : getSubsectionItemsLocal(subsection.filterTags);

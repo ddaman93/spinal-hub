@@ -1,90 +1,62 @@
+/* ───────────────────────── types ───────────────────────── */
+
+export type PowerWheelchairCategory =
+  | "seating"
+  | "mounts"
+  | "safety"
+  | "power-charging"
+  | "smart-tech"
+  | "alternative-controls";
+
 export type PowerWheelchairProduct = {
   id: string;
   title: string;
   description: string;
-  image: any; // local require() or URL string
+  image: string; // URL string
   tags: string[];
-  category:
-    | "power-mobility"
-    | "seating"
-    | "controls"
-    | "environmental";
-  whatItIs?: string;
-  whatItDoes?: string;
-  whoItsFor?: string;
+  category: PowerWheelchairCategory;
+  whatItIs: string;
+  whatItDoes: string;
+  whoItsFor: string;
   productUrl?: string;
 };
 
-/* ───────────────────────── Power & Mobility Accessories ───────────────────────── */
+/* ───────────────────────── categories ───────────────────────── */
 
-export const POWER_WHEELCHAIR_ACCESSORIES: PowerWheelchairProduct[] = [
+export const POWER_WHEELCHAIR_CATEGORIES: {
+  id: PowerWheelchairCategory;
+  label: string;
+  description: string;
+}[] = [
   {
-    id: "permobil-power-assist",
-    title: "Permobil Power Module",
-    description:
-      "Integrated drive system with enhanced motors for outdoor terrain and inclines.",
-    image:
-      "https://www.permobil.com/globalassets/media/images/products/power-wheelchairs.jpg",
-    tags: ["power-wheelchair", "mobility", "outdoor"],
-    category: "power-mobility",
-    whatItIs:
-      "The Permobil Power Module is an advanced drive system that integrates with compatible power wheelchairs. It features high-torque motors, intelligent suspension, and optimised battery management designed to handle demanding terrain and extended use.",
-    whatItDoes:
-      "This system significantly improves outdoor performance by providing extra torque for hills, grass, gravel, and uneven surfaces. The intelligent power distribution extends battery life while the suspension system absorbs bumps and vibrations, reducing fatigue during longer journeys.",
-    whoItsFor:
-      "Ideal for power wheelchair users who frequently travel outdoors, need to navigate inclines, or want improved performance on varied terrain. Particularly beneficial for those who feel limited by standard wheelchair motors in challenging environments.",
-    productUrl: "https://www.permobil.com/en-us/products/power-wheelchairs",
+    id: "seating",
+    label: "Seating & Positioning",
+    description: "Pressure relief, posture support, head/trunk stability.",
   },
   {
-    id: "tilt-recline",
-    title: "Tilt & Recline System",
-    description:
-      "Motorised positioning system to manage pressure, posture, and fatigue throughout the day.",
-    image:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400",
-    tags: ["power-wheelchair", "seating", "pressure-relief"],
-    category: "power-mobility",
-    whatItIs:
-      "A tilt and recline system is a motorised seating mechanism integrated into power wheelchairs that allows the entire seat to tilt backwards (maintaining hip angle) or recline (opening the seat-to-back angle). Most systems offer both functions independently.",
-    whatItDoes:
-      "Tilting redistributes pressure from your seat bones across a larger body surface area, reducing pressure injury risk. Reclining opens the hip angle to relieve muscle tension and fatigue. Together they allow you to change position throughout the day, manage spasticity, improve circulation, and rest without transferring out of your chair.",
-    whoItsFor:
-      "Essential for users who sit for extended periods, have limited ability to shift weight independently, are at risk of pressure injuries, or experience fatigue and discomfort from prolonged sitting. Also valuable for those with spasticity or orthostatic hypotension.",
-    productUrl: "https://www.quantumrehab.com/power-positioning.asp",
+    id: "mounts",
+    label: "Mounts & Carrying",
+    description: "Phone/tablet mounts, trays, bags, and everyday carry add-ons.",
   },
   {
-    id: "elevation-seat",
-    title: "Seat Elevation System",
-    description:
-      "Raises seating position up to 14 inches for improved reach and social interaction.",
-    image:
-      "https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=400",
-    tags: ["power-wheelchair", "independence", "accessibility"],
-    category: "power-mobility",
-    whatItIs:
-      "Seat elevation is a powered function that raises the entire seat and user vertically by 10-14 inches (25-35cm) while maintaining the chair's mobility. The system uses a scissor lift or linear actuator mechanism beneath the seat.",
-    whatItDoes:
-      "Elevation allows you to reach higher surfaces like kitchen counters, store shelves, and tables. It brings you to standing eye level with others, improving social interaction and reducing neck strain in conversations. Many systems allow driving while elevated, providing better visibility in crowds or traffic.",
-    whoItsFor:
-      "Beneficial for any power wheelchair user who wants greater independence in daily tasks, improved reach in the kitchen or workplace, better social interaction at eye level, or enhanced visibility in public spaces. Particularly valuable for those living independently.",
-    productUrl: "https://www.permobil.com/en-us/products/power-wheelchairs/standing-and-elevating",
+    id: "safety",
+    label: "Safety & Awareness",
+    description: "Reverse camera, proximity sensors, mirrors, and visibility upgrades.",
   },
   {
-    id: "standing-system",
-    title: "Standing Wheelchair System",
-    description:
-      "Power function that transitions from sitting to a fully supported standing position.",
-    image:
-      "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=400",
-    tags: ["power-wheelchair", "standing", "health"],
-    category: "power-mobility",
-    whatItIs:
-      "A standing wheelchair features an integrated mechanism that raises the user from a seated position to a fully supported standing position. The system includes knee blocks, chest supports, and footplates that work together to provide safe standing.",
-    whatItDoes:
-      "Standing regularly provides numerous health benefits: improved bone density, better circulation, reduced spasticity, improved bowel and bladder function, and reduced risk of pressure injuries. It also offers functional benefits like reaching high places, face-to-face interaction, and performing tasks that require standing.",
-    whoItsFor:
-      "Designed for users who can safely tolerate supported standing and want the health and functional benefits of regular weight-bearing. Requires medical evaluation to ensure cardiovascular stability and bone health can support standing. Particularly beneficial for those with spinal cord injury who benefit from weight-bearing exercise.",
-    productUrl: "https://www.permobil.com/en-us/products/power-wheelchairs/standing",
+    id: "power-charging",
+    label: "Power & Charging",
+    description: "USB charging adaptors and controller-based charging options.",
+  },
+  {
+    id: "smart-tech",
+    label: "Smart Tech & Connectivity",
+    description: "Bluetooth/IR integrations to control phones, tablets, and environments.",
+  },
+  {
+    id: "alternative-controls",
+    label: "Alternative Drive Controls",
+    description: "Chin, head array, sip & puff, and other access methods.",
   },
 ];
 
@@ -92,243 +64,377 @@ export const POWER_WHEELCHAIR_ACCESSORIES: PowerWheelchairProduct[] = [
 
 export const SEATING_AND_POSITIONING: PowerWheelchairProduct[] = [
   {
-    id: "roho-air-cushion",
-    title: "ROHO Air Cushion",
+    id: "roho-hybrid-select-cushion",
+    title: "ROHO Hybrid Select Cushion",
     description:
-      "Air-cell cushion that distributes pressure evenly to prevent pressure injuries.",
+      "Air + foam hybrid cushion for pressure management and stability.",
     image:
-      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/seating/roho-cushions/roho-custom-product-v2.webp",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/roho%20hybrid.webp",
     tags: ["power-wheelchair", "cushion", "pressure-relief"],
     category: "seating",
     whatItIs:
-      "The ROHO cushion is an air-filled seating surface made up of interconnected rubber cells arranged in rows. When you sit on it, air flows between cells to conform to your body shape, creating a custom-contoured support surface.",
+      "A hybrid cushion combining ROHO air cells with a foam base to balance pressure relief with postural stability.",
     whatItDoes:
-      "The interconnected air cells automatically adjust to distribute your weight evenly across the entire seating surface. This eliminates high-pressure points under bony prominences (like sit bones), significantly reducing the risk of pressure injuries. The cushion also provides stability and can be adjusted by adding or removing air.",
+      "Helps reduce pressure injury risk while improving pelvic stability for more efficient sitting and driving.",
     whoItsFor:
-      "Essential for users at moderate to high risk of pressure injuries, those who sit for extended periods, and anyone with reduced sensation who cannot feel early warning signs of pressure damage. Also beneficial for users who need customisable support that adapts to position changes.",
-    productUrl: "https://www.permobil.com/en-us/products/seating-and-positioning/roho",
+      "People at risk of pressure injuries or who need a more stable sitting base (common with higher-level SCI).",
+    productUrl:
+      "https://www.permobil.com/en-nz/products/seating-positioning/cushioning-products/roho/hybrid-series/roho-hybrid-select-cushion",
   },
   {
-    id: "jay-backrest",
-    title: "JAY Back Support",
-    description:
-      "Modular back support system with customisable contours for optimal posture.",
+    id: "jay-j3-back-support",
+    title: "JAY J3 Back Support",
+    description: "Contoured back support for posture, stability, and comfort.",
     image:
-      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400",
-    tags: ["power-wheelchair", "backrest", "posture"],
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/J3-1back.png",
+    tags: ["power-wheelchair", "back-support", "posture"],
     category: "seating",
     whatItIs:
-      "JAY back supports are professional-grade wheelchair backrests featuring aluminium frames with customisable foam or fluid padding. They come in various depths and contours, with options for lateral supports, lumbar adjustment, and specialised configurations.",
+      "A contoured wheelchair back system designed to support trunk posture and distribute pressure.",
     whatItDoes:
-      "These backs provide significantly better support than standard sling upholstery. The contoured shape supports your spine's natural curves, reducing fatigue and preventing slouching. Adjustable components allow therapists to fine-tune the fit for your specific posture needs, improving comfort and function throughout the day.",
+      "Improves upright alignment, reduces fatigue, and can enhance head/arm function by stabilising the torso.",
     whoItsFor:
-      "Recommended for any power wheelchair user who spends significant time in their chair. Particularly valuable for those with postural issues, back pain, scoliosis, or limited trunk control. Users who have outgrown basic sling backs or need more support will benefit greatly.",
-    productUrl: "https://www.sunrisemedical.com/seating-positioning/jay/wheelchair-backs",
+      "Users who need stronger trunk support to sit upright comfortably for long periods.",
+    productUrl: "https://medifab.com/nz/product/jay-j3-back-support/",
   },
   {
-    id: "lateral-supports",
-    title: "Lateral Trunk Supports",
-    description:
-      "Adjustable side supports that improve trunk stability and reduce fatigue.",
+    id: "spex-fixed-lateral-trunk-support",
+    title: "Spex Fixed Lateral Trunk Support",
+    description: "Lateral supports to improve trunk stability and midline posture.",
     image:
-      "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400",
-    tags: ["power-wheelchair", "positioning", "trunk-support"],
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/Spex-Lateral-Bracket-Fixed-medium.png",
+    tags: ["power-wheelchair", "lateral-support", "trunk"],
     category: "seating",
     whatItIs:
-      "Lateral trunk supports are padded supports that mount to the sides of a wheelchair backrest. They come in various shapes and sizes, from simple flat pads to contoured thoracic supports, and can be positioned at different heights and angles.",
+      "Side (lateral) trunk supports that mount to the seating system to help maintain midline posture.",
     whatItDoes:
-      "These supports prevent sideways leaning and provide stability for users with reduced core strength. They keep your trunk aligned, reducing fatigue from constantly correcting posture. For users with scoliosis or asymmetrical tone, they can help maintain a more centred position and improve breathing and upper limb function.",
+      "Reduces leaning, improves breathing mechanics and arm reach by stabilising the trunk.",
     whoItsFor:
-      "Essential for users with limited trunk control due to high-level spinal cord injury, neurological conditions, or muscle weakness. Also helpful for those who tend to lean to one side, experience fatigue from holding themselves upright, or have scoliosis requiring positional management.",
-    productUrl: "https://www.sunrisemedical.com/seating-positioning/jay/positioning-components",
+      "People with reduced trunk control, scoliosis tendency, or fatigue-related leaning.",
+    productUrl: "https://medifab.com/nz/product/spex-fixed-lateral-trunk-support/",
   },
   {
-    id: "headrest-system",
-    title: "Headrest Support System",
-    description:
-      "Adjustable head support for users with limited neck control or fatigue.",
+    id: "spex-comfort-head-support",
+    title: "Spex Comfort Head Support",
+    description: "Adjustable head support for alignment, comfort, and fatigue reduction.",
     image:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400",
-    tags: ["power-wheelchair", "positioning", "head-support"],
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/Spex-Comfort-250-Head-Support-Pad-1-Chilli-Red-medium.png",
+    tags: ["power-wheelchair", "head-support", "positioning"],
     category: "seating",
     whatItIs:
-      "Headrest systems range from simple curved pads to complex multi-adjustable supports with occipital, temporal, and forehead components. They mount to the wheelchair backrest via adjustable hardware that allows positioning in multiple planes.",
+      "A modular head support system designed to help position and support the head comfortably.",
     whatItDoes:
-      "A properly fitted headrest supports the weight of your head, reducing neck muscle fatigue and strain. For users with limited neck control, it provides safety and positioning. Advanced systems can accommodate different head shapes and provide anterior support to prevent forward head drop.",
+      "Helps maintain head alignment for driving, communication, and reducing neck fatigue.",
     whoItsFor:
-      "Necessary for users with limited neck strength or control due to high cervical injury, ALS, muscular dystrophy, or other conditions. Also beneficial for those who experience neck fatigue during long periods of use, need support during tilt/recline, or have fluctuating tone affecting head position.",
-    productUrl: "https://www.sunrisemedical.com/seating-positioning/jay/head-supports",
+      "Users with limited neck strength/endurance or those using alternative drive controls.",
+    productUrl: "https://medifab.com/nz/product/spex-comfort-head-support/",
   },
 ];
 
-/* ───────────────────────── Control Interfaces ───────────────────────── */
+/* ───────────────────────── Mounts & Carrying ───────────────────────── */
 
-export const CONTROL_INTERFACES: PowerWheelchairProduct[] = [
+export const MOUNTS_AND_CARRYING: PowerWheelchairProduct[] = [
   {
-    id: "joystick-control",
-    title: "Proportional Joystick",
+    id: "rehadapt-wheelchair-mounts",
+    title: "Rehadapt Wheelchair Mounts",
     description:
-      "Standard control offering precise speed and direction through hand movement.",
+      "Modular mounting system for phones, tablets, switches, AAC, and more.",
     image:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
-    tags: ["power-wheelchair", "controls", "joystick"],
-    category: "controls",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/rehadapt-wheelchair-mounts-3a1aa55609.jpg",
+    tags: ["power-wheelchair", "mount", "tablet", "phone", "aac"],
+    category: "mounts",
     whatItIs:
-      "A proportional joystick is the standard control input for power wheelchairs. It consists of a small stick mounted on a control module that responds proportionally to the direction and force you apply—move it slightly for slow speed, push further for faster movement.",
+      "A high-quality modular mounting ecosystem used to position devices securely on a wheelchair.",
     whatItDoes:
-      "The joystick provides intuitive control over wheelchair speed and direction. Push forward to go forward, pull back to reverse, move sideways to turn. The proportional response means gentle inputs result in gentle movements, giving precise control for manoeuvring in tight spaces while still allowing faster travel when needed.",
+      "Lets you place a phone/tablet/AAC/switch where you can see and reach it reliably without constant re-adjustment.",
     whoItsFor:
-      "Suitable for most power wheelchair users who have sufficient hand function to grip and manipulate a small stick. Various handle shapes (goal post, ball, T-bar) and mounting positions accommodate different hand abilities. The standard choice for users with functional hand movement.",
-    productUrl: "https://www.quantumrehab.com/quantum-electronics/joysticks.asp",
+      "Anyone using a phone/tablet, AAC device, switch access, or needing consistent device placement.",
+    productUrl: "https://assistive.co.nz/product/rehadapt-wheelchair-mounts/",
   },
   {
-    id: "compact-joystick",
-    title: "Compact Joystick",
-    description:
-      "Smaller joystick requiring minimal force, ideal for limited hand function.",
+    id: "tru-balance-phone-holder",
+    title: "TRU-Balance Phone Holder",
+    description: "Arm-mounted phone holder to keep your phone secure and accessible.",
     image:
-      "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400",
-    tags: ["power-wheelchair", "controls", "accessibility"],
-    category: "controls",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/tru-balance-phone-holder-838fc1cc9c.png",
+    tags: ["power-wheelchair", "phone", "mount"],
+    category: "mounts",
     whatItIs:
-      "A compact or mini joystick is a smaller version of the standard proportional joystick, typically requiring less force and smaller movement range to operate. They can be mounted in various positions including on armrests, laptray, or even near the chin.",
+      "A wheelchair phone mounting option designed to keep a phone stable while driving.",
     whatItDoes:
-      "These joysticks provide the same proportional control as standard joysticks but with reduced physical demands. The smaller throw (movement distance) and lighter force requirements make them accessible to users with limited strength or range of motion. Sensitivity can be adjusted to match individual abilities.",
+      "Supports navigation, calls, music, and smart-home controls without needing to hold the phone.",
     whoItsFor:
-      "Designed for users with limited hand strength, reduced range of motion, or fine motor difficulties who still have some functional hand movement. Common for users with muscular dystrophy, high-level tetraplegia with partial hand function, or conditions causing weakness.",
-    productUrl: "https://www.permobil.com/en-us/products/electronics/joysticks",
+      "Users who want phone access without risking drops or awkward positioning.",
+    productUrl: "https://alliedmedical.co.nz/products/tru-balance-3-phone-holder",
   },
   {
-    id: "sip-and-puff",
-    title: "Sip-and-Puff Controller",
-    description:
-      "Hands-free control using breath through a straw for users with minimal limb function.",
+    id: "powerchair-wheelchair-trays",
+    title: "Powerchair / Wheelchair Tray",
+    description: "Clear tray surface for eating, work, or holding devices.",
     image:
-      "https://images.unsplash.com/photo-1576091160291-5e286764fb6c?w=400",
-    tags: ["power-wheelchair", "controls", "hands-free"],
-    category: "controls",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/powerchair-wheelchair-trays-1cbf757fe1.png",
+    tags: ["power-wheelchair", "tray", "work-surface"],
+    category: "mounts",
     whatItIs:
-      "A sip-and-puff system uses a straw-like tube positioned near the user's mouth. Different breath patterns—soft sip, hard sip, soft puff, hard puff—send commands to the wheelchair. The controller interprets these patterns as directional and mode inputs.",
+      "A tray surface fitted to your chair to create a stable platform for daily activities.",
     whatItDoes:
-      "This system provides complete wheelchair control without any limb movement. Typically, soft puffs/sips control speed and direction while hard puffs/sips change modes or execute commands. With practice, users can navigate complex environments entirely through breath control.",
+      "Makes it easier to use devices, eat, write, or carry items while seated.",
     whoItsFor:
-      "Essential for users with no functional arm movement, such as those with high cervical spinal cord injuries (C1-C4), advanced ALS, or severe muscular dystrophy. Requires good breath control and cognitive ability to learn the input patterns.",
-    productUrl: "https://www.quantumrehab.com/quantum-electronics/alternative-drive-controls.asp",
+      "Anyone who wants a stable surface for day-to-day independence or device use.",
+    productUrl: "https://alliedmedical.co.nz/products/aml-trays",
   },
   {
-    id: "head-array",
-    title: "Head Array Control",
-    description:
-      "Three-switch system using head movements against padded sensors for full control.",
+    id: "quantum-personal-item-pouch",
+    title: "Quantum Personal Item Pouch",
+    description: "Wheelchair-mounted pouch to keep essentials within reach.",
     image:
-      "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400",
-    tags: ["power-wheelchair", "controls", "head-control"],
-    category: "controls",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/quantum-personal-item-pouch-7217e4841d.jpg",
+    tags: ["power-wheelchair", "storage", "pouch"],
+    category: "mounts",
     whatItIs:
-      "A head array consists of three proximity or pressure switches mounted behind and beside the user's head on their headrest. Pressing the head against each switch triggers specific wheelchair functions.",
+      "A durable pouch that mounts to the chair to carry personal items securely.",
     whatItDoes:
-      "The rear switch typically controls forward movement, while the two side switches control turning. By combining switch activations (e.g., rear + left), users can move forward while turning. The system often includes proportional sensitivity and adjustable response parameters to match individual head control abilities.",
+      "Keeps essentials (keys, meds, charger, wallet) accessible without needing a backpack.",
     whoItsFor:
-      "Designed for users with reliable head control but no functional arm movement. Common for high-level spinal cord injury, ALS, and other conditions affecting limb function. Requires sufficient head and neck strength to activate switches and a stable head position.",
-    productUrl: "https://www.steelcase.com/products/head-array/",
-  },
-  {
-    id: "chin-control",
-    title: "Chin Joystick",
-    description:
-      "Joystick positioned for chin operation, providing proportional control hands-free.",
-    image:
-      "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400",
-    tags: ["power-wheelchair", "controls", "alternative"],
-    category: "controls",
-    whatItIs:
-      "A chin joystick is a compact proportional joystick mounted on a swing-away arm that positions it beneath the user's chin. The joystick is specially designed for chin operation with appropriate cup or contoured handle shapes.",
-    whatItDoes:
-      "This provides the same proportional control as a hand joystick but operated by chin movement. The swing-away mount allows the joystick to be moved aside for transfers, eating, or social situations. Some systems include an additional switch for mode changes.",
-    whoItsFor:
-      "Suitable for users with good head control and sufficient chin mobility but no functional arm use. Often preferred by users who find head arrays too tiring or want more precise proportional control than switch-based systems offer.",
-    productUrl: "https://www.permobil.com/en-us/products/electronics/alternative-controls",
+      "Anyone who wants better carry capacity without items falling out or dangling.",
+    productUrl: "https://alliedmedical.co.nz/products/personal-item-pouch",
   },
 ];
 
-/* ───────────────────────── Environmental Access ───────────────────────── */
+/* ───────────────────────── Safety & Awareness ───────────────────────── */
 
-export const ENVIRONMENTAL_ACCESS: PowerWheelchairProduct[] = [
+export const SAFETY_AND_AWARENESS: PowerWheelchairProduct[] = [
   {
-    id: "bluetooth-module",
-    title: "Bluetooth Control Module",
+    id: "quantum-backup-camera",
+    title: "Quantum Backup Camera",
     description:
-      "Enables wheelchair controls to operate phones, tablets, computers, and smart home devices.",
+      "Rear-view camera kit to improve reversing safety and obstacle awareness.",
     image:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
-    tags: ["power-wheelchair", "technology", "smart-home"],
-    category: "environmental",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/quantum-backup-camera-8380f3501f.png",
+    tags: ["power-wheelchair", "camera", "safety"],
+    category: "safety",
     whatItIs:
-      "A Bluetooth module integrates with your power wheelchair's electronics, allowing the joystick or alternative controls to connect wirelessly to external devices. It essentially turns your wheelchair controls into a universal input device.",
+      "A mounted rear-view camera system designed for powerchair use.",
     whatItDoes:
-      "With a Bluetooth module, you can use your wheelchair joystick to control smartphone apps, navigate tablets, operate computers as a mouse, and interact with Bluetooth-enabled smart home devices. A simple mode switch toggles between wheelchair driving and device control.",
+      "Improves reversing confidence and helps avoid backing into people/objects.",
     whoItsFor:
-      "Valuable for any power wheelchair user who wants seamless control of technology without switching input devices. Particularly important for users with limited hand function who cannot easily operate touchscreens or standard mice, enabling independent access to communication, entertainment, and environmental control.",
-    productUrl: "https://www.permobil.com/en-us/products/electronics/connectivity",
+      "People who struggle to turn or look behind (common with higher-level tetraplegia).",
+    productUrl: "https://alliedmedical.co.nz/products/quantum-s-wheelchair-backup-camera",
   },
   {
-    id: "wheelchair-mount",
-    title: "Device Mounting System",
+    id: "braze-sentina-sensor-system",
+    title: "Braze Sentina Sensor System",
     description:
-      "Secure, adjustable mounts for phones, tablets, and communication devices.",
+      "Blind-spot/proximity sensor system for rear obstacle awareness.",
     image:
-      "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400",
-    tags: ["power-wheelchair", "mount", "accessibility"],
-    category: "environmental",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/braze-sentina-sensor-system-37050f9119.png",
+    tags: ["power-wheelchair", "proximity", "sensor", "safety"],
+    category: "safety",
     whatItIs:
-      "Wheelchair mounting systems consist of articulated arms, clamps, and device holders that attach to various points on a power wheelchair. They range from simple phone holders to complex mounting systems for heavy communication devices.",
+      "A sensor system that detects obstacles behind (and potentially around) the chair.",
     whatItDoes:
-      "A good mounting system positions your device at the optimal angle and distance for viewing and interaction, while keeping it secure during movement. Articulated arms allow repositioning for different activities—closer for interaction, swung aside for transfers, or folded away when not needed.",
+      "Provides alerts to reduce collisions and improve confidence in tight spaces.",
     whoItsFor:
-      "Essential for users who rely on mounted devices for communication (AAC), navigation, or daily tasks. Important for anyone who cannot safely hold devices while driving or needs hands-free access to technology. Quality mounts are especially crucial for expensive AAC devices.",
-    productUrl: "https://www.rehadapt.com/products/mounting-systems/",
+      "Users who often reverse in busy environments (hospitals, malls, footpaths).",
+    productUrl: "https://alliedmedical.co.nz/products/braze-sentina-sensor-system",
   },
   {
-    id: "environmental-control",
-    title: "Environmental Control Unit (ECU)",
-    description:
-      "System to control lights, doors, TVs, and appliances from wheelchair controls.",
+    id: "wing-mirror-wheelchair",
+    title: "Wheelchair Wing Mirror",
+    description: "Simple mirror accessory for rear/side visibility.",
     image:
-      "https://images.unsplash.com/photo-1558002038-1055907df827?w=400",
-    tags: ["power-wheelchair", "smart-home", "independence"],
-    category: "environmental",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/wing-mirror-wheelchair-9e99f0db01.png",
+    tags: ["power-wheelchair", "mirror", "safety"],
+    category: "safety",
     whatItIs:
-      "An Environmental Control Unit is a system that integrates with your wheelchair electronics or operates independently to control home appliances and systems. It may use infrared (for TVs), radio frequency (for door openers), or smart home protocols (WiFi/Zigbee).",
+      "A mountable mirror designed to give better awareness of what’s behind you.",
     whatItDoes:
-      "ECUs allow you to control lights, televisions, door locks, thermostats, beds, and other home devices from your wheelchair controls or a single accessible switch. This eliminates the need to physically reach or operate standard switches and remotes throughout your home.",
+      "Reduces accidental bumps and improves situational awareness when reversing or turning.",
     whoItsFor:
-      "Crucial for users with limited arm function who cannot independently operate light switches, door handles, or remote controls. Particularly important for those living alone or wanting independence in managing their environment. A key component of accessible smart home setups.",
-    productUrl: "https://www.ablenetinc.com/technology/environmental-controls/",
+      "Anyone who can’t easily look back or wants quick ‘at a glance’ awareness.",
+    productUrl: "https://kyleeandco.nz/products/wing-mirror-for-wheelchair",
   },
   {
-    id: "attendant-control",
-    title: "Attendant Control Module",
-    description:
-      "Secondary control allowing a carer to drive the wheelchair from behind.",
+    id: "safety-flag",
+    title: "Safety Flag",
+    description: "High-visibility flag to help others see you outdoors.",
     image:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400",
-    tags: ["power-wheelchair", "caregiver", "safety"],
-    category: "environmental",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/safety-flag-6bc4a7dd36.jpg",
+    tags: ["power-wheelchair", "visibility", "outdoors"],
+    category: "safety",
     whatItIs:
-      "An attendant control is a secondary joystick or control panel mounted at the back of a power wheelchair, allowing a caregiver or attendant to drive the chair. It typically connects to the main control system and can be enabled or disabled as needed.",
+      "A bright flag that mounts to the chair to increase visibility around traffic/pedestrians.",
     whatItDoes:
-      "This system allows a carer to take over driving in situations where the user is fatigued, in unfamiliar environments, or during medical appointments. The attendant can navigate tight spaces, manage crowds, or simply give the user a rest while maintaining power wheelchair benefits.",
+      "Makes you more visible in carparks, crossings, shared paths, and low-light environments.",
     whoItsFor:
-      "Useful for users who occasionally need assistance with driving due to fatigue, cognitive changes, or complex environments. Important for medical settings where clinicians need to position patients. Also valuable as a training tool for new power wheelchair users.",
-    productUrl: "https://www.quantumrehab.com/quantum-electronics/attendant-control.asp",
+      "Outdoor users, especially near driveways, roads, or busy shared footpaths/cycleways.",
+    productUrl: "https://alliedmedical.co.nz/products/safety-flag",
   },
 ];
 
-/* ───────────────────────── Aggregate Export ───────────────────────── */
+/* ───────────────────────── Power & Charging ───────────────────────── */
+
+export const POWER_AND_CHARGING: PowerWheelchairProduct[] = [
+  {
+    id: "usb-adaptors-chargers",
+    title: "USB Adaptors / Chargers (Powerchair)",
+    description:
+      "Charge devices directly from the wheelchair’s charging port.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/usbada.png",
+    tags: ["power-wheelchair", "charging", "usb", "phone"],
+    category: "power-charging",
+    whatItIs:
+      "USB charging adaptors designed to run off your chair’s power/charging interface.",
+    whatItDoes:
+      "Keeps phone/tablet powered for calls, navigation, AAC, and smart-home control throughout the day.",
+    whoItsFor:
+      "Anyone relying on a device for communication/control who can’t risk running out of battery.",
+    productUrl: "https://medifab.com/product/usb-adaptors-chargers/",
+  },
+  {
+    id: "q-logic-3e-hand-control",
+    title: "Q-Logic 3e Hand Control (USB-C + XLR)",
+    description:
+      "Controller upgrade with built-in USB-C and charging port options.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/q-logic-3e-hand-control-643dd76cd9.jpg",
+    tags: ["power-wheelchair", "controller", "usb-c", "charging"],
+    category: "power-charging",
+    whatItIs:
+      "A powerchair hand control/display that includes modern charging ports and simplified access to functions.",
+    whatItDoes:
+      "Can make it easier to access seating functions and keep devices charged via the controller’s ports.",
+    whoItsFor:
+      "Users who want more accessible function control and integrated device charging.",
+    productUrl: "https://alliedmedical.co.nz/products/q-logic-3e-hand-control",
+  },
+];
+
+/* ───────────────────────── Smart Tech & Connectivity ───────────────────────── */
+
+export const SMART_TECH_AND_CONNECTIVITY: PowerWheelchairProduct[] = [
+  {
+    id: "q-logic-3-bluetooth",
+    title: "Q-Logic 3 Bluetooth",
+    description:
+      "Use your powerchair joystick to control Bluetooth-enabled devices.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/q-logic-3-bluetooth-76ad843be2.jpg",
+    tags: ["power-wheelchair", "bluetooth", "phone", "tablet", "mouse"],
+    category: "smart-tech",
+    whatItIs:
+      "Bluetooth capability within the Q-Logic 3 ecosystem to interact with phones/tablets/computers.",
+    whatItDoes:
+      "Enables joystick-based control of paired devices (useful when hand function is limited).",
+    whoItsFor:
+      "Users who want to control a phone/tablet/computer through chair controls rather than direct touch.",
+    productUrl: "https://alliedmedical.co.nz/products/q-logic-3-bluetooth",
+  },
+  {
+    id: "q-logic-3-drive-control-system",
+    title: "Q-Logic 3 Drive Control System (incl. IR/ECU options)",
+    description:
+      "Expandable electronics platform that can integrate advanced inputs and environmental control.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/q-logic-3-drive-control-system-2dbd7de8e8.jpg",
+    tags: ["power-wheelchair", "electronics", "ecu", "ir", "access"],
+    category: "smart-tech",
+    whatItIs:
+      "An advanced drive control electronics system that supports custom inputs and add-on modules.",
+    whatItDoes:
+      "Provides a platform for higher-level customisation (e.g., linking access methods and environment control).",
+    whoItsFor:
+      "People with complex access needs (common in high-level SCI) or those adding environmental control.",
+    productUrl:
+      "https://alliedmedical.co.nz/products/q-logic-3-drive-control-system-electronics-etc",
+  },
+];
+
+/* ───────────────────────── Alternative Drive Controls ───────────────────────── */
+
+export const ALTERNATIVE_DRIVE_CONTROLS: PowerWheelchairProduct[] = [
+  {
+    id: "stealth-idrive-sip-puff-head-array",
+    title: "Stealth i-Drive Sip & Puff + Proximity Head Array",
+    description:
+      "Hands-free drive control using sip & puff plus proximity head array sensors.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/stealth-idrive-sip-puff-head-array-dbd18d9a4e.png",
+    tags: ["power-wheelchair", "sip-and-puff", "head-array", "hands-free"],
+    category: "alternative-controls",
+    whatItIs:
+      "A combined system using breath input (sip/puff) and proximity head array sensors for chair control.",
+    whatItDoes:
+      "Enables independent driving and function access without hand control.",
+    whoItsFor:
+      "People with very limited/no hand function who need a reliable hands-free drive method.",
+    productUrl:
+      "https://alliedmedical.co.nz/products/stealth-i-drive-sip-puff-plus-proximity-head-array",
+  },
+  {
+    id: "mo-vis-chin-control",
+    title: "mo-vis Light-Touch Chin Control",
+    description:
+      "Chin-operated joystick solution for powerchair control.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/chincontrol.png",
+    tags: ["power-wheelchair", "chin-control", "joystick"],
+    category: "alternative-controls",
+    whatItIs:
+      "A chin-control joystick solution designed for users who can’t use a standard hand joystick.",
+    whatItDoes:
+      "Allows proportional driving and access to chair functions using chin movement.",
+    whoItsFor:
+      "Users with limited arm/hand function but reliable head/chin control.",
+    productUrl:
+      "https://www.cubro.co.nz/healthcare-products/powered-wheelchairs/alternative-controls/mo-vis-all-round-light-touch-chin-control",
+  },
+  {
+    id: "stealth-mini-proportional-joystick",
+    title: "Stealth Mini Proportional Joystick",
+    description:
+      "Low-force specialty joystick for chin/lip/fingertip driving setups.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/stealth-mini-proportional-joystick-34281fecd8.png",
+    tags: ["power-wheelchair", "specialty-joystick", "low-force"],
+    category: "alternative-controls",
+    whatItIs:
+      "A compact proportional joystick that requires low activation force for advanced access.",
+    whatItDoes:
+      "Enables driving for users who can’t manage standard joystick force/throw.",
+    whoItsFor:
+      "Chin, lip, or minimal-force fingertip driving configurations.",
+    productUrl:
+      "https://alliedmedical.co.nz/products/stealth-mini-proportional-joystick",
+  },
+  {
+    id: "permobil-sip-puff-system",
+    title: "Permobil Sip & Puff System",
+    description:
+      "Sip & puff drive control option for users with no upper-limb function.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/power-wheelchairs/2_alt_sippuffsystem-min.webp",
+    tags: ["power-wheelchair", "sip-and-puff", "hands-free"],
+    category: "alternative-controls",
+    whatItIs:
+      "A sip-and-puff control system designed to operate power wheelchair functions with breath input.",
+    whatItDoes:
+      "Enables driving/function control through controlled inhaling/exhaling commands.",
+    whoItsFor:
+      "People with little/no upper extremity function who need a breath-based control method.",
+    productUrl:
+      "https://www.permobil.com/en-nz/produits/accessoires/commandes-de-conduite/permobil-systeme-sip-puff",
+  },
+];
+
+/* ───────────────────────── export all ───────────────────────── */
 
 export const POWER_WHEELCHAIR_PRODUCTS: PowerWheelchairProduct[] = [
-  ...POWER_WHEELCHAIR_ACCESSORIES,
   ...SEATING_AND_POSITIONING,
-  ...CONTROL_INTERFACES,
-  ...ENVIRONMENTAL_ACCESS,
+  ...MOUNTS_AND_CARRYING,
+  ...SAFETY_AND_AWARENESS,
+  ...POWER_AND_CHARGING,
+  ...SMART_TECH_AND_CONNECTIVITY,
+  ...ALTERNATIVE_DRIVE_CONTROLS,
 ];
