@@ -1,0 +1,227 @@
+[
+  {
+    "id": "alternative-input",
+    "productUrl": "https://us.tobiidynavox.com/products/pceye",
+    "status": 200,
+    "finalUrl": "https://us.tobiidynavox.com/products/pceye",
+    "responseTime": 612,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "smartnav-head-mouse",
+    "productUrl": "https://www.naturalpoint.com/smartnav/",
+    "status": 200,
+    "finalUrl": "https://www.naturalpoint.com/",
+    "responseTime": 2120,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "glassouse-pro",
+    "productUrl": "https://glassouse.com/",
+    "status": 200,
+    "finalUrl": "https://glassouse.com/",
+    "responseTime": 708,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "pretorian-sip-puff-mouse",
+    "productUrl": "https://www.pretorianuk.com/",
+    "status": "error",
+    "finalUrl": "https://www.pretorianuk.com/",
+    "responseTime": 440,
+    "valid": false,
+    "error": "socket hang up"
+  },
+  {
+    "id": "ablenet-hitch-blue2",
+    "productUrl": "https://www.ablenetinc.com/blue2-bluetooth-switch/",
+    "status": 200,
+    "finalUrl": "https://www.ablenetinc.com/blue2-ft/",
+    "responseTime": 1455,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "click-n-type",
+    "productUrl": "https://www.softpedia.com/get/Desktop-Enhancements/Other-Desktop-Enhancements/Click-N-Type.shtml",
+    "status": 403,
+    "finalUrl": "https://www.softpedia.com/get/Desktop-Enhancements/Other-Desktop-Enhancements/Click-N-Type.shtml",
+    "responseTime": 670,
+    "valid": false,
+    "error": null
+  },
+  {
+    "id": "optikey",
+    "productUrl": "https://github.com/OptiKey/OptiKey",
+    "status": 200,
+    "finalUrl": "https://github.com/OptiKey/OptiKey",
+    "responseTime": 1124,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "dasher",
+    "productUrl": "https://github.com/ipomoena/dasher",
+    "status": 200,
+    "finalUrl": "https://github.com/dasher-project/dasher",
+    "responseTime": 1614,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "keystrokes-mac",
+    "productUrl": "https://www.assistiveware.com/legacy-apps",
+    "status": 200,
+    "finalUrl": "https://www.assistiveware.com/legacy-apps",
+    "responseTime": 1856,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "phrase-express",
+    "productUrl": "https://www.phraseexpress.com/",
+    "status": 200,
+    "finalUrl": "https://www.phraseexpress.com/",
+    "responseTime": 1360,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "dragon-professional",
+    "productUrl": "https://www.nuance.com/dragon.html",
+    "status": 200,
+    "finalUrl": "https://dragon.nuance.com/en-us/home-professional-and-consumer",
+    "responseTime": 1292,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "windows-voice-access",
+    "productUrl": "https://support.microsoft.com/en-us/topic/get-started-with-voice-access-bd2aa2dc-46c2-486c-93ae-3d75f7d053a4",
+    "status": 200,
+    "finalUrl": "https://support.microsoft.com/en-us/topic/get-started-with-voice-access-bd2aa2dc-46c2-486c-93ae-3d75f7d053a4",
+    "responseTime": 922,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "macos-voice-control",
+    "productUrl": "https://support.apple.com/guide/mac-help/voice-control-mh40719/mac",
+    "status": 200,
+    "finalUrl": "https://support.apple.com/guide/mac-help/use-voice-control-commands-mh40719/mac",
+    "responseTime": 703,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "talon-voice",
+    "productUrl": "https://talonvoice.com/",
+    "status": 200,
+    "finalUrl": "https://talonvoice.com/",
+    "responseTime": 1968,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "otter-ai",
+    "productUrl": "https://otter.ai/",
+    "status": 200,
+    "finalUrl": "https://otter.ai/",
+    "responseTime": 1004,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "dwell-clicker",
+    "productUrl": "https://dwell-clicker.software.informer.com/",
+    "status": 200,
+    "finalUrl": "https://dwell-clicker.software.informer.com/",
+    "responseTime": 281,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "mouse-keys-built-in",
+    "productUrl": "https://support.microsoft.com/en-us/windows/use-mouse-keys-to-move-the-mouse-pointer-9e0c72c8-b882-7918-8e7b-391fd62adf33",
+    "status": 200,
+    "finalUrl": "https://support.microsoft.com/en-us/windows/use-mouse-keys-to-move-the-mouse-pointer-9e0c72c8-b882-7918-8e7b-391fd62adf33",
+    "responseTime": 176,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "steady-mouse",
+    "productUrl": "https://www.steadymouse.com/",
+    "status": 200,
+    "finalUrl": "https://www.steadymouse.com/",
+    "responseTime": 864,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "macos-click-assist",
+    "productUrl": "https://support.apple.com/guide/mac-help/change-pointer-control-preferences-mh27449/mac",
+    "status": 200,
+    "finalUrl": "https://support.apple.com/guide/mac-help/what-is-malware-on-mac-mh27449/mac",
+    "responseTime": 382,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "pointing-magnifier",
+    "productUrl": "https://support.freedomscientific.com/Downloads/ZoomText",
+    "status": 403,
+    "finalUrl": "https://support.freedomscientific.com/Downloads/ZoomText",
+    "responseTime": 357,
+    "valid": false,
+    "error": null
+  },
+  {
+    "id": "teamviewer",
+    "productUrl": "https://www.teamviewer.com/",
+    "status": 200,
+    "finalUrl": "https://www.teamviewer.com/en-nz/",
+    "responseTime": 664,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "chrome-remote-desktop",
+    "productUrl": "https://remotedesktop.google.com/",
+    "status": 200,
+    "finalUrl": "https://remotedesktop.google.com/",
+    "responseTime": 1079,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "microsoft-remote-desktop",
+    "productUrl": "https://support.microsoft.com/en-us/windows/how-to-use-remote-desktop-5fe128d5-8fb1-7a23-3b8a-41e636865e8c",
+    "status": 200,
+    "finalUrl": "https://support.microsoft.com/en-us/windows/how-to-use-remote-desktop-5fe128d5-8fb1-7a23-3b8a-41e636865e8c",
+    "responseTime": 217,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "barrier",
+    "productUrl": "https://github.com/debauchee/barrier",
+    "status": 200,
+    "finalUrl": "https://github.com/debauchee/barrier",
+    "responseTime": 1026,
+    "valid": true,
+    "error": null
+  },
+  {
+    "id": "apple-universal-control",
+    "productUrl": "https://support.apple.com/guide/mac-help/use-universal-control-mchl8be95421/mac",
+    "status": 200,
+    "finalUrl": "https://support.apple.com/guide/mac-help/welcome/mac",
+    "responseTime": 383,
+    "valid": true,
+    "error": null
+  }
+]
