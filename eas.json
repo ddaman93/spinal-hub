@@ -5,7 +5,7 @@
       "env": {
         "EXPO_PUBLIC_DOMAIN": "spinal-hub.onrender.com"
       },
-      "ios": { "buildType": "archive" },
+      "ios": { "simulator": false },
       "android": { "buildType": "app-bundle" }
     }
   },
