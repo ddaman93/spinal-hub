@@ -4,7 +4,7 @@ export type TechSubsection = {
   id: string;
   title: string;
   filterTags: string[];
-  seeAllRoute?: "ManualWheelchairTech" | "PowerWheelchairTech" | "ComputerProductivityTech";
+  seeAllRoute?: "ManualWheelchairTech" | "PowerWheelchairTech";
 };
 
 export const TECH_SUBSECTIONS: Record<string, TechSubsection[]> = {
@@ -36,20 +36,29 @@ export const TECH_SUBSECTIONS: Record<string, TechSubsection[]> = {
   ],
   "computer-access": [
     {
-      id: "computer-productivity",
-      title: "Computer & Productivity Tech",
-      filterTags: ["computer-access", "alternative-input", "voice-dictation"],
-      seeAllRoute: "ComputerProductivityTech",
+      id: "alternative-mice",
+      title: "Alternative Mice",
+      filterTags: [],
     },
     {
-      id: "head-eye-tracking",
-      title: "Head & Eye Tracking",
-      filterTags: ["eye-tracking"],
+      id: "on-screen-keyboards",
+      title: "On-Screen Keyboards & Text Entry",
+      filterTags: [],
     },
     {
-      id: "voice-switch",
-      title: "Voice & Switch Access",
-      filterTags: ["hands-free", "switches"],
+      id: "voice-dictation",
+      title: "Voice Control & Dictation",
+      filterTags: [],
+    },
+    {
+      id: "pointer-cursor-tools",
+      title: "Pointer & Cursor Tools",
+      filterTags: [],
+    },
+    {
+      id: "remote-bridging",
+      title: "Remote Access & Device Bridging",
+      filterTags: [],
     },
   ],
   communication: [
@@ -66,14 +75,29 @@ export const TECH_SUBSECTIONS: Record<string, TechSubsection[]> = {
   ],
   "phone-tablet": [
     {
-      id: "switch-access-mobile",
-      title: "Switch Access",
-      filterTags: ["switches", "mobile"],
+      id: "built-in-ios-android",
+      title: "Built into iOS & Android",
+      filterTags: [],
     },
     {
-      id: "voice-mobile",
-      title: "Voice Control",
-      filterTags: ["voice", "mobile"],
+      id: "switch-access",
+      title: "Switch Access",
+      filterTags: [],
+    },
+    {
+      id: "wheelchair-control",
+      title: "Wheelchair / Joystick Control",
+      filterTags: [],
+    },
+    {
+      id: "mounting",
+      title: "Mounting & Positioning",
+      filterTags: [],
+    },
+    {
+      id: "stylus",
+      title: "Stylus & Touch Aids",
+      filterTags: [],
     },
   ],
   environment: [

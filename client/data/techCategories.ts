@@ -41,14 +41,15 @@ export const TECH_CATEGORIES: TechCategory[] = [
       "Assistive technology designed to improve mobility, reduce fatigue, and increase independence for manual and power wheelchair users.",
     image: require("@/assets/images/assistive-tech/Electric-Wheelchair-Vs.-Manual-Wheelchair.webp"),
   },
-  {
-    id: "smart-home",
-    title: "Smart Home & IoT",
-    subtitle: "Voice controls, ECUs, smart lighting",
-    description:
-      "Smart home systems and environmental control units that let you control lights, doors, appliances, and other devices through voice, switches, or mobile apps.",
-    image: require("@/assets/images/assistive-tech/smart-home-tech.jpg"),
-    },
+  // TODO: Populate Smart Home & IoT content before re-enabling
+  // {
+  //   id: "smart-home",
+  //   title: "Smart Home & IoT",
+  //   subtitle: "Voice controls, ECUs, smart lighting",
+  //   description:
+  //     "Smart home systems and environmental control units that let you control lights, doors, appliances, and other devices through voice, switches, or mobile apps.",
+  //   image: require("@/assets/images/assistive-tech/smart-home-tech.jpg"),
+  // },
   {
     id: "computer-access",
     title: "Computer & Productivity Tech",
@@ -57,14 +58,15 @@ export const TECH_CATEGORIES: TechCategory[] = [
       "Hands-free computing solutions including head tracking systems, eye-gaze control, and voice dictation for accessing computers and productivity software.",
     image: require("@/assets/images/assistive-tech/computer-tech.jpg"),
   },
-  {
-    id: "communication",
-    title: "Communication Aids",
-    subtitle: "AAC devices, speech generation, eye-gaze",
-    description:
-      "Augmentative and alternative communication (AAC) devices and software that help people with speech difficulties communicate effectively.",
-    image: require("@/assets/images/assistive-tech/Communication-Devices.png"),
-  },
+  // TODO: Populate Communication Aids content before re-enabling
+  // {
+  //   id: "communication",
+  //   title: "Communication Aids",
+  //   subtitle: "AAC devices, speech generation, eye-gaze",
+  //   description:
+  //     "Augmentative and alternative communication (AAC) devices and software that help people with speech difficulties communicate effectively.",
+  //   image: require("@/assets/images/assistive-tech/Communication-Devices.png"),
+  // },
   {
     id: "phone-tablet",
     title: "Phone & Tablet Access",

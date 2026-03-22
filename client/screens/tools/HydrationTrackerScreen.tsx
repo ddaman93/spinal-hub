@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -10,25 +11,30 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { storage, HydrationLog, generateId, formatDate, formatTime } from "@/lib/storage";
 
 const QUICK_ADD_AMOUNTS = [
-  { label: "8 oz", amount: 8 },
-  { label: "12 oz", amount: 12 },
-  { label: "16 oz", amount: 16 },
-  { label: "24 oz", amount: 24 },
+  { label: "200 ml", amount: 200 },
+  { label: "250 ml", amount: 250 },
+  { label: "350 ml", amount: 350 },
+  { label: "500 ml", amount: 500 },
 ];
+
+const DEFAULT_GOAL_ML = 2000;
 
 export default function HydrationTrackerScreen() {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [todayLogs, setTodayLogs] = useState<HydrationLog[]>([]);
-  const [dailyGoal, setDailyGoal] = useState(64);
+  const [dailyGoal, setDailyGoal] = useState(DEFAULT_GOAL_ML);
 
   const today = formatDate(new Date());
 
   const loadData = useCallback(async () => {
-    const logs = await storage.hydration.getByDate(today);
+    const [logs, prefs] = await Promise.all([
+      storage.hydration.getByDate(today),
+      storage.preferences.get(),
+    ]);
     setTodayLogs(logs || []);
-    const prefs = await storage.preferences.get();
-    setDailyGoal(prefs.dailyWaterGoal);
+    setDailyGoal(prefs.hydrationGoalMl ?? DEFAULT_GOAL_ML);
   }, [today]);
 
   useEffect(() => {
@@ -39,7 +45,7 @@ export default function HydrationTrackerScreen() {
     const log: HydrationLog = {
       id: generateId(),
       amount,
-      unit: "oz",
+      unit: "ml",
       timestamp: new Date().toISOString(),
       date: today,
     };
@@ -61,7 +67,7 @@ export default function HydrationTrackerScreen() {
       <View style={[styles.logCard, { backgroundColor: theme.backgroundDefault }]}>
         <View style={styles.logContent}>
           <Feather name="droplet" size={20} color={theme.primary} />
-          <ThemedText type="body">{item.amount} oz</ThemedText>
+          <ThemedText type="body">{item.amount} ml</ThemedText>
         </View>
         <View style={styles.logRight}>
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
@@ -71,7 +77,7 @@ export default function HydrationTrackerScreen() {
             onPress={() => handleDelete(item.id)}
             style={[styles.deleteButton, { backgroundColor: theme.error + "20" }]}
             accessible
-            accessibilityLabel={`Delete ${item.amount} ounce entry`}
+            accessibilityLabel={`Delete ${item.amount} ml entry`}
             accessibilityRole="button"
           >
             <Feather name="x" size={16} color={theme.error} />
@@ -87,7 +93,7 @@ export default function HydrationTrackerScreen() {
         <View style={styles.progressHeader}>
           <ThemedText type="h3">Today's Progress</ThemedText>
           <ThemedText type="h4" style={{ color: theme.primary }}>
-            {totalToday} / {dailyGoal} oz
+            {totalToday} / {dailyGoal} ml
           </ThemedText>
         </View>
         
@@ -139,7 +145,7 @@ export default function HydrationTrackerScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.listContent,
-            { paddingBottom: insets.bottom + Spacing.xl },
+            { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xl },
           ]}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>

@@ -6,6 +6,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -27,10 +28,12 @@ import {
 export default function PowerWheelchairTechScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
+  const scrollProps = useScrollAwareHeader();
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView
+        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: headerHeight + Spacing.md,
@@ -116,6 +119,7 @@ function Section({
             key={product.id}
             product={product}
             compact={true}
+            imageBackground="#EFEFEF"
           />
         ))}
       </ScrollView>

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Pressable, ViewStyle, View } from "react-native";
+import { StyleSheet, Pressable, ViewStyle, View, ImageBackground } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
@@ -14,15 +14,18 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 
 interface CategoryTileProps {
   title: string;
+  description?: string;
   icon: keyof typeof Feather.glyphMap;
   onPress: () => void;
   style?: ViewStyle;
   /** When supplied, rendered in place of the Feather icon. */
   customIcon?: React.ReactNode;
-  /** Colour of the 3 px accent bar along the bottom edge. */
+  /** Accent colour — drives the icon background tint. */
   accentColor?: string;
-  /** Background colour of the icon container (e.g. a faint brand tint). */
+  /** Override icon background colour. Falls back to accentColor + 18% opacity. */
   iconBg?: string;
+  /** When supplied, renders as the tile background image with a dark overlay. */
+  imageUri?: string;
 }
 
 const springConfig: WithSpringConfig = {
@@ -37,31 +40,32 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function CategoryTile({
   title,
+  description,
   icon,
   onPress,
   style,
   customIcon,
-  accentColor,
+  accentColor = "#007AFF",
   iconBg,
+  imageUri,
 }: CategoryTileProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-    opacity: opacity.value,
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, springConfig);
-    opacity.value = withSpring(0.8, springConfig);
+    scale.value = withSpring(0.94, springConfig);
   };
 
   const handlePressOut = () => {
     scale.value = withSpring(1, springConfig);
-    opacity.value = withSpring(1, springConfig);
   };
+
+  // Derive icon bg from accent colour if not explicitly provided
+  const resolvedIconBg = iconBg ?? accentColor + "22";
 
   return (
     <AnimatedPressable
@@ -70,7 +74,10 @@ export function CategoryTile({
       onPressOut={handlePressOut}
       style={[
         styles.tile,
-        { backgroundColor: theme.backgroundDefault, borderColor: theme.border },
+        {
+          backgroundColor: imageUri ? "transparent" : theme.backgroundDefault,
+          shadowColor: theme.text,
+        },
         animatedStyle,
         style,
       ]}
@@ -79,25 +86,38 @@ export function CategoryTile({
       accessibilityLabel={title}
       accessibilityHint={`Opens ${title}`}
     >
-      <View
-        style={[
-          styles.iconContainer,
-          iconBg && { backgroundColor: iconBg },
-        ]}
-      >
+      {/* Image background with dark overlay */}
+      {imageUri && (
+        <ImageBackground
+          source={{ uri: imageUri }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="contain"
+        >
+          <View style={styles.imageOverlay} />
+        </ImageBackground>
+      )}
+
+      {/* Coloured top edge */}
+      <View style={[styles.topEdge, { backgroundColor: accentColor }]} />
+
+      {/* Icon */}
+      <View style={[styles.iconWrap, { backgroundColor: imageUri ? "rgba(255,255,255,0.18)" : resolvedIconBg }]}>
         {customIcon ?? (
-          <Feather name={icon} size={24} color={theme.primary} />
+          <Feather name={icon} size={20} color={imageUri ? "#FFFFFF" : accentColor} />
         )}
       </View>
-      <ThemedText type="small" style={styles.label} numberOfLines={2}>
+
+      {/* Text */}
+      <ThemedText style={[styles.title, imageUri && { color: "#FFFFFF" }]} numberOfLines={2}>
         {title}
       </ThemedText>
-
-      {/* Brand accent bar – only rendered when accentColor is provided */}
-      {accentColor && (
-        <View
-          style={[styles.accentBar, { backgroundColor: accentColor }]}
-        />
+      {description && (
+        <ThemedText
+          style={[styles.description, { color: imageUri ? "rgba(255,255,255,0.8)" : theme.textSecondary }]}
+          numberOfLines={2}
+        >
+          {description}
+        </ThemedText>
       )}
     </AnimatedPressable>
   );
@@ -106,30 +126,42 @@ export function CategoryTile({
 const styles = StyleSheet.create({
   tile: {
     aspectRatio: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: BorderRadius.medium,
-    borderWidth: 1,
-    padding: Spacing.sm,
+    borderRadius: BorderRadius.large,
+    paddingHorizontal: Spacing.sm,
+    paddingTop: 0,
+    paddingBottom: Spacing.md,
+    overflow: "hidden",
+    gap: 6,
+    // shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  iconContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: Spacing.xs,
-    borderRadius: BorderRadius.small,
-    padding: 4,
-  },
-  accentBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  topEdge: {
     height: 3,
-    borderBottomLeftRadius: BorderRadius.medium,
-    borderBottomRightRadius: BorderRadius.medium,
+    marginHorizontal: -Spacing.sm,
+    marginBottom: Spacing.sm,
   },
-  label: {
-    textAlign: "center",
-    fontWeight: "600",
+  iconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: BorderRadius.medium,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.48)",
+  },
+  title: {
+    fontSize: 13,
+    fontWeight: "700",
+    lineHeight: 17,
+    letterSpacing: -0.1,
+  },
+  description: {
+    fontSize: 10,
+    lineHeight: 13,
   },
 });

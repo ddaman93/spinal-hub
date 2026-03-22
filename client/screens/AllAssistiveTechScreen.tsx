@@ -5,9 +5,11 @@ import {
   ScrollView,
   Pressable,
   TextInput,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -24,6 +26,8 @@ import { TECH_SUBSECTIONS, getSubsectionItems } from "@/config/techSubsections";
 import { MANUAL_WHEELCHAIR_PRODUCTS } from "@/data/manualWheelchairProducts";
 import { POWER_WHEELCHAIR_PRODUCTS } from "@/data/powerWheelchairProducts";
 import { COMPUTER_PRODUCTIVITY_PRODUCTS } from "@/data/computerProductivityProducts";
+import { PHONE_TABLET_ACCESS_PRODUCTS, MOUNTING_BRANDS } from "@/data/phoneTabletAccessProducts";
+import { BrandCard } from "@/components/BrandCard";
 
 type AllAssistiveTechScreenProps = NativeStackScreenProps<
   MainStackParamList,
@@ -46,6 +50,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
+  const scrollProps = useScrollAwareHeader();
   const route = useRoute<AllAssistiveTechScreenProps["route"]>();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
@@ -55,13 +60,10 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
   const [searchQuery, setSearchQuery] = useState("");
 
   const [randomManualProducts] = useState(() =>
-    shuffleArray(MANUAL_WHEELCHAIR_PRODUCTS).slice(0, 5)
+    shuffleArray(MANUAL_WHEELCHAIR_PRODUCTS.filter((p) => (p.category === "power-assist" || p.category === "handcycle") && p.image !== "")).slice(0, 5)
   );
   const [randomPowerProducts] = useState(() =>
     shuffleArray(POWER_WHEELCHAIR_PRODUCTS).slice(0, 5)
-  );
-  const [randomComputerProducts] = useState(() =>
-    shuffleArray(COMPUTER_PRODUCTIVITY_PRODUCTS).slice(0, 5)
   );
 
   // Check if category has subsections
@@ -102,6 +104,7 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: headerHeight + Spacing.lg,
@@ -137,26 +140,8 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: Spacing.xs }}
+            contentContainerStyle={{ gap: 5 }}
           >
-            <Pressable
-              style={[
-                styles.filterTab,
-                !selectedCategory && styles.filterTabActive,
-              ]}
-              onPress={() => setSelectedCategory(undefined)}
-            >
-              <ThemedText
-                type="caption"
-                style={[
-                  styles.filterTabText,
-                  !selectedCategory && styles.filterTabTextActive,
-                ]}
-              >
-                All
-              </ThemedText>
-            </Pressable>
-
             {TECH_CATEGORIES.slice(0, 3).map((category) => (
               <Pressable
                 key={category.id}
@@ -188,7 +173,7 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: Spacing.xs }}
+            contentContainerStyle={{ gap: 5 }}
           >
             {TECH_CATEGORIES.slice(3).map((category) => (
               <Pressable
@@ -228,20 +213,46 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
         {hasSubsections && selectedCategory ? (
           <View style={styles.subsectionsContainer}>
             {TECH_SUBSECTIONS[selectedCategory].map((subsection) => {
+              const computerAccessIds = [
+                "alternative-mice",
+                "on-screen-keyboards",
+                "voice-dictation",
+                "pointer-cursor-tools",
+                "remote-bridging",
+              ];
+              const phoneTabletIds = [
+                "built-in-ios-android",
+                "switch-access",
+                "wheelchair-control",
+                "mounting",
+                "stylus",
+              ];
               const productOverride =
                 subsection.id === "manual-wheelchair"
                   ? randomManualProducts
                   : subsection.id === "power-wheelchair"
                     ? randomPowerProducts
-                    : subsection.id === "computer-productivity"
-                      ? randomComputerProducts
-                      : null;
+                    : computerAccessIds.includes(subsection.id)
+                      ? COMPUTER_PRODUCTIVITY_PRODUCTS.filter(
+                          (p) => p.category === subsection.id
+                        )
+                      : phoneTabletIds.includes(subsection.id)
+                        ? PHONE_TABLET_ACCESS_PRODUCTS.filter(
+                            (p) => p.subsection === subsection.id
+                          )
+                        : null;
+              const brandOverride =
+                subsection.id === "mounting" && selectedCategory === "phone-tablet"
+                  ? MOUNTING_BRANDS
+                  : null;
               const subsectionItems = productOverride
                 ? []
                 : getSubsectionItemsLocal(subsection.filterTags);
-              const hasItems = productOverride
-                ? productOverride.length > 0
-                : subsectionItems.length > 0;
+              const hasItems = brandOverride
+                ? brandOverride.length > 0
+                : productOverride
+                  ? productOverride.length > 0
+                  : subsectionItems.length > 0;
 
               return (
                 <View key={subsection.id} style={styles.subsectionBlock}>
@@ -268,7 +279,20 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={{ paddingVertical: Spacing.sm }}
                     >
-                      {productOverride
+                      {brandOverride
+                        ? brandOverride.map((brand, index) => (
+                            <View
+                              key={brand.id}
+                              style={[
+                                styles.previewCardWrapper,
+                                index < brandOverride.length - 1 &&
+                                  styles.previewCardMargin,
+                              ]}
+                            >
+                              <BrandCard brand={brand as any} />
+                            </View>
+                          ))
+                        : productOverride
                         ? productOverride.map((product, index) => (
                             <View
                               key={product.id}
@@ -278,7 +302,11 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
                                   styles.previewCardMargin,
                               ]}
                             >
-                              <ProductCard product={product} compact />
+                              <ProductCard
+                                product={product}
+                                compact
+                                imageBackground={subsection.id === "power-wheelchair" ? "#EFEFEF" : undefined}
+                              />
                             </View>
                           ))
                         : subsectionItems.map((item, index) => (
@@ -303,6 +331,27 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
                 </View>
               );
             })}
+
+            {selectedCategory === "computer-access" && (
+              <Pressable
+                onPress={() => Linking.openURL("https://assistive.co.nz/shop/")}
+                style={({ pressed }) => [
+                  styles.ctaCard,
+                  { opacity: pressed ? 0.75 : 1 },
+                ]}
+                accessible
+                accessibilityRole="button"
+                accessibilityLabel="More NZ Assistive Computer Tech — opens Assistive Technology NZ website"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <ThemedText type="small" style={styles.ctaTitle}>
+                  More NZ Assistive Computer Tech →
+                </ThemedText>
+                <ThemedText type="caption" style={styles.ctaSubtitle}>
+                  Want more computer access gear (switches, mounts, alternative input, etc.)? Check out Assistive Technology NZ.
+                </ThemedText>
+              </Pressable>
+            )}
           </View>
         ) : filteredItems.length > 0 ? (
           /* ASSISTIVE TECH GRID (default flat view) */
@@ -356,7 +405,7 @@ const styles = StyleSheet.create({
   },
 
   filterContainer: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
 
   filterTab: {
@@ -439,5 +488,24 @@ const styles = StyleSheet.create({
 
   noItems: {
     opacity: 0.6,
+  },
+
+  ctaCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#3A3A3C",
+    backgroundColor: "#2C2C2E",
+    padding: Spacing.md,
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+
+  ctaTitle: {
+    fontWeight: "600",
+  },
+
+  ctaSubtitle: {
+    opacity: 0.7,
+    lineHeight: 18,
   },
 });

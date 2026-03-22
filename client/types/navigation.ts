@@ -10,6 +10,7 @@ export type MainStackParamList = {
     title: string;
   };
 
+  AllWheelchairs: undefined;
   ManualWheelchairTech: undefined;
   PowerWheelchairTech: undefined;
   ComputerProductivityTech: undefined;
@@ -18,13 +19,16 @@ export type MainStackParamList = {
   };
 
   ClinicalTrialsList: {
-    trials: {
+    trials?: {
       id: string;
       title: string;
       status: string;
       phase?: string;
       summary?: string;
-      country?: string;
+      countries?: string[];
+      source?: "clinicaltrials.gov" | "anzctr";
+      url?: string;
+      eligibilityText?: string;
     }[];
   };
 

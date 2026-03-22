@@ -11,6 +11,8 @@ const STORAGE_KEYS = {
   APPOINTMENTS: "appointments",
   USER_PREFERENCES: "user_preferences",
   EMERGENCY_CONTACTS: "emergency_contacts",
+  SKIN_CHECK_ENTRIES: "skin_check_entries",
+  CARE_PREFERENCES: "care_preferences",
 } as const;
 
 export type VitalEntry = {
@@ -94,6 +96,37 @@ export type UserPreferences = {
   darkMode?: boolean;
   dailyWaterGoal: number;
   waterUnit: "oz" | "ml";
+  // Notifications
+  medicationReminders?: boolean;
+  appointmentReminders?: boolean;
+  pressureReliefReminders?: boolean;
+  // Accessibility
+  largeText?: boolean;
+  reduceMotion?: boolean;
+  // Health defaults
+  hydrationGoalMl?: number;
+  pressureReliefIntervalMinutes?: number;
+};
+
+export type SkinCheckEntry = {
+  id: string;
+  location: "Tailbone" | "Left Hip" | "Right Hip" | "Left Heel" | "Right Heel" | "Elbows" | "Other";
+  severity: "clear" | "redness" | "broken";
+  notes?: string;
+  timestamp: string;
+};
+
+export type CarePreferences = {
+  name: string;
+  injuryLevel: string;
+  injuryType: string;
+  equipment: string;
+  allergies: string;
+  medicationsSummary: string;
+  morningCareNotes: string;
+  eveningCareNotes: string;
+  otherNotes: string;
+  lastUpdated: string;
 };
 
 async function getItem<T>(key: string): Promise<T | null> {
@@ -216,6 +249,15 @@ export const storage = {
       { id: "6", name: "Catheter care", category: "evening", order: 2 },
       { id: "7", name: "Positioning for sleep", category: "evening", order: 3 },
     ],
+    add: async (task: RoutineTask) => {
+      const tasks = (await storage.routineTasks.getAll()) || [];
+      tasks.push(task);
+      await storage.routineTasks.save(tasks);
+    },
+    delete: async (id: string) => {
+      const tasks = (await storage.routineTasks.getAll()) || [];
+      await storage.routineTasks.save(tasks.filter((t) => t.id !== id));
+    },
     initialize: async () => {
       const existing = await storage.routineTasks.getAll();
       if (!existing || existing.length === 0) {
@@ -305,6 +347,25 @@ export const storage = {
       return prefs || { dailyWaterGoal: 64, waterUnit: "oz" };
     },
     save: (prefs: UserPreferences) => setItem(STORAGE_KEYS.USER_PREFERENCES, prefs),
+  },
+
+  skinChecks: {
+    getAll: () => getItem<SkinCheckEntry[]>(STORAGE_KEYS.SKIN_CHECK_ENTRIES),
+    save: (entries: SkinCheckEntry[]) => setItem(STORAGE_KEYS.SKIN_CHECK_ENTRIES, entries),
+    add: async (entry: SkinCheckEntry) => {
+      const entries = (await storage.skinChecks.getAll()) || [];
+      entries.unshift(entry);
+      await storage.skinChecks.save(entries);
+    },
+    delete: async (id: string) => {
+      const entries = (await storage.skinChecks.getAll()) || [];
+      await storage.skinChecks.save(entries.filter((e) => e.id !== id));
+    },
+  },
+
+  carePreferences: {
+    get: () => getItem<CarePreferences>(STORAGE_KEYS.CARE_PREFERENCES),
+    save: (prefs: CarePreferences) => setItem(STORAGE_KEYS.CARE_PREFERENCES, prefs),
   },
 };
 

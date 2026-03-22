@@ -4,6 +4,8 @@ import { Image } from "expo-image";
 import { useRoute } from "@react-navigation/native";
 import { RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -21,6 +23,8 @@ type RouteProps = RouteProp<
 export default function AssistiveTechDetailScreen() {
   const { params } = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
+  const scrollProps = useScrollAwareHeader();
   const { theme } = useTheme();
 
   const item = ASSISTIVE_TECH_ITEMS.find(
@@ -38,7 +42,9 @@ export default function AssistiveTechDetailScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        {...scrollProps}
         contentContainerStyle={{
+          paddingTop: headerHeight,
           paddingBottom: insets.bottom + Spacing.xl,
         }}
         showsVerticalScrollIndicator={false}

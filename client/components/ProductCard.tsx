@@ -18,9 +18,11 @@ type Product = {
   whatItDoes?: string;
   whoItsFor?: string;
   productUrl?: string;
+  contentFit?: "cover" | "contain";
+  imageBackground?: string;
 };
 
-export function ProductCard({ product, compact = false }: { product: Product; compact?: boolean }) {
+export function ProductCard({ product, compact = false, imageBackground }: { product: Product; compact?: boolean; imageBackground?: string }) {
   const navigation =
     useNavigation<NativeStackNavigationProp<MainStackParamList>>();
 
@@ -35,7 +37,7 @@ export function ProductCard({ product, compact = false }: { product: Product; co
         })
       }
     >
-      <Image source={product.image} style={[styles.image, compact && styles.imageCompact, { backgroundColor: theme.backgroundTertiary }]} contentFit="cover" />
+      <Image source={product.image} style={[styles.image, compact && styles.imageCompact, { backgroundColor: imageBackground ?? product.imageBackground ?? theme.backgroundTertiary }]} contentFit={product.contentFit ?? "contain"} />
 
       <View style={[styles.content, compact && styles.contentCompact]}>
         <ThemedText type="small" style={compact ? { fontSize: 13 } : undefined}>{product.title}</ThemedText>
@@ -66,15 +68,17 @@ const styles = StyleSheet.create({
   },
 
   cardCompact: {
-    width: 160,
+    width: 155,
+    height: 145,
   },
 
   imageCompact: {
-    height: 88,
+    height: 68,
   },
 
   contentCompact: {
-    padding: 10,
-    gap: 4,
+    padding: 9,
+    gap: 3,
+    flex: 1,
   },
 });

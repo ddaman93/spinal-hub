@@ -14,6 +14,14 @@ import ToolsScreen from "@/screens/ToolsScreen";
 import CategoryDetailScreen from "@/screens/CategoryDetailScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import DisplaySettingsScreen from "@/screens/DisplaySettingsScreen";
+import NotificationSettingsScreen from "@/screens/NotificationSettingsScreen";
+import AccessibilitySettingsScreen from "@/screens/AccessibilitySettingsScreen";
+import DataBackupScreen from "@/screens/DataBackupScreen";
+import AboutScreen from "@/screens/AboutScreen";
+import HealthDefaultsScreen from "@/screens/HealthDefaultsScreen";
+import CommunityChatScreen from "@/screens/CommunityChatScreen";
+import BackOnTrackScreen from "@/screens/BackOnTrackScreen";
+import ChatRoomScreen from "@/screens/ChatRoomScreen";
 import SciNewsListScreen from "@/screens/SciNewsListScreen";
 
 import PressureReliefTimerScreen from "@/screens/tools/PressureReliefTimerScreen";
@@ -27,9 +35,21 @@ import {
 } from "@/screens/tools/RoutineScreen";
 import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScreen";
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
+import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
+import CarePreferencesScreen from "@/screens/tools/CarePreferencesScreen";
+import SkinCareScreen from "@/screens/SkinCareScreen";
 import NZSpinalTrustScreen from "@/screens/NZSpinalTrustScreen";
+import CcsDisabilityActionScreen from "@/screens/CcsDisabilityActionScreen";
+import SpinalRehabUnitsScreen from "@/screens/SpinalRehabUnitsScreen";
+import MentalHealthResourcesScreen from "@/screens/MentalHealthResourcesScreen";
 import SCIMedicationsScreen from "@/screens/tools/SCIMedicationsScreen";
 import SCIMedicationDetailScreen from "@/screens/tools/SCIMedicationDetailScreen";
+import MobilityTaxiListScreen from "@/screens/MobilityTaxiListScreen";
+import MobilityTaxiDetailScreen from "@/screens/MobilityTaxiDetailScreen";
+import AccessibleTransportMapScreen from "@/screens/AccessibleTransportMapScreen";
+import CarerCompanyListScreen from "@/screens/CarerCompanyListScreen";
+import CarerCompanyDetailScreen from "@/screens/CarerCompanyDetailScreen";
+import SCIProviderDetailScreen from "@/screens/SCIProviderDetailScreen";
 
 import AssistiveTechListScreen from "@/screens/AssistiveTechListScreen";
 import AssistiveTechDetailScreen from "@/screens/AssistiveTechDetailScreen";
@@ -40,10 +60,26 @@ import ClinicalTrialDetailScreen from "@/screens/ClinicalTrialDetailScreen";
 
 import MobilityAssistiveTechScreen from "@/screens/MobilityAssistiveTechScreen";
 import ManualWheelchairTechScreen from "@/screens/ManualWheelchairTechScreen";
+import WheelchairGloveBrandScreen from "@/screens/WheelchairGloveBrandScreen";
 import PowerWheelchairTechScreen from "@/screens/PowerWheelchairTechScreen";
-import ComputerProductivityTechScreen from "@/screens/ComputerProductivityTechScreen";
+import AllWheelchairsScreen from "@/screens/AllWheelchairsScreen";
+import ManualWheelchairsBrandScreen from "@/screens/ManualWheelchairsBrandScreen";
+import ManualWheelchairDetailScreen from "@/screens/ManualWheelchairDetailScreen";
+import AlternativeMiceCategoryScreen from "@/screens/AlternativeMiceCategoryScreen";
+import AlternativeMiceProductsScreen from "@/screens/AlternativeMiceProductsScreen";
+import PowerWheelchairsBrandScreen from "@/screens/PowerWheelchairsBrandScreen";
+import PowerWheelchairDetailScreen from "@/screens/PowerWheelchairDetailScreen";
+import SportsWheelchairsBrandScreen from "@/screens/SportsWheelchairsBrandScreen";
+import SportsWheelchairDetailScreen from "@/screens/SportsWheelchairDetailScreen";
+import SpecialtyWheelchairsBrandScreen from "@/screens/SpecialtyWheelchairsBrandScreen";
+import SpecialtyWheelchairDetailScreen from "@/screens/SpecialtyWheelchairDetailScreen";
+import AirlineWheelchairsBrandScreen from "@/screens/AirlineWheelchairsBrandScreen";
+import AirlineWheelchairDetailScreen from "@/screens/AirlineWheelchairDetailScreen";
 import ProductDetailScreen from "@/screens/ProductDetailScreen";
 
+import ProfileScreen from "@/screens/ProfileScreen";
+import EditProfileScreen from "@/screens/EditProfileScreen";
+import EmergencyCardScreen from "@/screens/EmergencyCardScreen";
 import { HeaderTitle } from "@/components/HeaderTitle";
 import { ThemeSwitchButton } from "@/components/ThemeSwitchButton";
 import AnimatedGlassTabBar from "@/components/AnimatedGlassTabBar";
@@ -116,9 +152,44 @@ function HomeStackNavigator() {
       />
 
       <HomeStack.Screen
+        name="AllWheelchairs"
+        component={AllWheelchairsScreen}
+        options={{ title: "Wheelchairs" }}
+      />
+
+      <HomeStack.Screen
+        name="ManualWheelchairsBrand"
+        component={ManualWheelchairsBrandScreen}
+        options={({ route }) => ({
+          title:
+            route.params.brandId.charAt(0).toUpperCase() +
+            route.params.brandId.slice(1) +
+            " Manual Chairs",
+        })}
+      />
+
+      <HomeStack.Screen
+        name="ManualWheelchairDetail"
+        component={ManualWheelchairDetailScreen}
+        options={{ title: "Chair Details" }}
+      />
+
+      <HomeStack.Screen
         name="ManualWheelchairTech"
         component={ManualWheelchairTechScreen}
         options={{ title: "Manual Wheelchair Tech" }}
+      />
+
+      <HomeStack.Screen
+        name="WheelchairGloveBrand"
+        component={WheelchairGloveBrandScreen}
+        options={({ route }) => ({
+          title:
+            route.params.brandId
+              .split("-")
+              .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" ") + " Gloves",
+        })}
       />
 
       <HomeStack.Screen
@@ -128,9 +199,89 @@ function HomeStackNavigator() {
       />
 
       <HomeStack.Screen
-        name="ComputerProductivityTech"
-        component={ComputerProductivityTechScreen}
-        options={{ title: "Computer & Productivity Tech" }}
+        name="PowerWheelchairsBrand"
+        component={PowerWheelchairsBrandScreen}
+        options={({ route }) => ({
+          title:
+            route.params.brandId
+              .split("-")
+              .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" ") + " Power Chairs",
+        })}
+      />
+
+      <HomeStack.Screen
+        name="PowerWheelchairDetail"
+        component={PowerWheelchairDetailScreen}
+        options={{ title: "Chair Details" }}
+      />
+
+      <HomeStack.Screen
+        name="SportsWheelchairsBrand"
+        component={SportsWheelchairsBrandScreen}
+        options={({ route }) => ({
+          title:
+            route.params.brandId.charAt(0).toUpperCase() +
+            route.params.brandId.slice(1) +
+            " Sports",
+        })}
+      />
+
+      <HomeStack.Screen
+        name="SportsWheelchairDetail"
+        component={SportsWheelchairDetailScreen}
+        options={{ title: "Chair Details" }}
+      />
+
+      <HomeStack.Screen
+        name="SpecialtyWheelchairsBrand"
+        component={SpecialtyWheelchairsBrandScreen}
+        options={({ route }) => ({
+          title:
+            route.params.brandId.charAt(0).toUpperCase() +
+            route.params.brandId.slice(1) +
+            " Specialty",
+        })}
+      />
+
+      <HomeStack.Screen
+        name="SpecialtyWheelchairDetail"
+        component={SpecialtyWheelchairDetailScreen}
+        options={{ title: "Chair Details" }}
+      />
+
+      <HomeStack.Screen
+        name="AirlineWheelchairsBrand"
+        component={AirlineWheelchairsBrandScreen}
+        options={({ route }) => ({
+          title:
+            route.params.brandId.charAt(0).toUpperCase() +
+            route.params.brandId.slice(1) +
+            " Airline",
+        })}
+      />
+
+      <HomeStack.Screen
+        name="AirlineWheelchairDetail"
+        component={AirlineWheelchairDetailScreen}
+        options={{ title: "Chair Details" }}
+      />
+
+<HomeStack.Screen
+        name="AlternativeMiceCategory"
+        component={AlternativeMiceCategoryScreen}
+        options={{ title: "Alternative Mice" }}
+      />
+
+      <HomeStack.Screen
+        name="AlternativeMiceProducts"
+        component={AlternativeMiceProductsScreen}
+        options={({ route }) => ({
+          title: route.params.initialSubcategory
+            .split("-")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" "),
+        })}
       />
 
       {/* CLINICAL TRIALS */}
@@ -285,6 +436,15 @@ function ToolsStackNavigator() {
         }}
       />
 
+      <ToolsStack.Screen
+        name="CcsDisabilityAction"
+        component={CcsDisabilityActionScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "CCS Disability Action",
+        }}
+      />
+
       {/* SCI MEDICATIONS */}
       <ToolsStack.Screen
         name="SCIMedications"
@@ -301,6 +461,142 @@ function ToolsStackNavigator() {
         options={({ route }) => ({
           ...opaqueScreenOptions,
           headerTitle: route.params.name,
+        })}
+      />
+
+      {/* MOBILITY TAXIS */}
+      <ToolsStack.Screen
+        name="MobilityTaxiList"
+        component={MobilityTaxiListScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Mobility Taxis",
+        }}
+      />
+
+      <ToolsStack.Screen
+        name="MobilityTaxiDetail"
+        component={MobilityTaxiDetailScreen}
+        options={({ route: _ }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: "Taxi Details",
+        })}
+      />
+
+      {/* ACCESSIBLE TRANSPORT MAP */}
+      <ToolsStack.Screen
+        name="AccessibleTransportMap"
+        component={AccessibleTransportMapScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Accessible Transport Map",
+        }}
+      />
+
+      {/* CARER COMPANIES */}
+      <ToolsStack.Screen
+        name="CarerCompanyList"
+        component={CarerCompanyListScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Carer Companies",
+        }}
+      />
+
+      <ToolsStack.Screen
+        name="CarerCompanyDetail"
+        component={CarerCompanyDetailScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Provider Details",
+        }}
+      />
+
+      <ToolsStack.Screen
+        name="SCIProviderDetail"
+        component={SCIProviderDetailScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Provider Details",
+        }}
+      />
+
+      {/* SPINAL REHAB UNITS */}
+      <ToolsStack.Screen
+        name="SpinalRehabUnits"
+        component={SpinalRehabUnitsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Spinal Rehab Units",
+        }}
+      />
+
+      {/* MENTAL HEALTH RESOURCES */}
+      <ToolsStack.Screen
+        name="MentalHealthResources"
+        component={MentalHealthResourcesScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Mental Health Resources",
+        }}
+      />
+
+      {/* SKIN CHECK LOG */}
+      <ToolsStack.Screen
+        name="SkinCheckLog"
+        component={SkinCheckLogScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Skin Check Log",
+        }}
+      />
+
+      {/* CARE PREFERENCES */}
+      <ToolsStack.Screen
+        name="CarePreferences"
+        component={CarePreferencesScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Care Preferences",
+        }}
+      />
+
+      {/* SKIN CARE */}
+      <ToolsStack.Screen
+        name="SkinCare"
+        component={SkinCareScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Skin Care",
+        }}
+      />
+
+      {/* BACK ON TRACK */}
+      <ToolsStack.Screen
+        name="BackOnTrack"
+        component={BackOnTrackScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Back on Track",
+        }}
+      />
+
+      {/* COMMUNITY CHAT */}
+      <ToolsStack.Screen
+        name="CommunityChat"
+        component={CommunityChatScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Community",
+        }}
+      />
+
+      <ToolsStack.Screen
+        name="ChatRoom"
+        component={ChatRoomScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: route.params.channelName,
         })}
       />
     </ToolsStack.Navigator>
@@ -333,6 +629,51 @@ function SettingsStackNavigator() {
           headerTitle: "Display",
         }}
       />
+
+      <SettingsStack.Screen
+        name="NotificationSettings"
+        component={NotificationSettingsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Notifications",
+        }}
+      />
+
+      <SettingsStack.Screen
+        name="AccessibilitySettings"
+        component={AccessibilitySettingsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Accessibility",
+        }}
+      />
+
+      <SettingsStack.Screen
+        name="DataBackup"
+        component={DataBackupScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Data & Backup",
+        }}
+      />
+
+      <SettingsStack.Screen
+        name="About"
+        component={AboutScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "About",
+        }}
+      />
+
+      <SettingsStack.Screen
+        name="HealthDefaults"
+        component={HealthDefaultsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Health Defaults",
+        }}
+      />
     </SettingsStack.Navigator>
   );
 }
@@ -341,17 +682,28 @@ function SettingsStackNavigator() {
 
 function ProfileStackNavigator() {
   const screenOptions = useScreenOptions();
+  const opaqueScreenOptions = useScreenOptions({ transparent: false });
 
   return (
     <ProfileStack.Navigator screenOptions={screenOptions}>
       <ProfileStack.Screen
         name="Dashboard"
-        component={DashboardScreen}
+        component={ProfileScreen}
         options={{
           headerTitle: () => (
             <HeaderTitle title="Profile" />
           ),
         }}
+      />
+      <ProfileStack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Edit Profile" }}
+      />
+      <ProfileStack.Screen
+        name="EmergencyCard"
+        component={EmergencyCardScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Emergency Medical Card" }}
       />
     </ProfileStack.Navigator>
   );

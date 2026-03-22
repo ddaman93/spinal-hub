@@ -1,11 +1,10 @@
+import "dotenv/config";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { spawn } from "child_process";
-import "dotenv/config";
 
 const app = express();
 const log = console.log;
@@ -20,33 +19,68 @@ declare module "http" {
 
 function setupCors(app: express.Application) {
   app.use((req, res, next) => {
-    const origins = new Set<string>();
-
-    // Add localhost for development
-    origins.add("http://localhost:8081");
-    origins.add("http://127.0.0.1:8081");
-
-    if (process.env.REPLIT_DEV_DOMAIN) {
-      origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
-    }
-
-    if (process.env.REPLIT_DOMAINS) {
-      process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
-        origins.add(`https://${d.trim()}`);
-      });
-    }
-
     const origin = req.header("origin");
 
-    if (origin && origins.has(origin)) {
-      res.header("Access-Control-Allow-Origin", origin);
+    // DEV: allow Expo web dev server origins
+    if (process.env.NODE_ENV !== "production") {
+      const allowedOrigins = new Set<string>([
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+      ]);
+
+      // If there is an Origin header and it's allowed, echo it back.
+      // (Required when using credentials.)
+      if (origin && allowedOrigins.has(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+        res.header("Access-Control-Allow-Credentials", "true");
+      }
+
+      // If there's no Origin header (e.g. curl), we don't need CORS headers.
+      // If it's a different Origin, we intentionally do NOT set ACAO.
+
+      res.header("Vary", "Origin");
       res.header(
         "Access-Control-Allow-Methods",
         "GET, POST, PUT, DELETE, OPTIONS",
       );
-      res.header("Access-Control-Allow-Headers", "Content-Type");
-      res.header("Access-Control-Allow-Credentials", "true");
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization",
+      );
+    } else {
+      // PROD: allow configured domains
+      const origins = new Set<string>();
+
+      // Custom production domain (e.g. https://api.spinalhub.app)
+      if (process.env.PRODUCTION_DOMAIN) {
+        origins.add(process.env.PRODUCTION_DOMAIN);
+      }
+
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+      }
+
+      if (process.env.REPLIT_DOMAINS) {
+        process.env.REPLIT_DOMAINS.split(",").forEach((d) => {
+          origins.add(`https://${d.trim()}`);
+        });
+      }
+
+      if (origin && origins.has(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+        res.header(
+          "Access-Control-Allow-Methods",
+          "GET, POST, PUT, DELETE, OPTIONS",
+        );
+        res.header(
+          "Access-Control-Allow-Headers",
+          "Content-Type, Authorization",
+        );
+        res.header("Access-Control-Allow-Credentials", "true");
+        res.header("Vary", "Origin");
+      }
     }
+
     if (req.method === "OPTIONS") {
       return res.sendStatus(200);
     }
@@ -59,7 +93,7 @@ function setupBodyParsing(app: express.Application) {
   app.use(
     express.json({
       verify: (req, _res, buf) => {
-        req.rawBody = buf;
+        (req as any).rawBody = buf;
       },
     }),
   );
@@ -73,10 +107,10 @@ function setupRequestLogging(app: express.Application) {
     const reqPath = req.path;
     let capturedJsonResponse: Record<string, unknown> | undefined;
 
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
+    const originalResJson = res.json.bind(res);
+    res.json = function (bodyJson: any, ...args: any[]) {
       capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
+      return originalResJson(bodyJson, ...args);
     };
 
     res.on("finish", () => {
@@ -89,10 +123,7 @@ function setupRequestLogging(app: express.Application) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+      if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
       log(logLine);
     });
 
@@ -110,27 +141,6 @@ function getAppName(): string {
   } catch {
     return "App Landing Page";
   }
-}
-
-function serveExpoManifest(platform: string, res: Response) {
-  const manifestPath = path.resolve(
-    process.cwd(),
-    "static-build",
-    platform,
-    "manifest.json",
-  );
-
-  if (!fs.existsSync(manifestPath)) {
-    return res
-      .status(404)
-      .json({ error: `Manifest not found for platform: ${platform}` });
-  }
-
-  res.setHeader("expo-protocol-version", "1");
-  res.setHeader("expo-sfv-version", "0");
-  res.setHeader("content-type", "application/json");
-
-  res.send(fs.readFileSync(manifestPath, "utf-8"));
 }
 
 function serveLandingPage({
@@ -170,29 +180,14 @@ function configureExpoAndLanding(app: express.Application) {
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
 
-  // ❗ HARD BLOCK API FROM SPA
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/api")) {
-      return next();
-    }
-    next();
-  });
-
-  // Landing + manifest
+  // Landing page
   app.get("/", (req, res) => {
-    const protocol = req.header("x-forwarded-proto") || req.protocol || "https";
-    const host = req.header("x-forwarded-host") || req.get("host");
-    const baseUrl = `${protocol}://${host}`;
-    const webUrl = `${protocol}://${host}/expo-web`;
-
-    const html = landingPageTemplate
-      .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
-      .replace(/EXPS_URL_PLACEHOLDER/g, host ?? "")
-      .replace(/WEB_URL_PLACEHOLDER/g, webUrl)
-      .replace(/APP_NAME_PLACEHOLDER/g, appName);
-
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(html);
+    return serveLandingPage({
+      req,
+      res,
+      landingPageTemplate,
+      appName,
+    });
   });
 
   // Static assets ONLY for non-API
@@ -206,8 +201,6 @@ function startExpoDevServer() {
   if (process.env.NODE_ENV === "development") {
     log("Note: Expo dev server should be running separately on port 8081");
     log("Start it with: npm run expo:dev");
-    // Don't spawn npx - let the user run Expo separately
-    // This avoids issues with npx not being found on all systems
   }
 }
 
@@ -252,7 +245,8 @@ function setupExpoProxy(app: express.Application) {
   configureExpoAndLanding(app);
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  server.listen({ port, host: "localhost" }, () => {
+  const host = process.env.SERVER_HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost");
+  server.listen({ port, host }, () => {
     log(`express server serving on port ${port}`);
   });
 })();

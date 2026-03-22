@@ -14,21 +14,71 @@ import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { CATEGORIES } from "@/config/catalog";
 import type { CategoryConfig } from "@/config/catalog";
+import { useTheme } from "@/hooks/useTheme";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
+
+/* ── accent colours per category ── */
+const ACCENT: Record<string, string> = {
+  "daily-routine":            "#FF9500",
+  "health-tracking":          "#00BCD4",
+  "care-support":             "#34C759",
+  "appointments":             "#AF52DE",
+  "medications":              "#FF3B30",
+  "skin-care":                "#FF6B6B",
+  "nz-spinal-trust":          "#FFA800",
+  "sci-medications":          "#00BCD4",
+  "ccs-disability-action":    "#00875A",
+  "mobility-taxis":           "#1C7ED6",
+  "accessible-transport-map": "#5C6BC0",
+  "carer-companies":          "#FF6B6B",
+  "spinal-rehab-units":       "#1A6B9E",
+  "mental-health":            "#6B4FA2",
+  "community-chat":           "#5B8DEF",
+  "back-on-track":            "#1A6B9E",
+};
+
+/* ── section groupings ── */
+const SECTIONS = [
+  {
+    title: "Health & Wellness",
+    ids: ["daily-routine", "health-tracking", "skin-care", "medications", "care-support", "appointments"],
+  },
+  {
+    title: "Support & Resources",
+    ids: [
+      "nz-spinal-trust",
+      "sci-medications",
+      "ccs-disability-action",
+      "spinal-rehab-units",
+      "mental-health",
+      "community-chat",
+      "back-on-track",
+    ],
+  },
+  {
+    title: "Transport & Mobility",
+    ids: ["mobility-taxis", "accessible-transport-map", "carer-companies"],
+  },
+];
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const H_PAD = Spacing.lg;
+const GAP = Spacing.sm;
+const COLS = 3;
+const TILE_WIDTH = (SCREEN_WIDTH - H_PAD * 2 - GAP * (COLS - 1)) / COLS;
 
 export default function ToolsScreen() {
   const navigation =
     useNavigation<NativeStackNavigationProp<MainStackParamList>>();
-
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
+  const { theme } = useTheme();
+  const scrollProps = useScrollAwareHeader();
 
-  // 3-column grid: screenWidth minus horizontal padding and 2 gaps
-  const tileWidth =
-    (Dimensions.get("window").width - Spacing.lg * 2 - Spacing.md * 2) / 3;
+  const categoryById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
-  const handleCategoryPress = useCallback(
+  const handlePress = useCallback(
     (category: CategoryConfig) => {
-      // If category has a direct route, navigate there instead of CategoryDetail
       if (category.route) {
         navigation.navigate(category.route as any);
       } else {
@@ -44,43 +94,65 @@ export default function ToolsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: headerHeight + Spacing.lg,
           paddingBottom: insets.bottom + Spacing.xl,
-          paddingHorizontal: Spacing.lg,
+          paddingHorizontal: H_PAD,
+          gap: Spacing.xl,
         }}
       >
-        {/* TITLE */}
+        {/* ── HEADER ── */}
         <View style={styles.header}>
-          <ThemedText type="heading">
-            Available Tools
-          </ThemedText>
-          <ThemedText type="small" style={styles.subtitle}>
-            Access all your health and wellness tools
+          <View style={styles.headerTitleRow}>
+            <View style={[styles.headerAccent, { backgroundColor: theme.primary }]} />
+            <ThemedText style={styles.headerTitle}>Tools</ThemedText>
+          </View>
+          <ThemedText style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+            Everything you need, in one place
           </ThemedText>
         </View>
 
-        {/* CATEGORY GRID */}
-        <View style={styles.grid}>
-          {CATEGORIES.map((category) => {
-            const isNZST = category.id === "nz-spinal-trust";
-            return (
-              <CategoryTile
-                key={category.id}
-                title={category.title}
-                icon={category.icon}
-                onPress={() => handleCategoryPress(category)}
-                style={{ width: tileWidth }}
-                {...(isNZST && {
-                  customIcon: <NZSpinalTrustLogo size={30} />,
-                  accentColor: "#FFA800",
-                  iconBg: "rgba(72,138,201,0.12)",
+        {/* ── SECTIONS ── */}
+        {SECTIONS.map((section) => {
+          const categories = section.ids
+            .map((id) => categoryById[id])
+            .filter(Boolean);
+
+          return (
+            <View key={section.title} style={styles.section}>
+              <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+                {section.title.toUpperCase()}
+              </ThemedText>
+
+              <View style={styles.grid}>
+                {categories.map((category) => {
+                  const accent = ACCENT[category.id] ?? theme.primary;
+                  const isNZST = category.id === "nz-spinal-trust";
+                  const isBackOnTrack = category.id === "back-on-track";
+                  return (
+                    <CategoryTile
+                      key={category.id}
+                      title={category.title}
+                      description={category.description}
+                      icon={category.icon}
+                      accentColor={accent}
+                      onPress={() => handlePress(category)}
+                      style={{ width: TILE_WIDTH }}
+                      {...(isNZST && {
+                        customIcon: <NZSpinalTrustLogo size={20} />,
+                      })}
+                      {...(isBackOnTrack && {
+                        imageUri: "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/Spinal%20hub%20photos/Books/Back%20on%20track.jpg",
+                      })}
+                    />
+                  );
                 })}
-              />
-            );
-          })}
-        </View>
+              </View>
+            </View>
+          );
+        })}
       </ScrollView>
     </ThemedView>
   );
@@ -90,17 +162,40 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   header: {
-    marginBottom: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  headerAccent: {
+    width: 4,
+    height: 28,
+    borderRadius: 2,
+  },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    marginLeft: 12, // aligns under the title past the accent bar
   },
 
-  subtitle: {
-    opacity: 0.7,
-    marginTop: Spacing.xs,
+  section: {
+    gap: Spacing.sm,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1,
   },
 
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: Spacing.md,
+    gap: GAP,
   },
 });

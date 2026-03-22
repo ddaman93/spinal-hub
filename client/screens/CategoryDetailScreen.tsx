@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ export default function CategoryDetailScreen() {
   const route = useRoute<CategoryDetailRouteProp>();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const { category } = route.params;
 
@@ -85,7 +87,7 @@ export default function CategoryDetailScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: insets.bottom + Spacing.xl },
+          { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xl },
         ]}
         scrollIndicatorInsets={{ bottom: insets.bottom }}
         showsVerticalScrollIndicator={false}
@@ -104,7 +106,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingTop: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     gap: Spacing.md,
   },

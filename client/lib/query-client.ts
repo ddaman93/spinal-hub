@@ -2,7 +2,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { Platform } from "react-native";
 
 /**
- * Gets the base URL for the Express API server (e.g., "http://localhost:5000")
+ * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
  * @returns {string} The API base URL
  */
 export function getApiUrl(): string {
@@ -19,14 +19,14 @@ export function getApiUrl(): string {
     const origin = window.location.origin;
     if (origin.includes("localhost:8081")) {
       // Local development - API is on port 5000
-      return origin.replace(":8081", ":5000");
+      return origin.replace(":8081", ":3000");
     }
     // Replit proxied environment - use origin directly (API accessible via same domain)
     return origin;
   }
 
   // Fallback for native development
-  return "http://localhost:5000";
+  return "http://localhost:3000";
 }
 
 async function throwIfResNotOk(res: Response) {

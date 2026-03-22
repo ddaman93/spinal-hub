@@ -5,106 +5,76 @@ import {
   FlatList,
   Pressable,
   ActivityIndicator,
-  Image,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useQuery } from "@tanstack/react-query";
-import { Linking } from "react-native";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { SciNewsCard } from "@/components/SciNewsCard";
 import { useTheme } from "@/hooks/useTheme";
-import { getApiUrl } from "@/lib/query-client";
+import { getSciNews, type NewsArticle } from "@/services/newsService";
 import { Spacing, BorderRadius } from "@/constants/theme";
 
-type NewsArticle = {
-  id: string;
-  title: string;
-  url: string;
-  source: string;
-  publishedAt: string;
-  imageUrl?: string;
-};
+const FILTERS = [
+  "All",
+  "Breakthrough",
+  "Clinical Trial",
+  "Rehab",
+  "Research",
+] as const;
 
-async function fetchSciNews(): Promise<NewsArticle[]> {
-  try {
-    const baseUrl = getApiUrl();
-    const response = await fetch(`${baseUrl}/api/sci-news`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch news: ${response.status}`);
-    }
-
-    const articles: NewsArticle[] = await response.json();
-    return articles;
-  } catch (error) {
-    console.error("Error fetching SCI news:", error);
-    throw error;
-  }
-}
+type Filter = (typeof FILTERS)[number];
 
 export default function SciNewsListScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
 
+  const [selectedFilter, setSelectedFilter] = React.useState<Filter>("All");
+
   const { data: articles = [], isLoading, error, refetch } = useQuery({
     queryKey: ["sciNews"],
-    queryFn: fetchSciNews,
-    staleTime: 6 * 60 * 60 * 1000, // 6 hours
-    refetchInterval: 6 * 60 * 60 * 1000, // Refetch every 6 hours
+    queryFn: getSciNews,
+    staleTime: 30 * 60 * 1000,
   });
 
-  const renderNewsCard = ({ item }: { item: NewsArticle }) => (
-    <Pressable
-      onPress={() => {
-        if (item.url) {
-          Linking.openURL(item.url);
-        }
-      }}
-      style={({ pressed }) => [
-        styles.cardContainer,
-        { opacity: pressed ? 0.7 : 1 },
-      ]}
-      accessible
-      accessibilityRole="button"
-      accessibilityLabel={item.title}
-    >
-      <ThemedView
-        style={[
-          styles.card,
-          { backgroundColor: theme.backgroundDefault },
+  const filteredArticles = React.useMemo(() => {
+    if (selectedFilter === "All") return articles;
+    return articles.filter((a) => a.category === selectedFilter);
+  }, [articles, selectedFilter]);
+
+  const renderItem = ({ item }: { item: NewsArticle }) => (
+    <View style={styles.cardContainer}>
+      <SciNewsCard {...item} variant="grid" />
+    </View>
+  );
+
+  const renderFilter = ({ item }: { item: Filter }) => {
+    const isActive = item === selectedFilter;
+    return (
+      <Pressable
+        onPress={() => setSelectedFilter(item)}
+        style={({ pressed }) => [
+          styles.filterPill,
+          {
+            backgroundColor: isActive ? theme.primary : theme.backgroundSecondary,
+            opacity: pressed ? 0.7 : 1,
+          },
         ]}
       >
-        {item.imageUrl && (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={[styles.cardImage, { backgroundColor: theme.backgroundTertiary }]}
-          />
-        )}
-
-        <View style={styles.cardContent}>
-          <ThemedText
-            type="small"
-            style={[styles.cardTitle, { color: theme.text }]}
-            numberOfLines={3}
-          >
-            {item.title}
-          </ThemedText>
-
-          {item.publishedAt && (
-            <ThemedText
-              type="caption"
-              style={[styles.cardDate, { color: theme.textSecondary }]}
-            >
-              {new Date(item.publishedAt).toLocaleDateString()}
-            </ThemedText>
-          )}
-        </View>
-      </ThemedView>
-    </Pressable>
-  );
+        <ThemedText
+          style={[
+            styles.filterLabel,
+            { color: isActive ? theme.primaryText : theme.text },
+          ]}
+        >
+          {item}
+        </ThemedText>
+      </Pressable>
+    );
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -137,11 +107,31 @@ export default function SciNewsListScreen() {
         </View>
       ) : (
         <FlatList
-          data={articles}
-          renderItem={renderNewsCard}
+          data={filteredArticles}
+          renderItem={renderItem}
           keyExtractor={(item) => item.id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
+          ListHeaderComponent={
+            <>
+              <FlatList
+                data={FILTERS}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item}
+                renderItem={renderFilter}
+                contentContainerStyle={styles.filterBar}
+                style={styles.filterList}
+              />
+              {filteredArticles.length === 0 && (
+                <View style={styles.emptyState}>
+                  <ThemedText style={{ opacity: 0.6 }}>
+                    No articles found for this category.
+                  </ThemedText>
+                </View>
+              )}
+            </>
+          }
           contentContainerStyle={{
             paddingTop: headerHeight + Spacing.lg,
             paddingBottom: insets.bottom + Spacing.lg,
@@ -179,32 +169,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  filterList: {
+    marginHorizontal: -Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  filterBar: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
   columnWrapper: {
     gap: Spacing.md,
   },
   cardContainer: {
     flex: 1,
   },
-  card: {
-    borderRadius: BorderRadius.medium,
-    overflow: "hidden",
-    minHeight: 240,
-  },
-  cardImage: {
-    width: "100%",
-    height: 120,
-  },
-  cardContent: {
-    padding: Spacing.sm,
-    flex: 1,
-    justifyContent: "space-between",
-  },
-  cardTitle: {
-    fontWeight: "600",
-    lineHeight: 16,
-  },
-  cardDate: {
-    marginTop: Spacing.xs,
-    opacity: 0.7,
+  emptyState: {
+    alignItems: "center",
+    marginTop: 40,
   },
 });

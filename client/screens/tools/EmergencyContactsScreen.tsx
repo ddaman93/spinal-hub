@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, FlatList, Pressable, TextInput, Modal, Linking, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -13,6 +14,7 @@ import { storage, EmergencyContact, generateId } from "@/lib/storage";
 
 export default function EmergencyContactsScreen() {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -119,7 +121,7 @@ export default function EmergencyContactsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingTop: headerHeight, paddingBottom: insets.bottom + 100 },
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

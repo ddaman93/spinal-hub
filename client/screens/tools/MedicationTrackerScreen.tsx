@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, StyleSheet, FlatList, Pressable, TextInput, Modal } from "react-native";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { View, StyleSheet, FlatList, Pressable, TextInput, Modal, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -10,14 +11,22 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { storage, Medication, MedicationLog, generateId, formatDate } from "@/lib/storage";
+import { SCI_MEDICATIONS } from "@/data/sciMedications";
+import {
+  scheduleMedicationNotifications,
+  cancelMedicationNotifications,
+  requestNotificationPermission,
+} from "@/lib/medicationNotifications";
 
 export default function MedicationTrackerScreen() {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [todayLogs, setTodayLogs] = useState<MedicationLog[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [dosage, setDosage] = useState("");
   const [frequency, setFrequency] = useState("Daily");
   const [times, setTimes] = useState("8:00 AM");
@@ -33,6 +42,7 @@ export default function MedicationTrackerScreen() {
 
   useEffect(() => {
     loadData();
+    requestNotificationPermission();
   }, [loadData]);
 
   const handleSave = async () => {
@@ -44,19 +54,35 @@ export default function MedicationTrackerScreen() {
       times: times.split(",").map((t) => t.trim()),
     };
     await storage.medications.add(med);
+    await scheduleMedicationNotifications(med.id, med.name, med.times);
     await loadData();
     setModalVisible(false);
     resetForm();
   };
 
+  const suggestions = useMemo(() => {
+    if (!name.trim() || name.length < 2) return [];
+    const lower = name.toLowerCase();
+    return SCI_MEDICATIONS.filter((m) =>
+      m.name.toLowerCase().includes(lower)
+    ).map((m) => m.name).slice(0, 6);
+  }, [name]);
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    setName(suggestion);
+    setShowSuggestions(false);
+  };
+
   const resetForm = () => {
     setName("");
+    setShowSuggestions(false);
     setDosage("");
     setFrequency("Daily");
     setTimes("8:00 AM");
   };
 
   const handleDelete = async (id: string) => {
+    await cancelMedicationNotifications(id);
     await storage.medications.delete(id);
     await loadData();
   };
@@ -153,7 +179,7 @@ export default function MedicationTrackerScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingTop: headerHeight, paddingBottom: insets.bottom + 100 },
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -185,7 +211,7 @@ export default function MedicationTrackerScreen() {
         <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
           <View style={styles.modalHeader}>
             <ThemedText type="h3">Add Medication</ThemedText>
-            <Pressable onPress={() => setModalVisible(false)}>
+            <Pressable onPress={() => { setModalVisible(false); resetForm(); }}>
               <ThemedText type="body" style={{ color: theme.primary }}>Cancel</ThemedText>
             </Pressable>
           </View>
@@ -198,13 +224,28 @@ export default function MedicationTrackerScreen() {
               <ThemedText type="body" style={styles.label}>Medication Name</ThemedText>
               <TextInput
                 value={name}
-                onChangeText={setName}
+                onChangeText={(text) => { setName(text); setShowSuggestions(true); }}
+                onFocus={() => setShowSuggestions(true)}
                 placeholder="e.g., Baclofen"
                 placeholderTextColor={theme.textSecondary}
                 style={[styles.input, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
                 accessible
                 accessibilityLabel="Medication name"
+                autoCorrect={false}
               />
+              {showSuggestions && suggestions.length > 0 && (
+                <View style={[styles.suggestionList, { backgroundColor: theme.backgroundDefault, borderColor: theme.primary + "40" }]}>
+                  {suggestions.map((s) => (
+                    <Pressable
+                      key={s}
+                      onPress={() => handleSelectSuggestion(s)}
+                      style={[styles.suggestionItem, { borderBottomColor: theme.backgroundSecondary }]}
+                    >
+                      <ThemedText type="body">{s}</ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
 
             <View style={styles.formGroup}>
@@ -364,6 +405,17 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.medium,
     paddingHorizontal: Spacing.md,
     fontSize: 18,
+  },
+  suggestionList: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.medium,
+    marginTop: 2,
+    overflow: "hidden",
+  },
+  suggestionItem: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   frequencyOptions: {
     flexDirection: "row",

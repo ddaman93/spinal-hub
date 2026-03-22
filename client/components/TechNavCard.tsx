@@ -54,14 +54,14 @@ export function TechNavCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 160,
-    borderRadius: 16,
+    width: 130,
+    borderRadius: 14,
     overflow: "hidden",
   },
 
   image: {
     width: "100%",
-    height: 100,
+    height: 80,
   },
 
   content: {

@@ -1,11 +1,20 @@
 /* ───────────────────────── types ───────────────────────── */
 
 export type ComputerProductivityCategory =
-  | "alternative-input"
+  | "alternative-mice"
   | "voice-dictation"
   | "on-screen-keyboards"
   | "pointer-cursor-tools"
   | "remote-bridging";
+
+export type AlternativeMiceSubcategory =
+  | "ergonomic-mice"
+  | "head-mounted-target-mice"
+  | "joysticks"
+  | "mouse-adapters"
+  | "mouse-control-software"
+  | "specialist-mice"
+  | "trackballs";
 
 export type ComputerProductivityProduct = {
   id: string;
@@ -14,10 +23,14 @@ export type ComputerProductivityProduct = {
   image: string; // URL string
   tags: string[];
   category: ComputerProductivityCategory;
+  subcategory?: AlternativeMiceSubcategory;
   whatItIs: string;
   whatItDoes: string;
   whoItsFor: string;
   productUrl?: string;
+  productUrlMac?: string;
+  contentFit?: "cover" | "contain";
+  imageBackground?: string;
 };
 
 /* ───────────────────────── categories ───────────────────────── */
@@ -28,9 +41,9 @@ export const COMPUTER_PRODUCTIVITY_CATEGORIES: {
   description: string;
 }[] = [
   {
-    id: "alternative-input",
-    label: "Alternative Input Devices",
-    description: "Eye tracking, head mice, sip-and-puff, and switch interfaces for computer control.",
+    id: "alternative-mice",
+    label: "Alternative Mice",
+    description: "Ergonomic mice, trackballs, joysticks, head-mounted devices, and adaptive mouse solutions.",
   },
   {
     id: "on-screen-keyboards",
@@ -54,18 +67,20 @@ export const COMPUTER_PRODUCTIVITY_CATEGORIES: {
   },
 ];
 
-/* ───────────────────────── Alternative Input Devices ───────────────────────── */
+/* ───────────────────────── Alternative Mice ───────────────────────── */
 
-export const ALTERNATIVE_INPUT: ComputerProductivityProduct[] = [
+export const ALTERNATIVE_MICE: ComputerProductivityProduct[] = [
   {
     id: "tobii-dynavox-pc-eye",
     title: "Tobii Dynavox PCEye & EyeMobile",
     description:
       "Eye tracking technology for computer control using only eye movements.",
     image:
-      "https://images.unsplash.com/photo-1593508512255-86ab42a8e620?w=400",
-    tags: ["eye-tracking", "alternative-input", "computer-access"],
-    category: "alternative-input",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Mice/tobii-pc-eye.webp",
+    contentFit: "cover",
+    tags: ["eye-tracking", "alternative-mice", "computer-access"],
+    category: "alternative-mice",
+    subcategory: "specialist-mice",
     whatItIs:
       "A professional-grade eye tracking system that mounts to monitors or laptops to enable computer control via eye gaze.",
     whatItDoes:
@@ -75,21 +90,23 @@ export const ALTERNATIVE_INPUT: ComputerProductivityProduct[] = [
     productUrl: "https://us.tobiidynavox.com/products/pceye",
   },
   {
-    id: "smartnav-head-mouse",
-    title: "SmartNav Head Mouse",
+    id: "quha-zono-x",
+    title: "Quha Zono X",
     description:
-      "Head-tracking mouse alternative for hands-free computer control.",
+      "Wireless gyroscopic mouse worn on the head for hands-free cursor control.",
     image:
-      "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400",
-    tags: ["head-tracking", "alternative-input", "mouse"],
-    category: "alternative-input",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Mice/quha-zono-x.jpg",
+    contentFit: "cover",
+    tags: ["head-tracking", "wireless", "alternative-mice", "gyroscope"],
+    category: "alternative-mice",
+    subcategory: "head-mounted-target-mice",
     whatItIs:
-      "A head-tracking device that uses a reflective dot on glasses/headset to translate head movements into cursor control.",
+      "A compact gyroscopic wireless mouse worn on the head, glasses, or headband that translates head movements into cursor control.",
     whatItDoes:
-      "Moves the mouse cursor precisely in response to small head movements, with dwell-clicking or switch options.",
+      "Moves the mouse cursor via subtle head tilts and rotations, with dwell-click or external switch support for clicking.",
     whoItsFor:
-      "Users with reliable head control but limited hand function who need precise mouse navigation.",
-    productUrl: "https://www.naturalpoint.com/smartnav/",
+      "People with limited or no hand function who have reliable head movement — particularly suited for SCI, MS, and ALS users.",
+    productUrl: "https://www.quha.com/products/quha-zono-x/",
   },
   {
     id: "glassouse-pro",
@@ -97,9 +114,11 @@ export const ALTERNATIVE_INPUT: ComputerProductivityProduct[] = [
     description:
       "Wearable head mouse with bite-click functionality for computer and mobile.",
     image:
-      "https://images.unsplash.com/photo-1614741118887-7a4ee193a5fa?w=400",
-    tags: ["head-tracking", "wearable", "alternative-input", "bluetooth"],
-    category: "alternative-input",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Mice/glassouse-head-mouse.jpg",
+    contentFit: "cover",
+    tags: ["head-tracking", "wearable", "alternative-mice", "bluetooth"],
+    category: "alternative-mice",
+    subcategory: "head-mounted-target-mice",
     whatItIs:
       "A Bluetooth head-worn device that tracks head movements and uses a bite sensor for clicking.",
     whatItDoes:
@@ -108,129 +127,63 @@ export const ALTERNATIVE_INPUT: ComputerProductivityProduct[] = [
       "Users who want portable, wireless head-based mouse control across multiple devices.",
     productUrl: "https://glassouse.com/",
   },
-  {
-    id: "pretorian-sip-puff-mouse",
-    title: "Pretorian Sip & Puff Mouse Interface",
-    description:
-      "Breath-controlled mouse interface for hands-free computer access.",
-    image:
-      "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=400",
-    tags: ["sip-and-puff", "alternative-input", "breath-control"],
-    category: "alternative-input",
-    whatItIs:
-      "A sip-and-puff device that translates breath input into mouse movements and clicks.",
-    whatItDoes:
-      "Enables full computer control through controlled inhaling and exhaling patterns, replacing mouse and keyboard functions.",
-    whoItsFor:
-      "People with very limited movement who can control breathing but not hands or head reliably.",
-    productUrl: "https://www.pretorianuk.com/",
-  },
-  {
-    id: "ablenet-hitch-blue2",
-    title: "AbleNet Hitch & Blue2 Switch Interface",
-    description:
-      "Bluetooth switch adapters to use accessibility switches with computers and tablets.",
-    image:
-      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
-    tags: ["switch-access", "bluetooth", "alternative-input"],
-    category: "alternative-input",
-    whatItIs:
-      "Wireless adapters that connect accessibility switches to computers, tablets, and phones via Bluetooth.",
-    whatItDoes:
-      "Allows users to control devices using external switches (buttons, pads, or other adaptive switches).",
-    whoItsFor:
-      "Users who rely on switch scanning or single-switch access for device control.",
-    productUrl: "https://www.ablenetinc.com/blue2-bluetooth-switch/",
-  },
 ];
 
 /* ───────────────────────── On-Screen Keyboards ───────────────────────── */
 
 export const ON_SCREEN_KEYBOARDS: ComputerProductivityProduct[] = [
   {
-    id: "click-n-type",
-    title: "Click-N-Type",
+    id: "windows-osk",
+    title: "Windows On-Screen Keyboard",
     description:
-      "Free on-screen keyboard for Windows with word prediction and scanning.",
+      "Built-in Windows virtual keyboard for mouse, touch, or switch access.",
     image:
-      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400",
-    tags: ["on-screen-keyboard", "windows", "free", "word-prediction"],
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Microsoft_Windows-Logo.wine.png",
+    imageBackground: "#FFFFFF",
+    tags: ["on-screen-keyboard", "windows", "free", "built-in"],
     category: "on-screen-keyboards",
     whatItIs:
-      "A free virtual keyboard for Windows designed for mouse, touch, or switch access.",
+      "A free virtual keyboard built into every version of Windows. No download required.",
     whatItDoes:
-      "Provides typing functionality with word prediction, phrase macros, and multiple scanning modes for switch users.",
+      "How to open it:\n\n1. Press Windows key + Ctrl + O\n\nOR\n\n1. Open the Start Menu\n2. Search \"On-Screen Keyboard\"\n3. Click the result to launch it\n\nOR\n\n1. Go to Settings\n2. Accessibility → Keyboard\n3. Toggle On-Screen Keyboard on\n\nThe keyboard stays on screen and can be used with a mouse, head mouse, eye tracker, or switch.",
     whoItsFor:
-      "Windows users who can't use a physical keyboard and need accessible text entry options.",
-    productUrl: "https://www.softpedia.com/get/Desktop-Enhancements/Other-Desktop-Enhancements/Click-N-Type.shtml",
+      "Any Windows user who cannot use a physical keyboard — works with all pointing devices and switch access.",
+    productUrl: "https://support.microsoft.com/en-us/windows/use-the-on-screen-keyboard-osk-to-type-dcd61b31-338a-3b82-0b62-3cc68edeefbc",
+  },
+  {
+    id: "macos-accessibility-keyboard",
+    title: "macOS Accessibility Keyboard",
+    description:
+      "Built-in macOS on-screen keyboard for full text entry and system control.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/macos-logo.png",
+    tags: ["on-screen-keyboard", "macos", "free", "built-in"],
+    category: "on-screen-keyboards",
+    whatItIs:
+      "A free virtual keyboard built into macOS. Supports panels, word prediction, and customisable layouts.",
+    whatItDoes:
+      "How to enable it:\n\n1. Open System Settings (or System Preferences on older Macs)\n2. Go to Accessibility\n3. Select Keyboard\n4. Turn on Accessibility Keyboard\n\nThe keyboard will appear on screen. You can resize it, customise panel layouts, and use it with any pointer device or switch.",
+    whoItsFor:
+      "Mac users who cannot use a physical keyboard — compatible with head mouse, eye tracking, and switch access.",
+    productUrl: "https://support.apple.com/guide/mac-help/type-with-the-accessibility-keyboard-mh43176/mac",
   },
   {
     id: "optikey",
     title: "OptiKey",
     description:
-      "Free eye-controlled on-screen keyboard for Windows with full mouse emulation.",
+      "Free open-source on-screen keyboard designed for eye tracking, head mouse, and switch access.",
     image:
-      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400",
-    tags: ["on-screen-keyboard", "eye-tracking", "windows", "free", "open-source"],
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/optikey_logo-blue.svg",
+    imageBackground: "#FFFFFF",
+    tags: ["on-screen-keyboard", "windows", "free", "eye-tracking", "open-source"],
     category: "on-screen-keyboards",
     whatItIs:
-      "An open-source assistive on-screen keyboard designed for eye gaze and other pointing devices.",
+      "A free, open-source on-screen keyboard for Windows built specifically for people with motor disabilities. Works well for typing code and long-form writing.",
     whatItDoes:
-      "Enables typing, mouse control, and even speech output entirely through gaze or dwell-clicking.",
+      "Provides full keyboard and mouse control via eye tracker, head mouse, or switch. Includes word prediction, multi-key shortcuts, and symbol/number layers — making it well-suited for programming and technical writing.",
     whoItsFor:
-      "Eye tracking users or anyone using alternative pointing methods who need comprehensive keyboard and mouse replacement.",
-    productUrl: "https://github.com/OptiKey/OptiKey",
-  },
-  {
-    id: "dasher",
-    title: "Dasher",
-    description:
-      "Predictive text entry interface using continuous pointing gestures.",
-    image:
-      "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=400",
-    tags: ["on-screen-keyboard", "predictive-text", "cross-platform", "free"],
-    category: "on-screen-keyboards",
-    whatItIs:
-      "A unique text entry system that uses continuous gestures to 'zoom' through predicted letters and words.",
-    whatItDoes:
-      "Allows fast typing with minimal precision—ideal for head mice, eye tracking, or joystick input.",
-    whoItsFor:
-      "Users with imprecise pointing control who want faster text entry than traditional on-screen keyboards.",
-    productUrl: "https://github.com/ipomoena/dasher",
-  },
-  {
-    id: "keystrokes-mac",
-    title: "Keystrokes (macOS)",
-    description:
-      "On-screen keyboard for macOS with customizable layouts and scanning support.",
-    image:
-      "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400",
-    tags: ["on-screen-keyboard", "macos", "customizable"],
-    category: "on-screen-keyboards",
-    whatItIs:
-      "A professional on-screen keyboard application designed specifically for macOS users.",
-    whatItDoes:
-      "Provides flexible keyboard layouts, word prediction, macro support, and switch scanning modes.",
-    whoItsFor:
-      "Mac users who need an accessible alternative to the physical keyboard with advanced customization.",
-    productUrl: "https://www.assistiveware.com/legacy-apps",
-  },
-  {
-    id: "phrase-express",
-    title: "PhraseExpress",
-    description:
-      "Text expander and phrase library tool to reduce typing effort.",
-    image:
-      "https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=400",
-    tags: ["text-expansion", "productivity", "windows", "macos"],
-    category: "on-screen-keyboards",
-    whatItIs:
-      "A text expansion and auto-completion tool that stores frequently used phrases and templates.",
-    whatItDoes:
-      "Reduces typing burden by auto-completing long phrases, emails, or form fields from short abbreviations.",
-    whoItsFor:
-      "Users with fatigue or limited typing endurance who want to minimize keystrokes.",
-    productUrl: "https://www.phraseexpress.com/",
+      "Windows users who need a more capable keyboard than the built-in OSK, particularly those using eye tracking or head tracking devices.",
+    productUrl: "https://optikey.org/",
   },
 ];
 
@@ -243,7 +196,8 @@ export const VOICE_DICTATION: ComputerProductivityProduct[] = [
     description:
       "Industry-leading speech recognition software for dictation and voice commands.",
     image:
-      "https://images.unsplash.com/photo-1589254065878-42c9da997008?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/dragon-logo.png",
+    imageBackground: "#FFFFFF",
     tags: ["voice-control", "dictation", "windows", "professional"],
     category: "voice-dictation",
     whatItIs:
@@ -260,7 +214,8 @@ export const VOICE_DICTATION: ComputerProductivityProduct[] = [
     description:
       "Built-in Windows voice control for hands-free navigation and dictation.",
     image:
-      "https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Microsoft_Windows-Logo.wine.png",
+    imageBackground: "#FFFFFF",
     tags: ["voice-control", "dictation", "windows", "built-in", "free"],
     category: "voice-dictation",
     whatItIs:
@@ -277,7 +232,7 @@ export const VOICE_DICTATION: ComputerProductivityProduct[] = [
     description:
       "Built-in macOS voice navigation and dictation system.",
     image:
-      "https://images.unsplash.com/photo-1611532736570-e8e5e45e4c5f?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/macos-logo.png",
     tags: ["voice-control", "dictation", "macos", "built-in", "free"],
     category: "voice-dictation",
     whatItIs:
@@ -311,7 +266,7 @@ export const VOICE_DICTATION: ComputerProductivityProduct[] = [
     description:
       "Real-time transcription and note-taking with speaker identification.",
     image:
-      "https://images.unsplash.com/photo-1517842645767-c639042777db?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/otto-ai.jpg",
     tags: ["dictation", "transcription", "notes", "cloud"],
     category: "voice-dictation",
     whatItIs:
@@ -321,6 +276,23 @@ export const VOICE_DICTATION: ComputerProductivityProduct[] = [
     whoItsFor:
       "Users who need accurate transcription for meetings, lectures, or note-taking without typing.",
     productUrl: "https://otter.ai/",
+  },
+  {
+    id: "lilyspeech",
+    title: "LilySpeech",
+    description:
+      "Free Windows dictation app that lets you type with your voice anywhere.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/lilyspeecyhlogo.png",
+    tags: ["voice-control", "dictation", "windows", "free"],
+    category: "voice-dictation",
+    whatItIs:
+      "A free Windows speech-to-text app powered by Google's voice recognition engine. No setup fee, no word limits.",
+    whatItDoes:
+      "Press Ctrl+D to activate voice typing in any Windows application — emails, documents, web searches, and more. Claims 99.5% accuracy and can handle custom terminology.",
+    whoItsFor:
+      "Windows users who want a free, simple dictation tool without paying for Dragon or a subscription service.",
+    productUrl: "https://lilyspeech.com/",
   },
 ];
 
@@ -334,6 +306,7 @@ export const POINTER_CURSOR_TOOLS: ComputerProductivityProduct[] = [
       "Auto-click software that clicks when cursor pauses (dwell-to-click).",
     image:
       "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400",
+    contentFit: "cover",
     tags: ["dwell-click", "accessibility", "free", "windows"],
     category: "pointer-cursor-tools",
     whatItIs:
@@ -351,15 +324,17 @@ export const POINTER_CURSOR_TOOLS: ComputerProductivityProduct[] = [
       "Built-in feature to control mouse pointer using keyboard number pad.",
     image:
       "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400",
+    contentFit: "cover",
     tags: ["mouse-alternative", "built-in", "keyboard", "free"],
     category: "pointer-cursor-tools",
     whatItIs:
       "An accessibility feature built into Windows and macOS that moves the mouse cursor using the numeric keypad.",
     whatItDoes:
-      "Provides precise cursor movement and clicking without needing a physical mouse or trackpad.",
+      "Provides precise cursor movement and clicking without needing a physical mouse or trackpad.\n\nWindows: Settings → Ease of Access → Mouse → Turn on Mouse Keys\n\nmacOS: System Settings → Accessibility → Pointer Control → Alternate Control Methods → Enable Mouse Keys",
     whoItsFor:
       "Users who can use a keyboard but struggle with mouse or trackpad control.",
     productUrl: "https://support.microsoft.com/en-us/windows/use-mouse-keys-to-move-the-mouse-pointer-9e0c72c8-b882-7918-8e7b-391fd62adf33",
+    productUrlMac: "https://support.apple.com/guide/mac-help/control-the-pointer-using-mouse-keys-mh27469/mac",
   },
   {
     id: "steady-mouse",
@@ -367,7 +342,8 @@ export const POINTER_CURSOR_TOOLS: ComputerProductivityProduct[] = [
     description:
       "Reduces hand tremor and smooths cursor movement for more accurate pointing.",
     image:
-      "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/steadymouse-logo.png",
+    imageBackground: "#FFFFFF",
     tags: ["cursor-stabilization", "tremor", "accessibility"],
     category: "pointer-cursor-tools",
     whatItIs:
@@ -384,15 +360,15 @@ export const POINTER_CURSOR_TOOLS: ComputerProductivityProduct[] = [
     description:
       "Built-in macOS feature to assist with clicking and dragging precision.",
     image:
-      "https://images.unsplash.com/photo-1611532736570-e8e5e45e4c5f?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/macos-logo.png",
     tags: ["macos", "click-assist", "built-in", "free"],
     category: "pointer-cursor-tools",
     whatItIs:
-      "macOS accessibility settings that make clicking, double-clicking, and dragging easier.",
+      "macOS accessibility settings that make clicking, double-clicking, and dragging easier. Built into every Mac — no download required.",
     whatItDoes:
-      "Provides spring-loaded delays, drag lock, and other click assistance to reduce accidental actions.",
+      "How to enable it:\n\n1. Open System Settings\n2. Go to Accessibility\n3. Select Pointer Control\n4. Under Mouse & Trackpad, enable the options you need:\n   • Ignore built-in trackpad when mouse is present\n   • Spring-loaded delay — prevents accidental drags by requiring a hold before dragging starts\n   • Double-click speed — slow it down to make double-clicking easier\n   • Click Lock — hold a click without holding the button\n\nFor dwell clicking (click automatically by hovering):\n1. In Pointer Control, select Alternate Control Methods\n2. Enable Dwell Control and adjust the delay to suit you",
     whoItsFor:
-      "Mac users with limited dexterity who need help with precise clicking and dragging.",
+      "Mac users with limited dexterity who need help with precise clicking, dragging, or who want dwell-based clicking.",
     productUrl: "https://support.apple.com/guide/mac-help/change-pointer-control-preferences-mh27449/mac",
   },
   {
@@ -401,7 +377,7 @@ export const POINTER_CURSOR_TOOLS: ComputerProductivityProduct[] = [
     description:
       "Magnifies areas around the cursor to improve click accuracy on small targets.",
     image:
-      "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/freedom-scientific-logo.svg",
     tags: ["magnifier", "accessibility", "precision"],
     category: "pointer-cursor-tools",
     whatItIs:
@@ -418,29 +394,12 @@ export const POINTER_CURSOR_TOOLS: ComputerProductivityProduct[] = [
 
 export const REMOTE_BRIDGING: ComputerProductivityProduct[] = [
   {
-    id: "teamviewer",
-    title: "TeamViewer",
-    description:
-      "Remote desktop software for accessing computers from anywhere.",
-    image:
-      "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=400",
-    tags: ["remote-access", "remote-desktop", "cross-platform"],
-    category: "remote-bridging",
-    whatItIs:
-      "A widely-used remote access tool that lets you control another computer over the internet.",
-    whatItDoes:
-      "Enables remote support, device control, and file transfer—useful for accessing a home PC from a mobile device.",
-    whoItsFor:
-      "Users who need to control a computer remotely or receive technical support from caregivers/IT staff.",
-    productUrl: "https://www.teamviewer.com/",
-  },
-  {
     id: "chrome-remote-desktop",
     title: "Chrome Remote Desktop",
     description:
       "Free remote access via Chrome browser to control computers remotely.",
     image:
-      "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Google_Chrome_icon_and_wordmark_(2011).svg.png",
     tags: ["remote-access", "chrome", "free", "cross-platform"],
     category: "remote-bridging",
     whatItIs:
@@ -452,12 +411,31 @@ export const REMOTE_BRIDGING: ComputerProductivityProduct[] = [
     productUrl: "https://remotedesktop.google.com/",
   },
   {
+    id: "teamviewer",
+    title: "TeamViewer",
+    description:
+      "Remote desktop software for accessing computers from anywhere.",
+    image:
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/logo-teamviewer-2.svg",
+    imageBackground: "#FFFFFF",
+    tags: ["remote-access", "remote-desktop", "cross-platform"],
+    category: "remote-bridging",
+    whatItIs:
+      "A widely-used remote access tool that lets you control another computer over the internet.",
+    whatItDoes:
+      "Enables remote support, device control, and file transfer—useful for accessing a home PC from a mobile device.",
+    whoItsFor:
+      "Users who need to control a computer remotely or receive technical support from caregivers/IT staff.",
+    productUrl: "https://www.teamviewer.com/",
+  },
+  {
     id: "microsoft-remote-desktop",
     title: "Microsoft Remote Desktop",
     description:
       "Built-in Windows remote desktop protocol (RDP) for PC access.",
     image:
-      "https://images.unsplash.com/photo-1629654297299-c8506221ca97?w=400",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/microsoft-logo.jpg",
+    contentFit: "cover",
     tags: ["remote-access", "windows", "rdp", "built-in"],
     category: "remote-bridging",
     whatItIs:
@@ -469,45 +447,30 @@ export const REMOTE_BRIDGING: ComputerProductivityProduct[] = [
     productUrl: "https://support.microsoft.com/en-us/windows/how-to-use-remote-desktop-5fe128d5-8fb1-7a23-3b8a-41e636865e8c",
   },
   {
-    id: "barrier",
-    title: "Barrier",
+    id: "kensington-expert-mouse-trackball",
+    title: "Kensington Expert Mouse Wired Trackball",
     description:
-      "Open-source software KVM to share one keyboard and mouse across multiple computers.",
+      "Large-ball wired trackball with scroll ring and four programmable buttons for precise, low-effort cursor control.",
     image:
-      "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400",
-    tags: ["kvm", "keyboard-sharing", "open-source", "free"],
-    category: "remote-bridging",
+      "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/Computer-Access/Mice/Kensington%20mouse.jpg",
+    contentFit: "contain",
+    tags: ["trackball", "wired", "alternative-mice", "ergonomic"],
+    category: "alternative-mice",
+    subcategory: "trackballs",
     whatItIs:
-      "A software KVM (keyboard-video-mouse) switch that lets one keyboard/mouse control multiple networked computers.",
+      "A large-format wired trackball with a 55 mm ball, surrounding scroll ring, and four programmable buttons. Compatible with Windows and macOS.",
     whatItDoes:
-      "Seamlessly move your cursor between computers on the same desk—no hardware switch needed.",
+      "Moves the cursor by rolling the ball rather than moving the whole device, eliminating wrist and arm movement. The scroll ring allows smooth page scrolling without shifting grip, and buttons can be programmed for common actions.",
     whoItsFor:
-      "Users with multiple computers who want to use a single adaptive keyboard/mouse setup across all devices.",
-    productUrl: "https://github.com/debauchee/barrier",
-  },
-  {
-    id: "apple-universal-control",
-    title: "Apple Universal Control",
-    description:
-      "Built-in macOS/iPadOS feature to use one keyboard/mouse across Apple devices.",
-    image:
-      "https://images.unsplash.com/photo-1611532736570-e8e5e45e4c5f?w=400",
-    tags: ["macos", "ipad", "device-bridging", "built-in", "free"],
-    category: "remote-bridging",
-    whatItIs:
-      "Apple's native feature for seamlessly controlling Mac and iPad with a single keyboard and mouse.",
-    whatItDoes:
-      "Move the cursor across devices, drag and drop files, and use one input setup for your entire Apple ecosystem.",
-    whoItsFor:
-      "Apple users who want effortless control across Mac/iPad without switching keyboards or mice.",
-    productUrl: "https://support.apple.com/guide/mac-help/use-universal-control-mchl8be95421/mac",
+      "People with limited wrist or arm mobility, repetitive strain injuries, or anyone who benefits from keeping their hand stationary while controlling the cursor. Widely used in assistive technology setups.",
+    productUrl: "https://www.kensington.com/en-nz/p/products/control/trackballs/expert-mouse-wired-trackball/",
   },
 ];
 
 /* ───────────────────────── export all ───────────────────────── */
 
 export const COMPUTER_PRODUCTIVITY_PRODUCTS: ComputerProductivityProduct[] = [
-  ...ALTERNATIVE_INPUT,
+  ...ALTERNATIVE_MICE,
   ...ON_SCREEN_KEYBOARDS,
   ...VOICE_DICTATION,
   ...POINTER_CURSOR_TOOLS,

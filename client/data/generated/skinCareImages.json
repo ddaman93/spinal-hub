@@ -1,0 +1,62 @@
+{
+  "healthy-skin-dark": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/healthy-skin-dark.jpg",
+    "alt": "Healthy skin anatomy – dark pigment"
+  },
+  "healthy-skin-light": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/healthy-skin-light.jpg",
+    "alt": "Healthy skin anatomy – light pigment"
+  },
+  "pressure-areas-1": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/pressure-areas-1.png",
+    "alt": "Body areas susceptible to pressure injury (view 1)"
+  },
+  "pressure-areas-2": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/pressure-areas-2.png",
+    "alt": "Body areas susceptible to pressure injury (view 2)"
+  },
+  "pressure-areas-3": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/pressure-areas-3.png",
+    "alt": "Body areas susceptible to pressure injury (view 3)"
+  },
+  "stage-1-dark": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/stage-1-dark.jpg",
+    "alt": "Stage 1 pressure injury – dark pigment"
+  },
+  "stage-1-light": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/stage-1-light.jpg",
+    "alt": "Stage 1 pressure injury – light pigment"
+  },
+  "stage-2": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/stage-2.jpg",
+    "alt": "Stage 2 pressure injury"
+  },
+  "stage-3": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/stage-3.jpg",
+    "alt": "Stage 3 pressure injury"
+  },
+  "stage-3-epibole": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/stage-3-epibole.jpg",
+    "alt": "Stage 3 pressure injury with epibole"
+  },
+  "stage-4": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/stage-4.jpg",
+    "alt": "Stage 4 pressure injury"
+  },
+  "unstageable-no-slough": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/unstageable-no-slough.jpg",
+    "alt": "Unstageable pressure injury – no slough"
+  },
+  "unstageable-half-slough": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/unstageable-half-slough.jpg",
+    "alt": "Unstageable pressure injury – partial slough"
+  },
+  "deep-tissue": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/deep-tissue.jpg",
+    "alt": "Deep tissue pressure injury"
+  },
+  "blanch-test": {
+    "url": "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/skin-care/blanch-test.jpg",
+    "alt": "Blanchable vs non-blanchable comparison"
+  }
+}

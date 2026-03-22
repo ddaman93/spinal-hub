@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, FlatList, Pressable, TextInput, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -10,6 +11,12 @@ import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollV
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { storage, Appointment, generateId, formatDate } from "@/lib/storage";
+import {
+  scheduleAppointmentNotification,
+  cancelAppointmentNotification,
+  addAppointmentToCalendar,
+  removeAppointmentFromCalendar,
+} from "@/lib/appointmentIntegrations";
 
 const APPOINTMENT_TYPES = [
   { key: "doctor", label: "Doctor Visit", icon: "user" as const },
@@ -20,6 +27,7 @@ const APPOINTMENT_TYPES = [
 
 export default function AppointmentSchedulerScreen() {
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -51,6 +59,8 @@ export default function AppointmentSchedulerScreen() {
       reminder: true,
     };
     await storage.appointments.add(appointment);
+    await scheduleAppointmentNotification(appointment);
+    await addAppointmentToCalendar(appointment);
     await loadData();
     setModalVisible(false);
     resetForm();
@@ -66,6 +76,8 @@ export default function AppointmentSchedulerScreen() {
   };
 
   const handleDelete = async (id: string) => {
+    await cancelAppointmentNotification(id);
+    await removeAppointmentFromCalendar(id);
     await storage.appointments.delete(id);
     await loadData();
   };
@@ -155,7 +167,7 @@ export default function AppointmentSchedulerScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { paddingBottom: insets.bottom + 100 },
+          { paddingTop: headerHeight, paddingBottom: insets.bottom + 100 },
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

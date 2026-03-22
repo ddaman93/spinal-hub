@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -32,6 +33,7 @@ const ALL_TAGS = Array.from(
 export default function AssistiveTechListScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
+  const scrollProps = useScrollAwareHeader();
 
   const safeHeaderHeight =
     headerHeight > 0 ? headerHeight : Spacing.xl;
@@ -67,6 +69,7 @@ export default function AssistiveTechListScreen() {
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView
+        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: safeHeaderHeight + Spacing.lg,

@@ -6,10 +6,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { ProductCard } from "@/components/ProductCard";
+import { BrandCard } from "@/components/BrandCard";
 import { Spacing } from "@/constants/theme";
 
 import type { ManualWheelchairProduct } from "@/data/manualWheelchairProducts";
@@ -18,6 +20,10 @@ import {
   HANDCYCLE_ATTACHMENTS,
   PROPULSION_AIDS,
   TRANSFER_AND_SETUP_AIDS,
+  STORAGE_ACCESSORIES,
+  DEVICE_MOUNTS,
+  WHEELCHAIR_GLOVE_BRANDS,
+  BAGS_BRANDS,
 } from "@/data/manualWheelchairProducts";
 
 /* ───────────────────────── screen ───────────────────────── */
@@ -25,10 +31,12 @@ import {
 export default function ManualWheelchairTechScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
+  const scrollProps = useScrollAwareHeader();
 
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView
+        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: headerHeight + Spacing.md,
@@ -58,14 +66,56 @@ export default function ManualWheelchairTechScreen() {
         />
 
         <Section
+          title="Device Mounts & Holders (NZ)"
+          data={DEVICE_MOUNTS}
+        />
+
+        <Section
           title="Push & Propulsion Aids"
           data={PROPULSION_AIDS}
         />
+
+        {/* GLOVES — brand cards */}
+        <View style={styles.section}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
+            Wheelchair Gloves & Hand Protection (NZ)
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: Spacing.sm, paddingTop: Spacing.xs }}
+          >
+            {WHEELCHAIR_GLOVE_BRANDS.map((brand) => (
+              <BrandCard key={brand.id} brand={brand} />
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* BAGS — brand cards + products */}
+        <View style={styles.section}>
+          <ThemedText type="heading" style={styles.sectionTitle}>
+            Bags & Carry Accessories (NZ)
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: Spacing.sm, paddingTop: Spacing.xs }}
+          >
+            {BAGS_BRANDS.map((brand) => (
+              <BrandCard key={brand.id} brand={brand} />
+            ))}
+            {STORAGE_ACCESSORIES.filter((p) => !p.id.startsWith("melrose")).map((product) => (
+              <ProductCard key={product.id} product={product} compact={true} />
+            ))}
+          </ScrollView>
+        </View>
 
         <Section
           title="Transfer & Setup Aids"
           data={TRANSFER_AND_SETUP_AIDS}
         />
+
+
       </ScrollView>
     </ThemedView>
   );

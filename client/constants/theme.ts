@@ -1,7 +1,6 @@
 import { Platform } from "react-native";
 
-const tintColorLight = "#007AFF";
-const tintColorDark = "#0A84FF";
+const tintColorLight = "#123524";
 
 export const Colors = {
   light: {
@@ -10,8 +9,8 @@ export const Colors = {
     buttonText: "#FFFFFF",
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
-    link: "#007AFF",
-    primary: "#007AFF",
+    link: "#123524",
+    primary: "#123524",
     backgroundRoot: "#FFFFFF",
     backgroundDefault: "#F5F5F5",
     backgroundSecondary: "#E6E6E6",
@@ -23,18 +22,18 @@ export const Colors = {
   },
   dark: {
     text: "#FFFFFF",
-    textSecondary: "#B0B0B0",
+    textSecondary: "#88C9A1",
     buttonText: "#FFFFFF",
-    tabIconDefault: "#9BA1A6",
-    tabIconSelected: tintColorDark,
-    link: "#0A84FF",
-    primary: "#0A84FF",
-    backgroundRoot: "#000000",
-    backgroundDefault: "#1E1E1E",
-    backgroundSecondary: "#2C2C2E",
-    backgroundTertiary: "#3A3A3C",
-    border: "#333333",
-    success: "#30D158",
+    tabIconDefault: "#4A7A58",
+    tabIconSelected: "#00E676",
+    link: "#00E676",
+    primary: "#00E676",
+    backgroundRoot: "#060E08",
+    backgroundDefault: "#0C1A0E",
+    backgroundSecondary: "#132B16",
+    backgroundTertiary: "#1A3D1E",
+    border: "rgba(0, 230, 100, 0.18)",
+    success: "#00E676",
     warning: "#FF9F0A",
     error: "#FF453A",
   },

@@ -10,10 +10,15 @@ type Props = {
   status: string;
   phase?: string;
   summary?: string;
-  country?: string;
-
-  // NEW: controls sizing + typography
+  countries?: string[];
+  source?: "clinicaltrials.gov" | "anzctr";
+  url?: string;
   variant?: "carousel" | "grid";
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  "clinicaltrials.gov": "CTG",
+  anzctr: "ANZCTR",
 };
 
 export function LiveClinicalTrialCard({
@@ -22,15 +27,22 @@ export function LiveClinicalTrialCard({
   status,
   phase,
   summary,
-  country,
+  countries = [],
+  source = "clinicaltrials.gov",
+  url,
   variant = "carousel",
 }: Props) {
   const { theme } = useTheme();
   const isRecruiting = status.toLowerCase().includes("recruiting");
 
+  const handlePress = () => {
+    const link = url ?? `https://clinicaltrials.gov/study/${id}`;
+    Linking.openURL(link);
+  };
+
   return (
     <Pressable
-      onPress={() => Linking.openURL(`https://clinicaltrials.gov/study/${id}`)}
+      onPress={handlePress}
       style={({ pressed }) => [
         styles.cardBase,
         { backgroundColor: theme.backgroundDefault },
@@ -63,6 +75,7 @@ export function LiveClinicalTrialCard({
 
       {/* META ROW */}
       <View style={styles.metaRow}>
+        {/* STATUS */}
         <View
           style={[
             styles.badge,
@@ -76,15 +89,23 @@ export function LiveClinicalTrialCard({
           </ThemedText>
         </View>
 
+        {/* SOURCE */}
+        <View style={[styles.badge, { backgroundColor: theme.primary + "20" }]}>
+          <ThemedText type="small" style={{ color: theme.primary }}>
+            {SOURCE_LABEL[source] ?? source}
+          </ThemedText>
+        </View>
+
         {phase ? (
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
             {phase}
           </ThemedText>
         ) : null}
 
-        {country ? (
+        {countries.length > 0 ? (
           <ThemedText type="small" style={{ color: theme.textSecondary }}>
-            {country}
+            {countries.slice(0, 2).join(", ")}
+            {countries.length > 2 ? ` +${countries.length - 2}` : ""}
           </ThemedText>
         ) : null}
       </View>
@@ -98,53 +119,36 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
 
-  // Dashboard horizontal carousel: fixed width feels good
   cardCarousel: {
     width: 300,
   },
 
-  // Grid/list: must fill container width (no fixed width)
   cardGrid: {
     width: "100%",
   },
 
   title: {
-    fontSize: 15,        // 👈 smaller, more readable
+    fontSize: 15,
     fontWeight: "600",
     lineHeight: 20,
+    marginBottom: Spacing.xs,
   },
 
   carouselTitle: {
-    fontSize: 14,        // 👈 slightly tighter for dashboard
-  },
-
-  description: {
-    opacity: 0.7,
-    marginBottom: Spacing.sm,
+    fontSize: 14,
   },
 
   metaRow: {
     flexDirection: "row",
-    flexWrap: "wrap",          // IMPORTANT: prevents overflow
+    flexWrap: "wrap",
     alignItems: "center",
-    gap: Spacing.sm,
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
   },
 
   badge: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: 999,
-  },
-
-  recruiting: {
-    // inline color applied using theme in component
-  },
-
-  notRecruiting: {
-    // inline color applied using theme in component
-  },
-
-  metaText: {
-    // color applied via theme in component
   },
 });

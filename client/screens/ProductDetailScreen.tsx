@@ -3,6 +3,8 @@ import { View, StyleSheet, ScrollView, Pressable, Linking } from "react-native";
 import { Image } from "expo-image";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useHeaderHeight } from "@react-navigation/elements";
+import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -16,6 +18,8 @@ type RouteProps = RouteProp<MainStackParamList, "ProductDetail">;
 export default function ProductDetailScreen() {
   const { params } = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
+  const scrollProps = useScrollAwareHeader();
   const { theme } = useTheme();
   const product = params.product;
 
@@ -25,11 +29,19 @@ export default function ProductDetailScreen() {
     }
   };
 
+  const handleOpenMacLink = () => {
+    if (product.productUrlMac) {
+      Linking.openURL(product.productUrlMac);
+    }
+  };
+
   return (
     <ThemedView style={{ flex: 1 }}>
       <ScrollView
+        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
+          paddingTop: headerHeight,
           paddingBottom: insets.bottom + Spacing.xl,
         }}
       >
@@ -37,7 +49,7 @@ export default function ProductDetailScreen() {
         <Image
           source={product.image}
           style={[styles.image, { backgroundColor: theme.backgroundTertiary }]}
-          contentFit="cover"
+          contentFit="contain"
         />
 
         <View style={styles.content}>
@@ -78,7 +90,7 @@ export default function ProductDetailScreen() {
             </View>
           )}
 
-          {/* PRODUCT LINK */}
+          {/* PRODUCT LINK - WINDOWS */}
           {product.productUrl && (
             <Pressable
               style={[styles.linkButton, { backgroundColor: theme.primary }]}
@@ -88,7 +100,23 @@ export default function ProductDetailScreen() {
               accessibilityLabel={`Visit ${product.title} product page`}
             >
               <ThemedText type="small" style={[styles.linkButtonText, { color: theme.buttonText }]}>
-                Visit Product Page
+                {product.productUrlMac ? "Windows Guide" : "Visit Product Page"}
+              </ThemedText>
+              <Feather name="external-link" size={16} color={theme.buttonText} />
+            </Pressable>
+          )}
+
+          {/* PRODUCT LINK - MACOS */}
+          {product.productUrlMac && (
+            <Pressable
+              style={[styles.linkButton, { backgroundColor: theme.primary }]}
+              onPress={handleOpenMacLink}
+              accessible
+              accessibilityRole="link"
+              accessibilityLabel={`Visit ${product.title} macOS page`}
+            >
+              <ThemedText type="small" style={[styles.linkButtonText, { color: theme.buttonText }]}>
+                macOS Guide
               </ThemedText>
               <Feather name="external-link" size={16} color={theme.buttonText} />
             </Pressable>

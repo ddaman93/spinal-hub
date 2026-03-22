@@ -1,38 +1,63 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
-// modify the interface with any CRUD methods
-// you might need
+// ---------------------------------------------------------------------------
+// Auth user storage — backed by PostgreSQL via Drizzle
+// ---------------------------------------------------------------------------
 
-export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+export interface IAuthStorage {
+  findByEmail(email: string): Promise<AuthUser | undefined>;
+  findById(id: string): Promise<AuthUser | undefined>;
+  createAuthUser(user: Omit<AuthUser, "id">): Promise<AuthUser>;
+  upsertByEmail(user: Omit<AuthUser, "id">): Promise<AuthUser>;
+  deleteById(id: string): Promise<void>;
+}
 
-  constructor() {
-    this.users = new Map();
+function rowToAuthUser(row: typeof users.$inferSelect): AuthUser {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    passwordHash: row.passwordHash,
+  };
+}
+
+class AuthDbStorage implements IAuthStorage {
+  async findByEmail(email: string): Promise<AuthUser | undefined> {
+    const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return rows[0] ? rowToAuthUser(rows[0]) : undefined;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async findById(id: string): Promise<AuthUser | undefined> {
+    const rows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return rows[0] ? rowToAuthUser(rows[0]) : undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createAuthUser(user: Omit<AuthUser, "id">): Promise<AuthUser> {
+    const rows = await db
+      .insert(users)
+      .values({ name: user.name, email: user.email, passwordHash: user.passwordHash })
+      .returning();
+    return rowToAuthUser(rows[0]);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async upsertByEmail(user: Omit<AuthUser, "id">): Promise<AuthUser> {
+    const existing = await this.findByEmail(user.email);
+    if (existing) return existing;
+    return this.createAuthUser(user);
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const authStorage: IAuthStorage = new AuthDbStorage();
