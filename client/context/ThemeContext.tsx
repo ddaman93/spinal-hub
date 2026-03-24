@@ -57,7 +57,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     if (userPreference !== null) {
       return userPreference;
     }
-    return systemColorScheme === "dark" ? "dark" : "light";
+    return "dark";
   }, [userPreference, systemColorScheme]);
 
   const isDark = colorScheme === "dark";
