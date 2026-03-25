@@ -29,6 +29,7 @@ const settingsItems: SettingItem[] = [
   { id: "notifications", title: "Notifications", icon: "bell", description: "Manage alerts and reminders" },
   { id: "health", title: "Health Defaults", icon: "heart", description: "Hydration goal & reminder intervals" },
   { id: "data", title: "Data & Backup", icon: "database", description: "Export and backup your data" },
+  { id: "feedback", title: "Send Feedback", icon: "message-square", description: "Suggest features or report issues" },
   { id: "about", title: "About", icon: "info", description: "App version and info" },
 ];
 
@@ -46,6 +47,7 @@ export default function SettingsScreen() {
     else if (id === "data") navigation.navigate("DataBackup");
     else if (id === "about") navigation.navigate("About");
     else if (id === "health") navigation.navigate("HealthDefaults");
+    else if (id === "feedback") navigation.navigate("Feedback");
   };
 
   const handleDeleteAccount = () => {

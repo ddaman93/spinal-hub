@@ -4,6 +4,7 @@ import { getClinicalTrials } from "./routes/clinicalTrials";
 import { getWeather } from "./routes/weather";
 import { getSciNews } from "./routes/sciNews";
 import { getChatMessages, postChatMessage } from "./routes/chat";
+import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
 import { authStorage } from "./storage";
 import { db } from "./db";
@@ -57,6 +58,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Community chat
   app.get("/api/chat/:channel", getChatMessages);
   app.post("/api/chat/:channel", postChatMessage);
+
+  // Feedback
+  app.post("/api/feedback", postFeedback);
 
   // User profiles (JWT-protected)
   app.get("/api/profile", async (req: Request, res: Response) => {

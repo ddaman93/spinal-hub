@@ -57,6 +57,7 @@ export type MainStackParamList = {
 
   Settings: undefined;
   DisplaySettings: undefined;
+  Feedback: undefined;
   VitalsLog: undefined;
   PainJournal: undefined;
   MedicationTracker: undefined;

@@ -19,6 +19,7 @@ import AccessibilitySettingsScreen from "@/screens/AccessibilitySettingsScreen";
 import DataBackupScreen from "@/screens/DataBackupScreen";
 import AboutScreen from "@/screens/AboutScreen";
 import HealthDefaultsScreen from "@/screens/HealthDefaultsScreen";
+import FeedbackScreen from "@/screens/FeedbackScreen";
 import CommunityChatScreen from "@/screens/CommunityChatScreen";
 import BackOnTrackScreen from "@/screens/BackOnTrackScreen";
 import ChatRoomScreen from "@/screens/ChatRoomScreen";
@@ -672,6 +673,15 @@ function SettingsStackNavigator() {
         options={{
           ...opaqueScreenOptions,
           headerTitle: "Health Defaults",
+        }}
+      />
+
+      <SettingsStack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Send Feedback",
         }}
       />
     </SettingsStack.Navigator>

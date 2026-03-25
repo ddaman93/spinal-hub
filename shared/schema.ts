@@ -67,6 +67,20 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 // ---------------------------------------------------------------------------
+// feedback
+// ---------------------------------------------------------------------------
+
+export const feedback = pgTable("feedback", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  category: text("category").notNull().default("general"),
+  message: text("message").notNull(),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Zod schemas + types
 // ---------------------------------------------------------------------------
 
