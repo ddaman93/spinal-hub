@@ -1,7 +1,9 @@
 import React, { useEffect } from "react";
 import { View, Image, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { RouteProp, useRoute } from "@react-navigation/native";
+import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { OnboardingStackParamList } from "@/navigation/OnboardingStack";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -9,7 +11,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { PROFILE_STORAGE_KEY } from "@/screens/ProfileScreen";
-import { OnboardingStackParamList, triggerOnboardingComplete } from "@/navigation/OnboardingStack";
+import { triggerOnboardingComplete } from "@/navigation/OnboardingStack";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
 import * as Location from "expo-location";
@@ -19,6 +21,7 @@ export const ONBOARDING_COMPLETE_KEY = "spinal_hub_onboarding_complete";
 
 export default function OnboardingCompleteScreen() {
   const route = useRoute<RouteProp<OnboardingStackParamList, "OnboardingComplete">>();
+  const navigation = useNavigation<NativeStackNavigationProp<OnboardingStackParamList>>();
   const { theme } = useTheme();
   const { draft } = route.params;
 
@@ -85,7 +88,7 @@ export default function OnboardingCompleteScreen() {
 
   const handleEnter = async () => {
     await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
-    triggerOnboardingComplete();
+    navigation.navigate("FeatureTour");
   };
 
   return (

@@ -10,6 +10,7 @@ import MobilitySetupScreen from "@/screens/onboarding/MobilitySetupScreen";
 import CareSupportScreen from "@/screens/onboarding/CareSupportScreen";
 import MedicalCardSetupScreen from "@/screens/onboarding/MedicalCardSetupScreen";
 import OnboardingCompleteScreen from "@/screens/onboarding/OnboardingCompleteScreen";
+import FeatureTourScreen from "@/screens/onboarding/FeatureTourScreen";
 
 export type OnboardingDraft = Partial<UserProfile>;
 
@@ -22,6 +23,7 @@ export type OnboardingStackParamList = {
   CareSupport: { draft: OnboardingDraft };
   MedicalCardSetup: { draft: OnboardingDraft };
   OnboardingComplete: { draft: OnboardingDraft };
+  FeatureTour: undefined;
 };
 
 // Module-level callback so OnboardingCompleteScreen can trigger app transition
@@ -46,6 +48,7 @@ export default function OnboardingStack({ onComplete }: { onComplete: () => void
       <Stack.Screen name="CareSupport" component={CareSupportScreen} />
       <Stack.Screen name="MedicalCardSetup" component={MedicalCardSetupScreen} />
       <Stack.Screen name="OnboardingComplete" component={OnboardingCompleteScreen} />
+      <Stack.Screen name="FeatureTour" component={FeatureTourScreen} />
     </Stack.Navigator>
   );
 }
