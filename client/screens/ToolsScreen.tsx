@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
 
   section: {
     gap: Spacing.sm,
+    marginBottom: Spacing.xl,
   },
   sectionLabel: {
     fontSize: 11,
