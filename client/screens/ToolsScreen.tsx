@@ -120,6 +120,12 @@ export default function ToolsScreen() {
             .map((id) => categoryById[id])
             .filter(Boolean);
 
+          // Chunk into rows to avoid flexWrap height bug in RN
+          const rows: CategoryConfig[][] = [];
+          for (let i = 0; i < categories.length; i += COLS) {
+            rows.push(categories.slice(i, i + COLS));
+          }
+
           return (
             <View key={section.title} style={styles.section}>
               <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>
@@ -127,28 +133,32 @@ export default function ToolsScreen() {
               </ThemedText>
 
               <View style={styles.grid}>
-                {categories.map((category) => {
-                  const accent = ACCENT[category.id] ?? theme.primary;
-                  const isNZST = category.id === "nz-spinal-trust";
-                  const isBackOnTrack = category.id === "back-on-track";
-                  return (
-                    <CategoryTile
-                      key={category.id}
-                      title={category.title}
-                      description={category.description}
-                      icon={category.icon}
-                      accentColor={accent}
-                      onPress={() => handlePress(category)}
-                      style={{ width: TILE_WIDTH }}
-                      {...(isNZST && {
-                        customIcon: <NZSpinalTrustLogo size={20} />,
-                      })}
-                      {...(isBackOnTrack && {
-                        imageUri: "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/Spinal%20hub%20photos/Books/Back%20on%20track.jpg",
-                      })}
-                    />
-                  );
-                })}
+                {rows.map((row, rowIndex) => (
+                  <View key={rowIndex} style={styles.row}>
+                    {row.map((category) => {
+                      const accent = ACCENT[category.id] ?? theme.primary;
+                      const isNZST = category.id === "nz-spinal-trust";
+                      const isBackOnTrack = category.id === "back-on-track";
+                      return (
+                        <CategoryTile
+                          key={category.id}
+                          title={category.title}
+                          description={category.description}
+                          icon={category.icon}
+                          accentColor={accent}
+                          onPress={() => handlePress(category)}
+                          style={{ width: TILE_WIDTH }}
+                          {...(isNZST && {
+                            customIcon: <NZSpinalTrustLogo size={20} />,
+                          })}
+                          {...(isBackOnTrack && {
+                            imageUri: "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/Spinal%20hub%20photos/Books/Back%20on%20track.jpg",
+                          })}
+                        />
+                      );
+                    })}
+                  </View>
+                ))}
               </View>
             </View>
           );
@@ -195,8 +205,10 @@ const styles = StyleSheet.create({
   },
 
   grid: {
+    gap: GAP,
+  },
+  row: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: GAP,
   },
 });
