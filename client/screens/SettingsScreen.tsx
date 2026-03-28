@@ -30,6 +30,7 @@ const settingsItems: SettingItem[] = [
   { id: "health", title: "Health Defaults", icon: "heart", description: "Hydration goal & reminder intervals" },
   { id: "data", title: "Data & Backup", icon: "database", description: "Export and backup your data" },
   { id: "feedback", title: "Send Feedback", icon: "message-square", description: "Suggest features or report issues" },
+  { id: "tour", title: "App Tour", icon: "play-circle", description: "Replay the feature walkthrough" },
   { id: "about", title: "About", icon: "info", description: "App version and info" },
 ];
 
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
     else if (id === "about") navigation.navigate("About");
     else if (id === "health") navigation.navigate("HealthDefaults");
     else if (id === "feedback") navigation.navigate("Feedback");
+    else if (id === "tour") navigation.navigate("FeatureTour");
   };
 
   const handleDeleteAccount = () => {

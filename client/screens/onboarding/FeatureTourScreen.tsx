@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 
+import { useNavigation } from "@react-navigation/native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -72,6 +73,7 @@ const SLIDES: Slide[] = [
 
 export default function FeatureTourScreen() {
   const { theme } = useTheme();
+  const navigation = useNavigation();
   const [activeIndex, setActiveIndex] = useState(0);
   const listRef = useRef<FlatList>(null);
 
@@ -83,11 +85,19 @@ export default function FeatureTourScreen() {
     }
   ).current;
 
+  const handleDone = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      triggerOnboardingComplete();
+    }
+  };
+
   const handleNext = () => {
     if (activeIndex < SLIDES.length - 1) {
       listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
     } else {
-      triggerOnboardingComplete();
+      handleDone();
     }
   };
 
@@ -139,7 +149,7 @@ export default function FeatureTourScreen() {
       <View style={[styles.footer, { backgroundColor: theme.backgroundRoot }]}>
         {!isLast && (
           <Pressable
-            onPress={triggerOnboardingComplete}
+            onPress={handleDone}
             style={styles.skipBtn}
             accessibilityRole="button"
             accessibilityLabel="Skip tour"
