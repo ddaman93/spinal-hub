@@ -9,7 +9,6 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -53,7 +52,6 @@ function formatHeaderDate(): string {
 
 export default function RoutineScreen({ routineType }: { routineType: RoutineType }) {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const cfg = CONFIG[routineType];
 
@@ -133,7 +131,7 @@ export default function RoutineScreen({ routineType }: { routineType: RoutineTyp
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: headerHeight },
+            { paddingTop: Spacing.lg },
           ]}
         >
           {/* ── Header card ── */}

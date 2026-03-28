@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { View, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -32,7 +31,6 @@ function pharmacBadgeStyle(label: string, theme: { success: string; warning: str
 export default function SCIMedicationDetailScreen() {
   const route = useRoute<RouteProps>();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [lessCommonExpanded, setLessCommonExpanded] = useState(false);
 
@@ -57,7 +55,7 @@ export default function SCIMedicationDetailScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: Spacing.lg,
-          paddingTop: headerHeight,
+          paddingTop: Spacing.lg,
           paddingBottom: insets.bottom + Spacing.xl,
           gap: Spacing.lg,
         }}

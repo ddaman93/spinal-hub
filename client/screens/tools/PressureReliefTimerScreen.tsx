@@ -13,7 +13,6 @@ import Svg, { Circle } from "react-native-svg";
 import * as Notifications from "expo-notifications";
 import { Feather } from "@expo/vector-icons";
 
-import { useHeaderHeight } from "@react-navigation/elements";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -128,7 +127,6 @@ async function scheduleReminder(intervalMinutes: number): Promise<boolean> {
 /* ─── screen ─── */
 
 export default function PressureReliefTimerScreen() {
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
 
   /* timer state */
@@ -290,7 +288,7 @@ export default function PressureReliefTimerScreen() {
   /* ── render ── */
   return (
     <ThemedView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: headerHeight }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scroll, { paddingTop: Spacing.lg }]}>
 
         {/* ══ Timer card ══ */}
         <View style={[styles.timerCard, { backgroundColor: theme.backgroundDefault }]}>

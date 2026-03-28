@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, ScrollView, TextInput, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -26,7 +25,6 @@ const EMPTY_PREFS: CarePreferences = {
 
 export default function CarePreferencesScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [data, setData] = useState<CarePreferences | null>(null);
   const [editMode, setEditMode] = useState(false);
@@ -67,7 +65,7 @@ export default function CarePreferencesScreen() {
         <KeyboardAwareScrollViewCompat
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xxl },
+            { paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.xxl },
           ]}
         >
           <ThemedText type="h3" style={styles.sectionTitle}>Personal</ThemedText>
@@ -177,7 +175,7 @@ export default function CarePreferencesScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xxl }]}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.xxl }]}>
         <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
           <ThemedText type="h2" style={styles.cardName}>{data.name || "—"}</ThemedText>
           <ThemedText type="body" style={{ color: theme.textSecondary }}>

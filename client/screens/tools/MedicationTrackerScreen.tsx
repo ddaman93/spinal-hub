@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { View, StyleSheet, FlatList, Pressable, TextInput, Modal, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -20,7 +19,6 @@ import {
 
 export default function MedicationTrackerScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [todayLogs, setTodayLogs] = useState<MedicationLog[]>([]);
@@ -179,7 +177,7 @@ export default function MedicationTrackerScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { paddingTop: headerHeight, paddingBottom: insets.bottom + 100 },
+          { paddingTop: Spacing.lg, paddingBottom: insets.bottom + 100 },
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

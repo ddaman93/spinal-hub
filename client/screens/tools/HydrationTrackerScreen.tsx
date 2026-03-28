@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, FlatList, Pressable } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -21,7 +20,6 @@ const DEFAULT_GOAL_ML = 2000;
 
 export default function HydrationTrackerScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [todayLogs, setTodayLogs] = useState<HydrationLog[]>([]);
   const [dailyGoal, setDailyGoal] = useState(DEFAULT_GOAL_ML);
@@ -145,7 +143,7 @@ export default function HydrationTrackerScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={[
             styles.listContent,
-            { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xl },
+            { paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.xl },
           ]}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, FlatList, Pressable, TextInput, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -30,7 +29,6 @@ const SEVERITY_OPTIONS: { key: SkinCheckEntry["severity"]; label: string; color:
 
 export default function SkinCheckLogScreen() {
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const [entries, setEntries] = useState<SkinCheckEntry[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -124,7 +122,7 @@ export default function SkinCheckLogScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
           styles.listContent,
-          { paddingTop: headerHeight, paddingBottom: insets.bottom + 100 },
+          { paddingTop: Spacing.lg, paddingBottom: insets.bottom + 100 },
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>

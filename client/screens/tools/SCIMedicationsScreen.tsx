@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import { View, StyleSheet, FlatList, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { useHeaderHeight } from "@react-navigation/elements";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -36,7 +35,6 @@ function pharmacBadgeStyle(label: string, theme: { success: string; warning: str
 export default function SCIMedicationsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const insets = useSafeAreaInsets();
-  const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
 
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -153,7 +151,7 @@ export default function SCIMedicationsScreen() {
   return (
     <ThemedView style={styles.container}>
       {/* fixed header + filters */}
-      <View style={[styles.headerBlock, { paddingTop: headerHeight }]}>
+      <View style={[styles.headerBlock, { paddingTop: Spacing.lg }]}>
         <ThemedText type="heading">SCI Medications</ThemedText>
         <ThemedText type="small" style={[styles.disclaimer, { color: theme.textSecondary }]}>
           Reference guide only. These medications manage secondary effects of SCI — they do not
