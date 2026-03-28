@@ -143,7 +143,6 @@ export default function ToolsScreen() {
                         <CategoryTile
                           key={category.id}
                           title={category.title}
-                          description={category.description}
                           icon={category.icon}
                           accentColor={accent}
                           onPress={() => handlePress(category)}
@@ -196,10 +195,10 @@ const styles = StyleSheet.create({
 
   section: {
     gap: Spacing.sm,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
     letterSpacing: 1,
   },

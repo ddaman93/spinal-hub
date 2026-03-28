@@ -155,9 +155,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.48)",
   },
   title: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
-    lineHeight: 17,
+    lineHeight: 15,
     letterSpacing: -0.1,
   },
   description: {
