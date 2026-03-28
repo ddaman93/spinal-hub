@@ -62,8 +62,8 @@ const SECTIONS = [
 ];
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const H_PAD = Spacing.lg;
-const GAP = Spacing.sm;
+const H_PAD = 12;
+const GAP = 6;
 const COLS = 3;
 const TILE_WIDTH = (SCREEN_WIDTH - H_PAD * 2 - GAP * (COLS - 1)) / COLS;
 
@@ -99,7 +99,7 @@ export default function ToolsScreen() {
         contentContainerStyle={{
           paddingTop: headerHeight + Spacing.lg,
           paddingBottom: insets.bottom + Spacing.xl,
-          paddingHorizontal: H_PAD,
+          paddingHorizontal: H_PAD + 4,
           gap: Spacing.xl,
         }}
       >
@@ -143,6 +143,7 @@ export default function ToolsScreen() {
                         <CategoryTile
                           key={category.id}
                           title={category.title}
+                          description={category.description}
                           icon={category.icon}
                           accentColor={accent}
                           onPress={() => handlePress(category)}
