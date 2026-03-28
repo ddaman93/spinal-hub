@@ -57,7 +57,7 @@ export const CATEGORIES: CategoryConfig[] = [
   {
     id: "health-tracking",
     title: "Health Tracking",
-    description: "Vitals, pain & meds",
+    description: "Vitals, pain & pressure relief",
     icon: "activity",
     tools: [
       {
@@ -83,14 +83,6 @@ export const CATEGORIES: CategoryConfig[] = [
           "Track pain levels and locations",
         icon: "activity",
         route: "PainJournal",
-      },
-      {
-        id: "medications",
-        name: "Medications",
-        description:
-          "Manage and track your medications",
-        icon: "clipboard",
-        route: "MedicationTracker",
       },
     ],
   },
