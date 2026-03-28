@@ -23,6 +23,8 @@ import { ThemedText } from "@/components/ThemedText";
 import { LiveClinicalTrialCard } from "@/components/LiveClinicalTrialCard";
 import { TechNavCard } from "@/components/TechNavCard";
 import { SciNewsCard } from "@/components/SciNewsCard";
+import { TourTarget } from "@/components/TourTarget";
+import { useTour } from "@/context/TourContext";
 
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
@@ -210,6 +212,12 @@ export default function DashboardScreen() {
   const headerHeight = useHeaderHeight();
   const { isDark } = useTheme();
   const scrollProps = useScrollAwareHeader();
+  const scrollRef = React.useRef<any>(null);
+  const { registerScrollRef } = useTour();
+
+  React.useEffect(() => {
+    registerScrollRef("HomeTab", scrollRef);
+  }, [registerScrollRef]);
 
   const userName = "Dylan";
 
@@ -310,6 +318,7 @@ export default function DashboardScreen() {
   return (
     <ThemedView style={styles.container}>
       <Animated.ScrollView
+        ref={scrollRef}
         {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -426,6 +435,7 @@ export default function DashboardScreen() {
         )}
 
         {/* ASSISTIVE TECHNOLOGY */}
+        <TourTarget stepId="assistive-tech" scrollRef={scrollRef}>
         <GlassSection
           title="Assistive Technology"
           isDark={isDark}
@@ -449,8 +459,10 @@ export default function DashboardScreen() {
             ))}
           </ScrollView>
         </GlassSection>
+        </TourTarget>
 
         {/* WHEELCHAIRS */}
+        <TourTarget stepId="wheelchairs" scrollRef={scrollRef}>
         <GlassSection
           title="Wheelchairs"
           isDark={isDark}
@@ -472,8 +484,10 @@ export default function DashboardScreen() {
             ))}
           </ScrollView>
         </GlassSection>
+        </TourTarget>
 
         {/* SCI NEWS */}
+        <TourTarget stepId="sci-news" scrollRef={scrollRef}>
         <GlassSection
           title="SCI News"
           isDark={isDark}
@@ -495,8 +509,10 @@ export default function DashboardScreen() {
             </ThemedText>
           )}
         </GlassSection>
+        </TourTarget>
 
         {/* LIVE CLINICAL TRIALS */}
+        <TourTarget stepId="clinical-trials" scrollRef={scrollRef}>
         <GlassSection
           title="Live Clinical Trials"
           isDark={isDark}
@@ -522,6 +538,7 @@ export default function DashboardScreen() {
             </ThemedText>
           ) : null}
         </GlassSection>
+        </TourTarget>
       </Animated.ScrollView>
     </ThemedView>
   );

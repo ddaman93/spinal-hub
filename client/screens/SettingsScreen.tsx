@@ -13,6 +13,7 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken, clearToken } from "@/lib/auth";
+import { useTour } from "@/context/TourContext";
 
 const PRIVACY_URL = "https://imaginative-tiramisu-f84d2c.netlify.app/privacy";
 
@@ -40,6 +41,7 @@ export default function SettingsScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const { startTour } = useTour();
 
   const handleSettingPress = (id: string) => {
     if (id === "display") navigation.navigate("DisplaySettings");
@@ -49,7 +51,7 @@ export default function SettingsScreen() {
     else if (id === "about") navigation.navigate("About");
     else if (id === "health") navigation.navigate("HealthDefaults");
     else if (id === "feedback") navigation.navigate("Feedback");
-    else if (id === "tour") navigation.navigate("FeatureTour");
+    else if (id === "tour") startTour();
   };
 
   const handleDeleteAccount = () => {

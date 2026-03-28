@@ -9,6 +9,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { CategoryTile } from "@/components/CategoryTile";
 import NZSpinalTrustLogo from "@/components/icons/NZSpinalTrustLogo";
+import { TourTarget } from "@/components/TourTarget";
 
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
@@ -115,6 +116,7 @@ export default function ToolsScreen() {
         </View>
 
         {/* ── SECTIONS ── */}
+        <TourTarget stepId="tools-grid">
         {SECTIONS.map((section) => {
           const categories = section.ids
             .map((id) => categoryById[id])
@@ -163,6 +165,7 @@ export default function ToolsScreen() {
             </View>
           );
         })}
+        </TourTarget>
       </ScrollView>
     </ThemedView>
   );

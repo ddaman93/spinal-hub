@@ -22,6 +22,8 @@ import { navigationRef } from "@/lib/navigationRef";
 import { getToken, clearToken } from "@/lib/auth";
 import { AuthProvider } from "@/context/AuthContext";
 import { HeaderScrollProvider } from "@/context/HeaderScrollContext";
+import { TourProvider, useTour, TOUR_SHOWN_KEY } from "@/context/TourContext";
+import { SpotlightOverlay } from "@/components/SpotlightOverlay";
 
 // Show notifications while app is in foreground (native only)
 if (Platform.OS !== "web") {
@@ -34,6 +36,20 @@ if (Platform.OS !== "web") {
       }),
     });
   } catch {}
+}
+
+// Starts the spotlight tour automatically on first launch
+function TourAutoStart() {
+  const { startTour } = useTour();
+  useEffect(() => {
+    (async () => {
+      const shown = await AsyncStorage.getItem(TOUR_SHOWN_KEY);
+      if (!shown) {
+        setTimeout(() => startTour(), 1200);
+      }
+    })();
+  }, []);
+  return null;
 }
 
 // Separate component so the hook only runs on native (avoids web errors)
@@ -100,7 +116,9 @@ function AppContent(): React.JSX.Element {
             <OnboardingStack onComplete={() => setOnboardingDone(true)} />
           )}
           {Platform.OS !== "web" && isLoggedIn && onboardingDone && <NotificationResponseHandler />}
+          {isLoggedIn && onboardingDone && <TourAutoStart />}
         </NavigationContainer>
+        <SpotlightOverlay />
         <StatusBar style={isDark ? "light" : "dark"} />
       </KeyboardProvider>
     </GestureHandlerRootView>
@@ -112,13 +130,15 @@ export default function App(): React.JSX.Element {
   return (
     <ThemeProvider>
       <HeaderScrollProvider>
-        <ErrorBoundary>
-          <QueryClientProvider client={queryClient}>
-            <SafeAreaProvider>
-              <AppContent />
-            </SafeAreaProvider>
-          </QueryClientProvider>
-        </ErrorBoundary>
+        <TourProvider>
+          <ErrorBoundary>
+            <QueryClientProvider client={queryClient}>
+              <SafeAreaProvider>
+                <AppContent />
+              </SafeAreaProvider>
+            </QueryClientProvider>
+          </ErrorBoundary>
+        </TourProvider>
       </HeaderScrollProvider>
     </ThemeProvider>
   );
