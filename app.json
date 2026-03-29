@@ -9,16 +9,15 @@
     "scheme": "spinalhub",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.spinalhub.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Spinal Hub uses your location to find nearby accessible transport, care services, and spinal rehab centres.",
+        "NSLocationWhenInUseUsageDescription": "Spinal Hub uses your location to show local weather, nearby accessible transport, and carer services in your area.",
         "NSCalendarsUsageDescription": "Allow Spinal Hub to add your appointments to your calendar.",
-        "NSUserNotificationsUsageDescription": "Get reminders for medications, pressure relief breaks, and appointments."
+        "NSUserNotificationsUsageDescription": "Get reminders for medications, pressure relief breaks, and appointments.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -61,10 +60,17 @@
         {
           "calendarPermission": "Allow Spinal Hub to add appointments to your calendar."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store"
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ef070dfa-d862-482a-88cd-3a2612939162"
+      }
     }
   }
 }
