@@ -70,6 +70,7 @@ export type MainStackParamList = {
   PressureReliefTimer: undefined;
   NZSpinalTrust: undefined;
 
+  AutonomicDysreflexia: undefined;
   SCIMedications: undefined;
   SCIMedicationDetail: {
     medicationId: string;

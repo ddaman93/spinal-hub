@@ -218,6 +218,15 @@ export const CATEGORIES: CategoryConfig[] = [
   },
 
   {
+    id: "autonomic-dysreflexia",
+    title: "AD Emergency",
+    description: "Symptoms, triggers & response",
+    icon: "alert-triangle",
+    route: "AutonomicDysreflexia",
+    tools: [],
+  },
+
+  {
     id: "mental-health",
     title: "Mental Health",
     description: "Crisis lines & support",

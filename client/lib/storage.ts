@@ -314,8 +314,8 @@ export const storage = {
     },
     getUpcoming: async () => {
       const appointments = (await storage.appointments.getAll()) || [];
-      const now = new Date();
-      return appointments.filter((a) => new Date(a.date + " " + a.time) >= now);
+      const today = formatDate(new Date());
+      return appointments.filter((a) => a.date >= today);
     },
   },
 

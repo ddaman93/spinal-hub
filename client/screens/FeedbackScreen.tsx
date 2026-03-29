@@ -83,7 +83,7 @@ export default function FeedbackScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingTop: headerHeight + Spacing.lg, paddingBottom: insets.bottom + Spacing.xl },
+            { paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.xl },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

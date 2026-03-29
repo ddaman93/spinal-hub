@@ -39,6 +39,7 @@ import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScre
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
 import CarePreferencesScreen from "@/screens/tools/CarePreferencesScreen";
+import AutonomicDysreflexiaScreen from "@/screens/tools/AutonomicDysreflexiaScreen";
 import SkinCareScreen from "@/screens/SkinCareScreen";
 import NZSpinalTrustScreen from "@/screens/NZSpinalTrustScreen";
 import CcsDisabilityActionScreen from "@/screens/CcsDisabilityActionScreen";
@@ -554,6 +555,15 @@ function ToolsStackNavigator() {
       />
 
       {/* CARE PREFERENCES */}
+      <ToolsStack.Screen
+        name="AutonomicDysreflexia"
+        component={AutonomicDysreflexiaScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Autonomic Dysreflexia",
+        }}
+      />
+
       <ToolsStack.Screen
         name="CarePreferences"
         component={CarePreferencesScreen}

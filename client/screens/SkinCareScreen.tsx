@@ -179,7 +179,7 @@ export default function SkinCareScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xxl },
+          { paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.xxl },
         ]}
       >
         {/* hero */}

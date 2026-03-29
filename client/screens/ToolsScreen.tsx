@@ -33,6 +33,7 @@ const ACCENT: Record<string, string> = {
   "accessible-transport-map": "#5C6BC0",
   "carer-companies":          "#FF6B6B",
   "spinal-rehab-units":       "#1A6B9E",
+  "autonomic-dysreflexia":    "#D32F2F",
   "mental-health":            "#6B4FA2",
   "community-chat":           "#5B8DEF",
   "back-on-track":            "#1A6B9E",
@@ -47,6 +48,7 @@ const SECTIONS = [
   {
     title: "Support & Resources",
     ids: [
+      "autonomic-dysreflexia",
       "nz-spinal-trust",
       "sci-medications",
       "ccs-disability-action",
@@ -105,15 +107,9 @@ export default function ToolsScreen() {
         }}
       >
         {/* ── HEADER ── */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <View style={[styles.headerAccent, { backgroundColor: theme.primary }]} />
-            <ThemedText style={styles.headerTitle}>Tools</ThemedText>
-          </View>
-          <ThemedText style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
-            Everything you need, in one place
-          </ThemedText>
-        </View>
+        <ThemedText style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
+          Everything you need, in one place
+        </ThemedText>
 
         {/* ── SECTIONS ── */}
         <TourTarget stepId="tools-grid">
@@ -193,13 +189,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 14,
-    marginLeft: 12, // aligns under the title past the accent bar
+    fontSize: 16,
   },
 
   section: {
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   sectionLabel: {
     fontSize: 10,

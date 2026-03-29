@@ -30,7 +30,7 @@ export default function MobilityAssistiveTechScreen() {
     <ThemedView style={styles.container}>
       <View
         style={{
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: Spacing.lg,
           paddingBottom: insets.bottom + Spacing.xl,
           paddingHorizontal: Spacing.lg,
           gap: Spacing.lg,

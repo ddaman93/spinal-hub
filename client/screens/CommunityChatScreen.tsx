@@ -90,7 +90,7 @@ export default function CommunityChatScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xl },
+          { paddingTop: Spacing.lg, paddingBottom: insets.bottom + Spacing.xl },
         ]}
         showsVerticalScrollIndicator={false}
       >

@@ -241,7 +241,7 @@ export default function SCIProviderDetailScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.md,
+          paddingTop: Spacing.lg,
           paddingBottom: insets.bottom + Spacing.xl,
           paddingHorizontal: Spacing.lg,
           gap: Spacing.lg,
