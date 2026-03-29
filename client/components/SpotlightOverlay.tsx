@@ -58,14 +58,21 @@ export function SpotlightOverlay() {
     : null;
 
   // Tooltip position — prefer below the spotlight, fall back to above
+  const MIN_TOOLTIP_TOP = 80; // never overlap the status bar / nav header
   let tooltipTop = 0;
   if (spot) {
     const spaceBelow = SCREEN_H - (spot.y + spot.h);
+    const spaceAbove = spot.y - MIN_TOOLTIP_TOP;
     const showAbove =
-      step.tooltipSide === "above" || spaceBelow < TOOLTIP_H + TOOLTIP_MARGIN + 16;
-    tooltipTop = showAbove
-      ? spot.y - TOOLTIP_H - TOOLTIP_MARGIN
-      : spot.y + spot.h + TOOLTIP_MARGIN;
+      step.tooltipSide === "above" ||
+      (spaceBelow < TOOLTIP_H + TOOLTIP_MARGIN + 16 && spaceAbove >= TOOLTIP_H + TOOLTIP_MARGIN);
+    if (showAbove) {
+      tooltipTop = Math.max(MIN_TOOLTIP_TOP, spot.y - TOOLTIP_H - TOOLTIP_MARGIN);
+    } else {
+      tooltipTop = spot.y + spot.h + TOOLTIP_MARGIN;
+    }
+    // Final clamp: keep tooltip fully on screen
+    tooltipTop = Math.max(MIN_TOOLTIP_TOP, Math.min(tooltipTop, SCREEN_H - TOOLTIP_H - 16));
   }
 
   return (

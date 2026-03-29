@@ -30,7 +30,7 @@ type RawItem = {
   "content:encoded"?: string;
   "media:content"?: { "@_url"?: string };
   "media:thumbnail"?: { "@_url"?: string };
-  enclosure?: { "@_url"?: string };
+  enclosure?: { "@_url"?: string; "@_type"?: string };
   source?: { "#text"?: string };
 };
 
@@ -45,10 +45,12 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 let cache: CacheEntry | null = null;
 
 const FEED_URLS = [
-  'https://news.google.com/rss/search?q=("spinal+cord+injury"+OR+SCI)+recovery+treatment&hl=en-NZ&gl=NZ&ceid=NZ:en',
-  "https://news.google.com/rss/search?q=spinal+cord+injury+clinical+trial&hl=en-NZ&gl=NZ&ceid=NZ:en",
-  "https://news.google.com/rss/search?q=paralysis+research+spinal+cord&hl=en-NZ&gl=NZ&ceid=NZ:en",
-  "https://news.google.com/rss/search?q=spinal+cord+injury+rehabilitation+therapy&hl=en-NZ&gl=NZ&ceid=NZ:en",
+  // ScienceDaily — dedicated SCI section, includes article images natively
+  "https://www.sciencedaily.com/rss/health_medicine/spinal_cord_injury.xml",
+  // Google News — broad coverage, no images but good for recency
+  'https://news.google.com/rss/search?q=("spinal+cord+injury"+OR+SCI)+recovery+treatment&hl=en-US&gl=US&ceid=US:en',
+  "https://news.google.com/rss/search?q=spinal+cord+injury+clinical+trial&hl=en-US&gl=US&ceid=US:en",
+  "https://news.google.com/rss/search?q=paralysis+research+spinal+cord&hl=en-US&gl=US&ceid=US:en",
 ];
 
 const ANIMAL_KEYWORDS = ["rat ", "rats ", "mouse", "mice", "zebrafish", " rodent", "murine"];
@@ -164,12 +166,13 @@ function extractImage(item: RawItem): string | undefined {
   // 2. media:thumbnail
   if (item["media:thumbnail"]?.["@_url"]) return item["media:thumbnail"]["@_url"];
 
-  // 3. enclosure (podcast-style attachments sometimes used for images)
-  if (item.enclosure?.["@_url"]) return item.enclosure["@_url"];
+  // 3. enclosure — ScienceDaily and others use this for article images
+  const enc = item.enclosure?.["@_url"];
+  if (enc && /\.(jpe?g|png|webp|gif)/i.test(enc)) return enc;
 
   // 4. <img> tag inside content:encoded or description HTML
   const html = item["content:encoded"] ?? item.description ?? "";
-  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
   if (match?.[1]) return match[1];
 
   return undefined;
@@ -199,38 +202,6 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").trim();
 }
 
-async function fetchOgImage(url: string): Promise<string | undefined> {
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)" },
-    });
-    clearTimeout(id);
-    if (!res.ok) return undefined;
-    const html = await res.text();
-    const match =
-      html.match(/property="og:image"\s+content="([^"]+)"/i) ??
-      html.match(/content="([^"]+)"\s+property="og:image"/i) ??
-      html.match(/name="twitter:image"\s+content="([^"]+)"/i) ??
-      html.match(/content="([^"]+)"\s+name="twitter:image"/i);
-    return match?.[1];
-  } catch {
-    return undefined;
-  }
-}
-
-async function enrichWithImages(articles: NewsArticle[]): Promise<NewsArticle[]> {
-  return Promise.all(
-    articles.map(async (article) => {
-      if (article.imageUrl) return article;
-      const imageUrl = await fetchOgImage(article.url);
-      return imageUrl ? { ...article, imageUrl } : article;
-    }),
-  );
-}
 
 /* ───────────────── route handler ───────────────── */
 
@@ -250,10 +221,9 @@ export async function getSciNews(_req: Request, res: Response): Promise<void> {
     const deduped = deduplicateArticles(filtered);
     const sorted = sortByDate(deduped);
     const articles = sorted.slice(0, 30).map(cleanArticle);
-    const enriched = await enrichWithImages(articles);
 
-    cache = { data: enriched, timestamp: Date.now() };
-    res.json(enriched);
+    cache = { data: articles, timestamp: Date.now() };
+    res.json(articles);
   } catch (error) {
     console.error("SCI news API error:", error);
     // Return cached data if available, even if stale

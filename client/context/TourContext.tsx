@@ -63,6 +63,22 @@ export const TOUR_STEPS: TourStep[] = [
       "Tap any tile to access health trackers, pressure relief timers, medications, community chat, transport info and more.",
     tooltipSide: "above",
   },
+  {
+    id: "settings-overview",
+    tab: "SettingsTab",
+    title: "Settings & Preferences",
+    description:
+      "Switch between dark and light mode, manage notifications, accessibility options, health defaults, and send feedback. You can also delete your account here.",
+    tooltipSide: "below",
+  },
+  {
+    id: "profile-overview",
+    tab: "ProfileTab",
+    title: "Your Profile",
+    description:
+      "Store your injury details, wheelchair info, emergency contacts, and care notes. Tap the Emergency Medical Card to show first responders your key medical info instantly.",
+    tooltipSide: "below",
+  },
 ];
 
 type TourContextValue = {

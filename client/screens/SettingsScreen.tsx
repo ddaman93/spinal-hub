@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, StyleSheet, ScrollView, Pressable, Linking, Alert, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -14,6 +14,7 @@ import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken, clearToken } from "@/lib/auth";
 import { useTour } from "@/context/TourContext";
+import { TourTarget } from "@/components/TourTarget";
 
 const PRIVACY_URL = "https://imaginative-tiramisu-f84d2c.netlify.app/privacy";
 
@@ -41,7 +42,12 @@ export default function SettingsScreen() {
   const { theme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const { startTour } = useTour();
+  const { startTour, registerScrollRef } = useTour();
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    registerScrollRef("SettingsTab", scrollRef);
+  }, [registerScrollRef]);
 
   const handleSettingPress = (id: string) => {
     if (id === "display") navigation.navigate("DisplaySettings");
@@ -121,6 +127,7 @@ export default function SettingsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingTop: headerHeight + Spacing.lg,
@@ -129,7 +136,10 @@ export default function SettingsScreen() {
         }}
       >
         <View style={styles.section}>
-          {settingsItems.map(renderSettingItem)}
+          <TourTarget stepId="settings-overview" scrollRef={scrollRef}>
+            {renderSettingItem(settingsItems[0])}
+          </TourTarget>
+          {settingsItems.slice(1).map(renderSettingItem)}
         </View>
 
         {/* Legal */}

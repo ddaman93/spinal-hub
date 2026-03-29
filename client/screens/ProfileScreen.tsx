@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useLayoutEffect } from "react";
+import React, { useState, useCallback, useLayoutEffect, useRef, useEffect } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -16,6 +16,8 @@ import { ProfileItem } from "@/components/profile/ProfileItem";
 import { useTheme } from "@/hooks/useTheme";
 import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
 import { useAuth } from "@/context/AuthContext";
+import { useTour } from "@/context/TourContext";
+import { TourTarget } from "@/components/TourTarget";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { UserProfile } from "@/types/user";
 import { MainStackParamList } from "@/types/navigation";
@@ -54,7 +56,13 @@ export default function ProfileScreen() {
   const { theme } = useTheme();
   const { signOut } = useAuth();
   const scrollProps = useScrollAwareHeader();
+  const { registerScrollRef } = useTour();
+  const scrollRef = useRef<ScrollView>(null);
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
+
+  useEffect(() => {
+    registerScrollRef("ProfileTab", scrollRef);
+  }, [registerScrollRef]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -87,6 +95,7 @@ export default function ProfileScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -95,11 +104,13 @@ export default function ProfileScreen() {
           paddingHorizontal: Spacing.md,
         }}
       >
-        <ProfileHeader
-          name={user.name}
-          subtitle={user.injuryLevel}
-          onEditPress={() => navigation.navigate("EditProfile")}
-        />
+        <TourTarget stepId="profile-overview" scrollRef={scrollRef}>
+          <ProfileHeader
+            name={user.name}
+            subtitle={user.injuryLevel}
+            onEditPress={() => navigation.navigate("EditProfile")}
+          />
+        </TourTarget>
 
         <ProfileSection title="Basic Info">
           <ProfileItem icon="mail" label="Email" value={user.email} />

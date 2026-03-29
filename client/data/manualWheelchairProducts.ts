@@ -728,7 +728,7 @@ export const WHEELCHAIR_GLOVES: ManualWheelchairProduct[] = [
       "These aids strap securely to the hand and provide a gripping surface that compensates for weak or absent grip strength, enabling users to hold onto pushrims, tools, or sports equipment during outdoor activities.",
     whoItsFor:
       "People with tetraplegia, limited hand function, or absent grip strength who need an alternative to conventional gloves to participate in outdoor wheelchair activities or daily tasks requiring hand function.",
-    productUrl: "http://www.c1south.co.nz/shop/active-hands/107-active-hands-outdoor.html",
+    productUrl: "https://www.c1south.co.nz/shop/active-hands/107-active-hands-outdoor.html",
   },
 ];
 
