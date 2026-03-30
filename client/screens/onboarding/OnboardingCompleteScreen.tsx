@@ -88,7 +88,7 @@ export default function OnboardingCompleteScreen() {
 
   const handleEnter = async () => {
     await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, "true");
-    navigation.navigate("FeatureTour");
+    triggerOnboardingComplete();
   };
 
   return (
