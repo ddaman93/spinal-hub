@@ -22,6 +22,7 @@ import { BlurView } from "expo-blur";
 import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
 import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 import { ThemedText } from "@/components/ThemedText";
 import { AuthStackParamList, triggerLogin } from "@/navigation/AuthStack";
@@ -264,6 +265,33 @@ export default function LoginScreen() {
     }
   }
 
+  async function handleAppleSignIn() {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) { setError("Apple sign-in failed. Please try again."); return; }
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ") || undefined;
+      setLoading(true);
+      const res = await fetch(`${getApiUrl()}/api/auth/oauth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "apple", accessToken: credential.identityToken, fullName }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || "Apple sign-in failed."); return; }
+      await saveToken(data.token);
+      triggerLogin();
+    } catch (e: any) {
+      if (e.code !== "ERR_REQUEST_CANCELED") setError("Apple sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <View style={[styles.root, { backgroundColor: C.bg }]}>
       {/* Background — gradient in dark, plain in light */}
@@ -346,6 +374,18 @@ export default function LoginScreen() {
                       <UnconfiguredOAuthButton label="Facebook" icon="facebook" alertTitle="Facebook Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_FACEBOOK_APP_ID to your .env file." C={C} />
                     )}
                   </View>
+
+                  {Platform.OS === "ios" && (
+                    <AppleAuthentication.AppleAuthenticationButton
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                      buttonStyle={isDark
+                        ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                        : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                      cornerRadius={12}
+                      style={styles.appleBtn}
+                      onPress={handleAppleSignIn}
+                    />
+                  )}
                 </View>
               </BlurView>
 
@@ -400,6 +440,7 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 12 },
 
   oauthRow: { flexDirection: "row", gap: 10 },
+  appleBtn: { width: "100%", height: 48, marginTop: 10 },
 
   footer: { flexDirection: "row", alignItems: "center", marginTop: 24 },
   footerText: { fontSize: 14 },

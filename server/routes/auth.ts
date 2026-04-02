@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import * as jose from "jose";
 import { authStorage } from "../storage";
+
+const APPLE_JWKS = jose.createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error("JWT_SECRET environment variable is required");
@@ -82,7 +85,7 @@ export async function loginRoute(req: Request, res: Response) {
 }
 
 export async function oauthRoute(req: Request, res: Response) {
-  const { provider, accessToken } = req.body;
+  const { provider, accessToken, fullName } = req.body;
 
   if (!provider || !accessToken) {
     return res.status(400).json({ message: "provider and accessToken are required." });
@@ -92,7 +95,16 @@ export async function oauthRoute(req: Request, res: Response) {
   let providerName: string;
 
   try {
-    if (provider === "google") {
+    if (provider === "apple") {
+      const { payload } = await jose.jwtVerify(accessToken, APPLE_JWKS, {
+        issuer: "https://appleid.apple.com",
+        audience: "com.spinalhub.app",
+      });
+      const sub = payload.sub as string;
+      // Apple only provides email on first sign-in; use a stable synthetic address as fallback
+      providerEmail = (payload.email as string | undefined)?.toLowerCase() ?? `${sub}@privaterelay.appleid.com`;
+      providerName = fullName ?? "Apple User";
+    } else if (provider === "google") {
       const infoRes = await fetch(
         `https://www.googleapis.com/oauth2/v3/userinfo`,
         { headers: { Authorization: `Bearer ${accessToken}` } },

@@ -23,6 +23,7 @@ import { BlurView } from "expo-blur";
 import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
 import * as WebBrowser from "expo-web-browser";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 import { ThemedText } from "@/components/ThemedText";
 import { AuthStackParamList, triggerLogin } from "@/navigation/AuthStack";
@@ -243,6 +244,33 @@ export default function SignUpScreen() {
     }
   }
 
+  async function handleAppleSignIn() {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+      if (!credential.identityToken) { setError("Apple sign-in failed. Please try again."); return; }
+      const fullName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ") || undefined;
+      setLoading(true);
+      const res = await fetch(`${getApiUrl()}/api/auth/oauth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: "apple", accessToken: credential.identityToken, fullName }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || "Apple sign-in failed."); return; }
+      await saveToken(data.token);
+      triggerLogin();
+    } catch (e: any) {
+      if (e.code !== "ERR_REQUEST_CANCELED") setError("Apple sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const strength = password.length === 0 ? 0 : password.length < 8 ? 1 : password.length < 12 ? 2 : 3;
   const strengthColors = ["transparent", "#FF6B6B", "#FFD166", C.strengthStrong];
   const strengthLabels = ["", "Weak", "Good", "Strong"];
@@ -350,6 +378,18 @@ export default function SignUpScreen() {
                     {hasGoogle ? <GoogleButton onOAuth={handleOAuth} C={C} /> : <UnconfiguredOAuthButton label="Google" icon="globe" alertTitle="Google Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file." C={C} />}
                     {hasFacebook ? <FacebookButton onOAuth={handleOAuth} C={C} /> : <UnconfiguredOAuthButton label="Facebook" icon="facebook" alertTitle="Facebook Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_FACEBOOK_APP_ID to your .env file." C={C} />}
                   </View>
+
+                  {Platform.OS === "ios" && (
+                    <AppleAuthentication.AppleAuthenticationButton
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                      buttonStyle={isDark
+                        ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                        : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                      cornerRadius={12}
+                      style={styles.appleBtn}
+                      onPress={handleAppleSignIn}
+                    />
+                  )}
                 </View>
               </BlurView>
 
@@ -409,6 +449,7 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 12 },
 
   oauthRow: { flexDirection: "row", gap: 10 },
+  appleBtn: { width: "100%", height: 48, marginTop: 10 },
 
   footer: { flexDirection: "row", alignItems: "center", marginTop: 24 },
   footerText: { fontSize: 14 },
