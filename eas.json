@@ -11,7 +11,7 @@
   },
   "submit": {
     "production": {
-      "ios": { "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID" },
+      "ios": { "ascAppId": "6761002016" },
       "android": { "track": "internal" }
     }
   }

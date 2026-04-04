@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import * as Google from "expo-auth-session/providers/google";
@@ -99,8 +99,8 @@ function GoogleButton({ onOAuth, style, C }: { onOAuth: OAuthHandler; style?: ob
   }
   return (
     <Pressable onPress={handlePress} style={({ pressed }) => [oauthStyle(C).btn, style, { opacity: pressed ? 0.6 : 1 }]}>
-      <Feather name="globe" size={17} color={C.text} />
-      <ThemedText type="body" style={{ color: C.text, fontSize: 14, fontWeight: "500" }}>Continue with Google</ThemedText>
+      <FontAwesome5 name="google" size={16} color="#4285F4" />
+      <ThemedText type="body" style={{ color: C.text, fontSize: 14, fontWeight: "500" }}>Google</ThemedText>
     </Pressable>
   );
 }
@@ -117,21 +117,22 @@ function FacebookButton({ onOAuth, style, C }: { onOAuth: OAuthHandler; style?: 
   }
   return (
     <Pressable onPress={handlePress} style={({ pressed }) => [oauthStyle(C).btn, style, { opacity: pressed ? 0.6 : 1 }]}>
-      <Feather name="facebook" size={17} color={C.text} />
-      <ThemedText type="body" style={{ color: C.text, fontSize: 14, fontWeight: "500" }}>Continue with Facebook</ThemedText>
+      <FontAwesome5 name="facebook-f" size={16} color="#1877F2" />
+      <ThemedText type="body" style={{ color: C.text, fontSize: 14, fontWeight: "500" }}>Facebook</ThemedText>
     </Pressable>
   );
 }
 
 function UnconfiguredOAuthButton({ label, icon, alertTitle, alertMessage, C }: {
-  label: string; icon: "globe" | "facebook"; alertTitle: string; alertMessage: string; C: Colors;
+  label: string; icon: "google" | "facebook-f"; alertTitle: string; alertMessage: string; C: Colors;
 }) {
+  const iconColor = icon === "google" ? "#4285F4" : "#1877F2";
   return (
     <Pressable
       onPress={() => Alert.alert(alertTitle, alertMessage)}
       style={({ pressed }) => [oauthStyle(C).btn, { opacity: pressed ? 0.6 : 1 }]}
     >
-      <Feather name={icon} size={17} color={C.text} />
+      <FontAwesome5 name={icon} size={16} color={iconColor} />
       <ThemedText type="body" style={{ color: C.text, fontSize: 14, fontWeight: "500" }}>{label}</ThemedText>
     </Pressable>
   );
@@ -366,12 +367,12 @@ export default function LoginScreen() {
                     {hasGoogle ? (
                       <GoogleButton onOAuth={handleOAuth} style={{ flex: 1 }} C={C} />
                     ) : (
-                      <UnconfiguredOAuthButton label="Google" icon="globe" alertTitle="Google Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file." C={C} />
+                      <UnconfiguredOAuthButton label="Google" icon="google" alertTitle="Google Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file." C={C} />
                     )}
                     {hasFacebook ? (
                       <FacebookButton onOAuth={handleOAuth} style={{ flex: 1 }} C={C} />
                     ) : (
-                      <UnconfiguredOAuthButton label="Facebook" icon="facebook" alertTitle="Facebook Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_FACEBOOK_APP_ID to your .env file." C={C} />
+                      <UnconfiguredOAuthButton label="Facebook" icon="facebook-f" alertTitle="Facebook Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_FACEBOOK_APP_ID to your .env file." C={C} />
                     )}
                   </View>
 
