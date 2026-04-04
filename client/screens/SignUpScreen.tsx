@@ -179,7 +179,7 @@ function FocusInput(props: React.ComponentProps<typeof TextInput> & { icon: Reac
 export default function SignUpScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { isDark } = useTheme();
-  const C = isDark ? DARK : LIGHT;
+  const C = DARK;
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

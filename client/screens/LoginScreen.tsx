@@ -206,7 +206,7 @@ function inputStyle(C: Colors) {
 export default function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { isDark } = useTheme();
-  const C = isDark ? DARK : LIGHT;
+  const C = DARK;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
