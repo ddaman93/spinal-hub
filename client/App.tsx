@@ -98,7 +98,6 @@ function AppContent(): React.JSX.Element {
 
   async function handleSignOut() {
     await clearToken();
-    await AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY);
     setIsLoggedIn(false);
     setOnboardingDone(false);
   }
