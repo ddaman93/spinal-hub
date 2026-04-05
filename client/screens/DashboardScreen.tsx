@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -35,6 +35,7 @@ import { WHEELCHAIR_CATEGORIES } from "@/data/wheelchairCategories";
 import { CATEGORIES } from "@/config/catalog";
 import { useTheme } from "@/hooks/useTheme";
 import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
+import { PROFILE_STORAGE_KEY } from "@/screens/ProfileScreen";
 
 /* ───────────────── helpers ───────────────── */
 
@@ -219,7 +220,15 @@ export default function DashboardScreen() {
     registerScrollRef("HomeTab", scrollRef);
   }, [registerScrollRef]);
 
-  const userName = "Dylan";
+  const [userName, setUserName] = useState("");
+  useEffect(() => {
+    AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
+      if (raw) {
+        const profile = JSON.parse(raw);
+        setUserName(profile.name ?? "");
+      }
+    });
+  }, []);
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
@@ -332,7 +341,7 @@ export default function DashboardScreen() {
         <View style={styles.topRow}>
           <View>
             <ThemedText type="heading">
-              {getGreeting()}, {userName}
+              {getGreeting()}{userName ? `, ${userName}` : ""}
             </ThemedText>
             <ThemedText type="small" style={styles.subtitle}>
               Welcome back to Spinal Hub
