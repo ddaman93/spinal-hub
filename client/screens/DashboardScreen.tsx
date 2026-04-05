@@ -7,6 +7,7 @@ import {
   Pressable,
   Animated,
   TextInput,
+  Modal,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
@@ -64,6 +65,16 @@ type LiveTrial = {
 };
 
 /* ───────────────── constants ───────────────── */
+
+const NOTE_TEXT = `Hi,
+
+I built Spinal Hub because I know first-hand how overwhelming the SCI journey can be — and how hard it is to find the resources that actually help.
+
+I'm a C4 complete tetraplegic. I spent time in rehabilitation at Burwood from September 2025 to February 2026. During that time, I was struck by how much was available — assistive technologies, clinical trials, adaptive equipment — and how little of it was being communicated to patients who needed it most.
+
+This app is my attempt to change that. Whether you're newly injured or years into your journey, I hope Spinal Hub helps you discover what's out there — and gives you a little more control over your future.
+
+— Dylan`;
 
 const TRIALS_CACHE_KEY = "clinical_trials_cache";
 const CACHE_TTL = 1000 * 60 * 60 * 24;
@@ -220,6 +231,7 @@ export default function DashboardScreen() {
     registerScrollRef("HomeTab", scrollRef);
   }, [registerScrollRef]);
 
+  const [creatorNoteVisible, setCreatorNoteVisible] = useState(false);
   const [userName, setUserName] = useState("");
   useFocusEffect(
     React.useCallback(() => {
@@ -339,6 +351,31 @@ export default function DashboardScreen() {
           gap: Spacing.md,
         }}
       >
+        {/* CREATOR NOTE BUTTON */}
+        <Pressable
+          onPress={() => setCreatorNoteVisible(true)}
+          style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, alignSelf: "flex-start", marginBottom: Spacing.sm }]}
+        >
+          <BlurView
+            intensity={isDark ? 22 : 50}
+            tint={isDark ? "dark" : "light"}
+            style={styles.creatorNoteBtnBlur}
+          >
+            <View style={[
+              styles.creatorNoteBtn,
+              {
+                borderColor: isDark ? "rgba(0,230,100,0.45)" : "rgba(18,53,36,0.25)",
+                backgroundColor: isDark ? "rgba(0,230,100,0.08)" : "rgba(18,53,36,0.06)",
+              },
+            ]}>
+              <Feather name="message-circle" size={12} color={isDark ? "#00E676" : "#123524"} />
+              <ThemedText type="caption" style={[styles.creatorNoteBtnText, { color: isDark ? "#00E676" : "#123524" }]}>
+                Note from the creator
+              </ThemedText>
+            </View>
+          </BlurView>
+        </Pressable>
+
         {/* GREETING */}
         <View style={styles.topRow}>
           <View>
@@ -551,6 +588,28 @@ export default function DashboardScreen() {
         </GlassSection>
         </TourTarget>
       </Animated.ScrollView>
+
+      <Modal
+        visible={creatorNoteVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCreatorNoteVisible(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setCreatorNoteVisible(false)}
+        >
+          <Pressable style={[styles.modalCard, { backgroundColor: isDark ? "#0f1f12" : "#fff" }]} onPress={() => {}}>
+            <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>A note from me</ThemedText>
+            <ThemedText type="body" style={styles.modalBody}>
+              {NOTE_TEXT}
+            </ThemedText>
+            <Pressable onPress={() => setCreatorNoteVisible(false)} style={styles.modalClose}>
+              <ThemedText type="small" style={{ opacity: 0.6 }}>Close</ThemedText>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ThemedView>
   );
 }
@@ -650,5 +709,49 @@ const styles = StyleSheet.create({
   placeholder: {
     fontSize: 14,
     opacity: 0.6,
+  },
+
+  creatorNoteBtnBlur: {
+    borderRadius: 20,
+    overflow: "hidden",
+  },
+
+  creatorNoteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+
+  creatorNoteBtnText: {
+    fontWeight: "600",
+  },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: Spacing.lg,
+  },
+
+  modalCard: {
+    borderRadius: 16,
+    padding: Spacing.xl,
+    width: "100%",
+    maxWidth: 380,
+  },
+
+  modalBody: {
+    lineHeight: 24,
+    opacity: 0.85,
+    marginBottom: Spacing.lg,
+  },
+
+  modalClose: {
+    alignSelf: "flex-end",
   },
 });
