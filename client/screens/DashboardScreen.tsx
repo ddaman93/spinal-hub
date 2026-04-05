@@ -221,14 +221,16 @@ export default function DashboardScreen() {
   }, [registerScrollRef]);
 
   const [userName, setUserName] = useState("");
-  useEffect(() => {
-    AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
-      if (raw) {
-        const profile = JSON.parse(raw);
-        setUserName(profile.name ?? "");
-      }
-    });
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
+        if (raw) {
+          const profile = JSON.parse(raw);
+          setUserName(profile.name ?? "");
+        }
+      });
+    }, [])
+  );
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
