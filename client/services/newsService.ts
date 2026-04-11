@@ -30,7 +30,7 @@ function normalizeArticles(articles: NewsArticle[]): NewsArticle[] {
   return articles.map((article) => ({
     ...article,
     id: article.id || article.url,
-    imageUrl: article.imageUrl || "https://source.unsplash.com/featured/?medical,spine",
+    imageUrl: article.imageUrl || undefined,
     category: article.category || "General",
   }));
 }

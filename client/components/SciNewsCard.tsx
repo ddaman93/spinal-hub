@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, Pressable, Linking, Image } from "react-native";
+import { View, StyleSheet, Pressable, Linking } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
@@ -40,7 +40,6 @@ export function SciNewsCard({
   source,
   publishedAt,
   category,
-  imageUrl,
   variant = "carousel",
 }: Props) {
   const { theme } = useTheme();
@@ -61,24 +60,6 @@ export function SciNewsCard({
       accessibilityRole="button"
       accessibilityLabel={title}
     >
-      {/* IMAGE */}
-      {imageUrl ? (
-        <Image
-          source={{ uri: imageUrl }}
-          style={[styles.cardImage, { backgroundColor: theme.backgroundTertiary }]}
-        />
-      ) : (
-        <View style={[styles.cardImage, styles.imagePlaceholder, { backgroundColor: badgeColor + "22" }]}>
-          <ThemedText style={{ fontSize: 28 }}>
-            {category === "Breakthrough" ? "⚡" :
-             category === "Clinical Trial" ? "🧪" :
-             category === "Rehab" ? "💪" :
-             category === "Research" ? "🔬" : "📰"}
-          </ThemedText>
-        </View>
-      )}
-
-      {/* CONTENT */}
       <View style={styles.cardContent}>
         {/* CATEGORY BADGE */}
         <View style={[styles.badge, { backgroundColor: badgeColor + "22" }]}>
@@ -125,16 +106,6 @@ const styles = StyleSheet.create({
 
   cardGrid: {
     width: "100%",
-  },
-
-  cardImage: {
-    width: "100%",
-    height: 140,
-  },
-
-  imagePlaceholder: {
-    justifyContent: "center",
-    alignItems: "center",
   },
 
   cardContent: {
