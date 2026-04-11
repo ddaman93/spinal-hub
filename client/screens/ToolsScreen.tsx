@@ -48,13 +48,13 @@ const SECTIONS = [
   {
     title: "Support & Resources",
     ids: [
+      "community-chat",
       "autonomic-dysreflexia",
       "nz-spinal-trust",
       "sci-medications",
       "ccs-disability-action",
       "spinal-rehab-units",
       "mental-health",
-      "community-chat",
       "back-on-track",
     ],
   },
