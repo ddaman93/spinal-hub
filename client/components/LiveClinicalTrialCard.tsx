@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
 
   cardCarousel: {
-    width: 300,
+    width: 220,
   },
 
   cardGrid: {
