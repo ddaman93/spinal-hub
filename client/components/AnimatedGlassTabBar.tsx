@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from "react";
-import { Platform, Pressable, Dimensions } from "react-native";
+import { Platform, Pressable, Dimensions, ScrollView } from "react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,6 +13,7 @@ import { Feather } from "@expo/vector-icons";
 
 import { useTheme } from "@/constants/hooks/useTheme";
 import { Colors } from "@/constants/theme";
+import { useTour } from "@/context/TourContext";
 
 const HORIZONTAL_PADDING = 16;
 const BAR_HEIGHT = 64;
@@ -114,6 +115,7 @@ export default function AnimatedGlassTabBar({
 }: BottomTabBarProps) {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { getScrollRef } = useTour();
   const tabColors = isDark ? Colors.dark : Colors.light;
 
   const activeColor = tabColors.tabIconSelected;
@@ -158,7 +160,13 @@ export default function AnimatedGlassTabBar({
   });
 
   const handlePress = useCallback(
-    (route: { name: string; key: string }) => {
+    (route: { name: string; key: string }, isFocused: boolean) => {
+      if (isFocused) {
+        const ref = getScrollRef(route.name) as React.RefObject<ScrollView> | undefined;
+        ref?.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
+
       const event = navigation.emit({
         type: "tabPress",
         target: route.key,
@@ -169,7 +177,7 @@ export default function AnimatedGlassTabBar({
         navigation.navigate({ name: route.name, params: undefined });
       }
     },
-    [navigation]
+    [navigation, getScrollRef]
   );
 
   const handleLongPress = useCallback(
@@ -272,7 +280,7 @@ export default function AnimatedGlassTabBar({
               inactiveColor={inactiveColor}
               tabWidth={tabWidth}
               accessibilityLabel={accessibilityLabel}
-              onPress={() => handlePress(route)}
+              onPress={() => handlePress(route, isFocused)}
               onLongPress={() => handleLongPress(route)}
             />
           );

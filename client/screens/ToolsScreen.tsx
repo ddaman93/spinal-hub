@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { View, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -17,6 +17,7 @@ import { CATEGORIES } from "@/config/catalog";
 import type { CategoryConfig } from "@/config/catalog";
 import { useTheme } from "@/hooks/useTheme";
 import { useScrollAwareHeader } from "@/hooks/useScrollAwareHeader";
+import { useTour } from "@/context/TourContext";
 
 /* ── accent colours per category ── */
 const ACCENT: Record<string, string> = {
@@ -77,6 +78,12 @@ export default function ToolsScreen() {
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const scrollProps = useScrollAwareHeader();
+  const { registerScrollRef } = useTour();
+  const scrollRef = useRef<ScrollView>(null);
+
+  React.useEffect(() => {
+    registerScrollRef("ToolsTab", scrollRef);
+  }, [registerScrollRef]);
 
   const categoryById = Object.fromEntries(CATEGORIES.map((c) => [c.id, c]));
 
@@ -97,6 +104,7 @@ export default function ToolsScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
