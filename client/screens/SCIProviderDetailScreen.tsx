@@ -10,12 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ActionSheetIOS,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
+import { getApiUrl } from "@/lib/query-client";
+import { getToken } from "@/lib/auth";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -41,9 +43,10 @@ const INTERVIEW_QUESTIONS = [
 
 type Review = {
   id: string;
+  authorName: string;
   rating: number;
   comment: string;
-  date: string;
+  date: string; // ISO string from server
 };
 
 /* ─── sub-components ─── */
@@ -95,22 +98,30 @@ function StarRow({
   );
 }
 
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, onLongPress }: { review: Review; onLongPress: () => void }) {
   const { theme } = useTheme();
   return (
-    <View style={[styles.reviewCard, { backgroundColor: theme.backgroundDefault }]}>
+    <Pressable
+      onLongPress={onLongPress}
+      delayLongPress={400}
+      style={[styles.reviewCard, { backgroundColor: theme.backgroundDefault }]}
+      accessible={false}
+    >
       <View style={styles.reviewHeader}>
         <StarRow rating={review.rating} size={16} />
         <ThemedText style={[styles.reviewDate, { color: theme.textSecondary }]}>
-          {review.date}
+          {new Date(review.date).toLocaleDateString("en-NZ", { day: "numeric", month: "short", year: "numeric" })}
         </ThemedText>
       </View>
+      <ThemedText style={[styles.reviewAuthor, { color: theme.primary }]}>
+        {review.authorName}
+      </ThemedText>
       {review.comment.length > 0 && (
         <ThemedText style={[styles.reviewComment, { color: theme.text }]}>
           {review.comment}
         </ThemedText>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -164,8 +175,6 @@ export default function SCIProviderDetailScreen() {
   const { theme } = useTheme();
   const { agency } = route.params;
 
-  const STORAGE_KEY = `sci_reviews_${agency.id}`;
-
   /* state */
   const [reviews, setReviews] = useState<Review[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -176,12 +185,13 @@ export default function SCIProviderDetailScreen() {
     INTERVIEW_QUESTIONS.map(() => false),
   );
 
-  /* load reviews */
+  /* load reviews from server */
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((json) => {
-      if (json) setReviews(JSON.parse(json) as Review[]);
-    });
-  }, [STORAGE_KEY]);
+    fetch(`${getApiUrl()}/api/provider-reviews/${agency.id}`)
+      .then((r) => r.json())
+      .then((data: Review[]) => setReviews(data))
+      .catch(() => {});
+  }, [agency.id]);
 
   /* derived */
   const avgRating =
@@ -202,22 +212,60 @@ export default function SCIProviderDetailScreen() {
       return;
     }
     setSubmitting(true);
-    const newReview: Review = {
-      id: Date.now().toString(),
-      rating: draftRating,
-      comment: draftComment.trim(),
-      date: new Date().toLocaleDateString("en-NZ", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }),
+    try {
+      const token = await getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(`${getApiUrl()}/api/provider-reviews/${agency.id}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ rating: draftRating, comment: draftComment.trim() }),
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const newReview: Review = await res.json();
+      setReviews((prev) => [newReview, ...prev]);
+      setModalVisible(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert("Error", msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [draftRating, draftComment, agency.id]);
+
+  const handleReportReview = useCallback((review: Review) => {
+    const doReport = async () => {
+      try {
+        const token = await getToken();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        await fetch(`${getApiUrl()}/api/provider-reviews/report`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            reviewId: review.id,
+            reportedAuthor: review.authorName,
+            reviewText: review.comment,
+          }),
+        });
+        Alert.alert("Report Submitted", "Thank you. Our team will review this within 24 hours.", [{ text: "OK" }]);
+      } catch {
+        Alert.alert("Error", "Could not submit report. Please try again.");
+      }
     };
-    const updated = [newReview, ...reviews];
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    setReviews(updated);
-    setSubmitting(false);
-    setModalVisible(false);
-  }, [draftRating, draftComment, reviews, STORAGE_KEY]);
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: ["Report Review", "Cancel"], cancelButtonIndex: 1, destructiveButtonIndex: 0, title: "Review Options" },
+        (index) => { if (index === 0) doReport(); }
+      );
+    } else {
+      Alert.alert("Review Options", undefined, [
+        { text: "Report Review", style: "destructive", onPress: doReport },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
+  }, []);
 
   const toggleQuestion = useCallback((index: number) => {
     setCheckedQuestions((prev) => {
@@ -383,7 +431,7 @@ export default function SCIProviderDetailScreen() {
               Reviews
             </ThemedText>
             {reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} />
+              <ReviewCard key={review.id} review={review} onLongPress={() => handleReportReview(review)} />
             ))}
           </View>
         )}
@@ -605,6 +653,10 @@ const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 13,
+  },
+  reviewAuthor: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   reviewComment: {
     fontSize: 15,

@@ -8,6 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
+  ActionSheetIOS,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -41,6 +43,7 @@ type Message = {
 };
 
 const POLL_INTERVAL = 5000;
+const BLOCKED_AUTHORS_KEY = "blocked_authors_v1";
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -70,16 +73,22 @@ export default function ChatRoomScreen() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [blockedAuthors, setBlockedAuthors] = useState<Set<string>>(new Set());
 
   const listRef = useRef<FlatList>(null);
   const latestTimestampRef = useRef<string | null>(null);
 
-  // Load author name from profile
+  // Load author name from profile and blocked authors list
   useEffect(() => {
     AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
       if (raw) {
         const profile: UserProfile = JSON.parse(raw);
         if (profile.name?.trim()) setAuthorName(profile.name.trim());
+      }
+    });
+    AsyncStorage.getItem(BLOCKED_AUTHORS_KEY).then((raw) => {
+      if (raw) {
+        setBlockedAuthors(new Set(JSON.parse(raw) as string[]));
       }
     });
   }, []);
@@ -206,6 +215,65 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const handleBlockAuthor = useCallback(async (authorToBlock: string) => {
+    const updated = new Set(blockedAuthors);
+    updated.add(authorToBlock);
+    setBlockedAuthors(updated);
+    await AsyncStorage.setItem(BLOCKED_AUTHORS_KEY, JSON.stringify([...updated]));
+  }, [blockedAuthors]);
+
+  const handleReportMessage = useCallback(async (item: Message) => {
+    try {
+      const base = getApiUrl();
+      const token = await getToken();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      await fetch(`${base}/api/chat/report`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          messageId: item.id,
+          channel: item.channel,
+          reportedAuthor: item.author,
+          messageText: item.text,
+        }),
+      });
+      Alert.alert(
+        "Report Submitted",
+        "Thank you. Our team will review this message within 24 hours.",
+        [{ text: "OK" }]
+      );
+    } catch {
+      Alert.alert("Error", "Could not submit report. Please try again.");
+    }
+  }, []);
+
+  const handleLongPress = useCallback((item: Message) => {
+    if (item.author === authorName) return; // Can't report/block yourself
+
+    const options = ["Report Message", `Block ${item.author}`, "Cancel"];
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: 2,
+          destructiveButtonIndex: 0,
+          title: "Message Options",
+        },
+        (index) => {
+          if (index === 0) handleReportMessage(item);
+          if (index === 1) handleBlockAuthor(item.author);
+        }
+      );
+    } else {
+      Alert.alert("Message Options", undefined, [
+        { text: "Report Message", style: "destructive", onPress: () => handleReportMessage(item) },
+        { text: `Block ${item.author}`, onPress: () => handleBlockAuthor(item.author) },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    }
+  }, [authorName, handleReportMessage, handleBlockAuthor]);
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMe = item.author === authorName;
     const prevItem = messages[index - 1];
@@ -222,7 +290,12 @@ export default function ChatRoomScreen() {
             </ThemedText>
           </View>
         )}
-        <View style={[styles.messageRow, isMe && styles.messageRowMe]}>
+        <Pressable
+          style={[styles.messageRow, isMe && styles.messageRowMe]}
+          onLongPress={() => handleLongPress(item)}
+          delayLongPress={400}
+          accessible={false}
+        >
           {!isMe && (
             <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
               <ThemedText style={styles.avatarText}>
@@ -254,7 +327,7 @@ export default function ChatRoomScreen() {
               {formatTime(item.timestamp)}
             </ThemedText>
           </View>
-        </View>
+        </Pressable>
       </>
     );
   };
@@ -282,7 +355,7 @@ export default function ChatRoomScreen() {
         ) : (
           <FlatList
             ref={listRef}
-            data={messages}
+            data={messages.filter((m) => !blockedAuthors.has(m.author))}
             keyExtractor={(m) => m.id}
             renderItem={renderMessage}
             contentContainerStyle={[

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { chatMessages } from "@shared/schema";
+import { chatMessages, messageReports } from "@shared/schema";
 import { eq, gt, desc } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 
@@ -83,6 +83,92 @@ export async function postChatMessage(req: Request, res: Response) {
   } catch (err) {
     console.error("postChatMessage error:", err);
     return res.status(500).json({ error: "Failed to save message." });
+  }
+}
+
+export async function reportMessage(req: Request, res: Response) {
+  const token = extractToken(req);
+  let reporterId: string | null = null;
+  let reporterName: string | null = null;
+
+  if (token) {
+    try {
+      const payload = verifyToken(token);
+      reporterId = payload.id;
+      reporterName = payload.name;
+    } catch {
+      return res.status(401).json({ error: "Invalid or expired token." });
+    }
+  }
+
+  const { messageId, channel, reportedAuthor, messageText } = req.body;
+  if (!messageId || !channel || !reportedAuthor || !messageText) {
+    return res.status(400).json({ error: "messageId, channel, reportedAuthor, and messageText are required." });
+  }
+
+  try {
+    await db.insert(messageReports).values({
+      messageId,
+      channel,
+      reportedAuthor,
+      messageText: String(messageText).slice(0, 1000),
+      reporterId: reporterId ?? undefined,
+      reporterName: reporterName ?? undefined,
+    });
+
+    // Log to server output so the developer is notified via logs
+    console.warn(
+      `[CONTENT REPORT] channel=${channel} author="${reportedAuthor}" messageId=${messageId} reporter="${reporterName ?? "anonymous"}"\nmessage: ${messageText}`
+    );
+
+    return res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error("reportMessage error:", err);
+    return res.status(500).json({ error: "Failed to submit report." });
+  }
+}
+
+export async function getAdminReports(req: Request, res: Response) {
+  const secret = req.headers["x-admin-secret"];
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: "Forbidden." });
+  }
+
+  try {
+    const rows = await db
+      .select()
+      .from(messageReports)
+      .orderBy(desc(messageReports.createdAt))
+      .limit(200);
+    return res.json(rows);
+  } catch (err) {
+    console.error("getAdminReports error:", err);
+    return res.status(500).json({ error: "Failed to fetch reports." });
+  }
+}
+
+export async function deleteAdminMessage(req: Request, res: Response) {
+  const secret = req.headers["x-admin-secret"];
+  if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: "Forbidden." });
+  }
+
+  const { id } = req.params;
+  try {
+    await db.delete(chatMessages).where(eq(chatMessages.id, id));
+
+    // Mark any open reports for this message as resolved
+    // (best-effort, ignore errors)
+    await db
+      .update(messageReports)
+      .set({ resolved: "removed" })
+      .where(eq(messageReports.messageId, id))
+      .catch(() => {});
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("deleteAdminMessage error:", err);
+    return res.status(500).json({ error: "Failed to delete message." });
   }
 }
 

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -77,6 +77,44 @@ export const feedback = pgTable("feedback", {
   category: text("category").notNull().default("general"),
   message: text("message").notNull(),
   authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// sci_provider_reviews
+// ---------------------------------------------------------------------------
+
+export const sciProviderReviews = pgTable("sci_provider_reviews", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  providerId: text("provider_id").notNull(),
+  authorId: varchar("author_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  authorName: text("author_name").notNull().default("Anonymous"),
+  rating: integer("rating").notNull(),
+  comment: text("comment").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// message_reports
+// ---------------------------------------------------------------------------
+
+export const messageReports = pgTable("message_reports", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull(),
+  channel: text("channel").notNull(),
+  reportedAuthor: text("reported_author").notNull(),
+  messageText: text("message_text").notNull(),
+  reporterId: varchar("reporter_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  reporterName: text("reporter_name"),
+  resolved: text("resolved").notNull().default("pending"), // pending | removed | dismissed
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

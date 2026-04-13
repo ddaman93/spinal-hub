@@ -3,7 +3,8 @@ import { createServer, type Server } from "node:http";
 import { getClinicalTrials } from "./routes/clinicalTrials";
 import { getWeather } from "./routes/weather";
 import { getSciNews } from "./routes/sciNews";
-import { getChatMessages, postChatMessage } from "./routes/chat";
+import { getChatMessages, postChatMessage, reportMessage, getAdminReports, deleteAdminMessage } from "./routes/chat";
+import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
 import { authStorage } from "./storage";
@@ -55,9 +56,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SCI News endpoint
   app.get("/api/sci-news", getSciNews);
 
-  // Community chat
+  // Community chat (report must be registered before /:channel to avoid route conflict)
+  app.post("/api/chat/report", reportMessage);
   app.get("/api/chat/:channel", getChatMessages);
   app.post("/api/chat/:channel", postChatMessage);
+
+  // Admin moderation (protected by ADMIN_SECRET header)
+  app.get("/api/admin/reports", getAdminReports);
+  app.delete("/api/admin/messages/:id", deleteAdminMessage);
+  app.delete("/api/admin/provider-reviews/:id", deleteAdminProviderReview);
+
+  // Provider reviews (report must come before /:providerId)
+  app.post("/api/provider-reviews/report", reportProviderReview);
+  app.get("/api/provider-reviews/:providerId", getProviderReviews);
+  app.post("/api/provider-reviews/:providerId", postProviderReview);
 
   // Feedback
   app.post("/api/feedback", postFeedback);

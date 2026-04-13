@@ -1,16 +1,19 @@
-import React from "react";
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, Pressable, Modal } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
+
+const GUIDELINES_ACCEPTED_KEY = "community_guidelines_accepted_v1";
 
 type Channel = {
   id: string;
@@ -84,9 +87,67 @@ export default function CommunityChatScreen() {
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const [showGuidelines, setShowGuidelines] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(GUIDELINES_ACCEPTED_KEY).then((val) => {
+      if (!val) setShowGuidelines(true);
+    });
+  }, []);
+
+  const handleAcceptGuidelines = async () => {
+    await AsyncStorage.setItem(GUIDELINES_ACCEPTED_KEY, "1");
+    setShowGuidelines(false);
+  };
 
   return (
     <ThemedView style={styles.container}>
+      {/* Community Guidelines / Terms modal — shown once before accessing chat */}
+      <Modal visible={showGuidelines} animationType="slide" transparent presentationStyle="overFullScreen">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.backgroundDefault }]}>
+            <ThemedText type="heading" style={styles.modalTitle}>
+              Community Guidelines
+            </ThemedText>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <ThemedText type="body" style={[styles.modalBody, { color: theme.textSecondary }]}>
+                Welcome to the Spinal Hub community. By participating you agree to the following terms:
+              </ThemedText>
+
+              {[
+                "Be respectful and supportive — this is a space for people living with spinal cord injuries and their carers.",
+                "No hate speech, harassment, bullying, or discriminatory content of any kind.",
+                "Do not share another person's private information without their consent.",
+                "Do not post spam, advertisements, or promotional content.",
+                "Medical information shared here is not professional advice. Always consult a qualified health professional.",
+                "You can report any message that violates these guidelines using the long-press menu.",
+                "You can block any user whose content you do not wish to see.",
+                "Reports are reviewed by the Spinal Hub team within 24 hours. Violating content will be removed and repeat offenders will be banned.",
+              ].map((rule, i) => (
+                <View key={i} style={styles.ruleRow}>
+                  <ThemedText style={{ color: theme.primary, fontWeight: "700" }}>{i + 1}.{"  "}</ThemedText>
+                  <ThemedText type="body" style={[styles.ruleText, { color: theme.text }]}>{rule}</ThemedText>
+                </View>
+              ))}
+
+              <ThemedText type="small" style={[styles.modalFooter, { color: theme.textSecondary }]}>
+                By tapping "I Agree" you confirm you have read and agree to these community guidelines and our{" "}
+                <ThemedText type="small" style={{ color: theme.primary }}>Privacy Policy</ThemedText>.
+              </ThemedText>
+            </ScrollView>
+
+            <Pressable
+              onPress={handleAcceptGuidelines}
+              style={[styles.agreeBtn, { backgroundColor: theme.primary }]}
+              accessibilityRole="button"
+              accessibilityLabel="I agree to community guidelines"
+            >
+              <ThemedText style={styles.agreeBtnText}>I Agree</ThemedText>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
@@ -140,6 +201,54 @@ export default function CommunityChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "flex-end",
+  },
+  modalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: Spacing.xl,
+    paddingBottom: Spacing.xl + 16,
+    maxHeight: "85%",
+  },
+  modalTitle: {
+    fontWeight: "700",
+    marginBottom: Spacing.md,
+    textAlign: "center",
+  },
+  modalScroll: {
+    maxHeight: 380,
+    marginBottom: Spacing.lg,
+  },
+  modalBody: {
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  ruleRow: {
+    flexDirection: "row",
+    marginBottom: Spacing.sm,
+  },
+  ruleText: {
+    flex: 1,
+    lineHeight: 21,
+  },
+  modalFooter: {
+    lineHeight: 18,
+    marginTop: Spacing.md,
+    textAlign: "center",
+  },
+  agreeBtn: {
+    borderRadius: BorderRadius.medium,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  agreeBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.lg,
