@@ -2,7 +2,7 @@ import React, { useCallback, useRef } from "react";
 import { View, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useScrollToTop } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { ThemedView } from "@/components/ThemedView";
@@ -80,6 +80,7 @@ export default function ToolsScreen() {
   const scrollProps = useScrollAwareHeader();
   const { registerScrollRef } = useTour();
   const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
 
   React.useEffect(() => {
     registerScrollRef("ToolsTab", scrollRef);

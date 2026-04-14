@@ -225,9 +225,8 @@ export default function SCIProviderDetailScreen() {
       const newReview: Review = await res.json();
       setReviews((prev) => [newReview, ...prev]);
       setModalVisible(false);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      Alert.alert("Error", msg);
+    } catch {
+      Alert.alert("Error", "Could not submit review. Please try again.");
     } finally {
       setSubmitting(false);
     }

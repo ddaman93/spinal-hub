@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HeaderButton } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, StackActions } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
@@ -783,6 +783,18 @@ export default function RootTabsNavigator() {
             />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            const state = navigation.getState();
+            const toolsTab = state.routes[state.index];
+            if (toolsTab?.name !== "ToolsTab") return;
+            const stackIndex = toolsTab.state?.index ?? 0;
+            if (stackIndex > 0) {
+              e.preventDefault();
+              navigation.navigate("ToolsTab" as never, { screen: "Tools" } as never);
+            }
+          },
+        })}
       />
 
       <Tab.Screen
