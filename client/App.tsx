@@ -91,9 +91,11 @@ function AppContent(): React.JSX.Element {
     );
   }
 
-  function handleLogin() {
+  async function handleLogin() {
+    const onboarded =
+      (await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY)) === "true";
     setIsLoggedIn(true);
-    setOnboardingDone(false);
+    setOnboardingDone(onboarded);
   }
 
   async function handleSignOut() {
