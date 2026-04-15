@@ -6,6 +6,7 @@ import {
   Image,
   Pressable,
   Modal,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -218,6 +219,22 @@ export default function SkinCareScreen() {
         {SKIN_CARE_SECTIONS.map((section) => (
           <SectionCard key={section.id} section={section} />
         ))}
+
+        {/* sources */}
+        <View style={[styles.sourcesCard, { backgroundColor: theme.backgroundDefault }]}>
+          <ThemedText type="small" style={[styles.sourcesHeading, { color: theme.textSecondary }]}>
+            SOURCES
+          </ThemedText>
+          {[
+            { label: "Model Systems Knowledge Translation Center — Skin Care & Pressure Sores", url: "https://msktc.org/sci/factsheets/skin-care" },
+            { label: "Christopher & Dana Reeve Foundation — Skin Care", url: "https://www.christopherreeve.org/living-with-paralysis/health/pressure-sores" },
+            { label: "National Pressure Injury Advisory Panel (NPIAP)", url: "https://npiap.com" },
+          ].map(({ label, url }) => (
+            <Pressable key={url} onPress={() => Linking.openURL(url)}>
+              <ThemedText type="small" style={styles.sourceLink}>{label}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -347,5 +364,20 @@ const styles = StyleSheet.create({
   source: {
     fontStyle: "italic",
     marginTop: Spacing.sm,
+  },
+  sourcesCard: {
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  sourcesHeading: {
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  sourceLink: {
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    lineHeight: 20,
   },
 });

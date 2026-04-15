@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -475,6 +476,18 @@ export default function PressureReliefTimerScreen() {
             </ThemedText>
           </View>
 
+          <View style={[styles.infoCard, { backgroundColor: theme.backgroundDefault }]}>
+            <ThemedText style={[styles.sourcesHeading, { color: theme.textSecondary }]}>SOURCES</ThemedText>
+            {[
+              { label: "Model Systems Knowledge Translation Center — Pressure Ulcers", url: "https://msktc.org/sci/factsheets/pressure-ulcers" },
+              { label: "Paralyzed Veterans of America — Pressure Ulcer Prevention & Treatment", url: "https://www.pva.org/research-resources/publications/clinical-practice-guidelines" },
+            ].map(({ label, url }) => (
+              <Pressable key={url} onPress={() => Linking.openURL(url)}>
+                <ThemedText style={styles.sourceLink}>{label}</ThemedText>
+              </Pressable>
+            ))}
+          </View>
+
           {TECHNIQUES.map((technique) => (
             <View
               key={technique.key}
@@ -707,6 +720,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   bold: { fontWeight: "700" },
+  sourcesHeading: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  sourceLink: {
+    fontSize: 13,
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    lineHeight: 22,
+  },
   techniqueCard: {
     borderRadius: BorderRadius.large,
     padding: Spacing.lg,

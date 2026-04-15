@@ -195,6 +195,19 @@ export default function AutonomicDysreflexiaScreen() {
         <ThemedText style={[styles.disclaimer, { color: theme.textSecondary }]}>
           This guide is for informational purposes only and does not replace professional medical advice. Always follow guidance from your healthcare team.
         </ThemedText>
+
+        {/* ── SOURCES ── */}
+        <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+          <ThemedText style={[styles.sourcesHeading, { color: theme.textSecondary }]}>SOURCES</ThemedText>
+          {[
+            { label: "Model Systems Knowledge Translation Center — Autonomic Dysreflexia", url: "https://msktc.org/sci/factsheets/autonomic-dysreflexia" },
+            { label: "Paralyzed Veterans of America — Clinical Practice Guidelines", url: "https://www.pva.org/research-resources/publications/clinical-practice-guidelines" },
+          ].map(({ label, url }) => (
+            <Pressable key={url} onPress={() => Linking.openURL(url)}>
+              <ThemedText style={styles.sourceLink}>{label}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -349,5 +362,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     textAlign: "center",
     opacity: 0.6,
+  },
+  sourcesHeading: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  sourceLink: {
+    fontSize: 13,
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    lineHeight: 22,
   },
 });
