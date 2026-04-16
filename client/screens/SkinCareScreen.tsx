@@ -226,9 +226,9 @@ export default function SkinCareScreen() {
             SOURCES
           </ThemedText>
           {[
-            { label: "Model Systems Knowledge Translation Center — Skin Care & Pressure Sores", url: "https://msktc.org/sci/factsheets/skin-care" },
-            { label: "Christopher & Dana Reeve Foundation — Skin Care", url: "https://www.christopherreeve.org/living-with-paralysis/health/pressure-sores" },
-            { label: "National Pressure Injury Advisory Panel (NPIAP)", url: "https://npiap.com" },
+            { label: "MSKTC — Skin Care & Pressure Sores After SCI", url: "https://msktc.org/sci/factsheets/skincare-and-pressure-sores-spinal-cord-injury" },
+            { label: "MSKTC — Recognizing & Treating Pressure Sores", url: "https://msktc.org/sci/factsheets/recognizing-and-treating-pressure-sores" },
+            { label: "Christopher & Dana Reeve Foundation — Skin Care", url: "https://www.christopherreeve.org/todays-care/living-with-paralysis/health/secondary-conditions/skin-care/" },
           ].map(({ label, url }) => (
             <Pressable key={url} onPress={() => Linking.openURL(url)}>
               <ThemedText type="small" style={styles.sourceLink}>{label}</ThemedText>
