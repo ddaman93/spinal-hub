@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, StyleSheet, FlatList, Pressable, ScrollView } from "react-native";
+import { View, StyleSheet, FlatList, Pressable, ScrollView, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -188,6 +188,21 @@ export default function SCIMedicationsScreen() {
             </ThemedText>
           </View>
         }
+        ListFooterComponent={
+          <View style={styles.sourcesBlock}>
+            <ThemedText type="small" style={[styles.sourcesHeading, { color: theme.textSecondary }]}>
+              SOURCES
+            </ThemedText>
+            {[
+              { label: "PHARMAC — New Zealand Pharmaceutical Schedule", url: "https://www.pharmac.govt.nz/pharmaceutical-schedule" },
+              { label: "New Zealand Formulary (NZF) — Medicines Information", url: "https://nzf.org.nz/" },
+            ].map(({ label, url }) => (
+              <Pressable key={url} onPress={() => Linking.openURL(url)}>
+                <ThemedText type="small" style={styles.sourceLink}>{label}</ThemedText>
+              </Pressable>
+            ))}
+          </View>
+        }
       />
     </ThemedView>
   );
@@ -283,5 +298,21 @@ const styles = StyleSheet.create({
   emptyContainer: {
     paddingTop: Spacing.xxl,
     alignItems: "center",
+  },
+
+  sourcesBlock: {
+    marginTop: Spacing.xl,
+    gap: Spacing.sm,
+  },
+
+  sourcesHeading: {
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+
+  sourceLink: {
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    lineHeight: 22,
   },
 });
