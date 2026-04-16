@@ -122,6 +122,11 @@ export default function AllAssistiveTechScreen({}: AllAssistiveTechScreenProps) 
                   ?.description
               : "Browse all assistive technology solutions to find the right tools for your needs."}
           </ThemedText>
+          {selectedCategory && (
+            <ThemedText type="small" style={styles.otTip}>
+              Ask your OT or physio about acquiring these products.
+            </ThemedText>
+          )}
         </View>
 
         {/* SEARCH BAR */}
@@ -389,6 +394,12 @@ const styles = StyleSheet.create({
   subtitle: {
     opacity: 0.7,
     marginTop: Spacing.xs,
+  },
+
+  otTip: {
+    opacity: 0.5,
+    marginTop: Spacing.xs,
+    fontStyle: "italic",
   },
 
   searchContainer: {
