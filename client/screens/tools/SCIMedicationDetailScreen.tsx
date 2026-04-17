@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, StyleSheet, ScrollView, Pressable, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
@@ -182,6 +182,21 @@ export default function SCIMedicationDetailScreen() {
             changing, or stopping any medication. Do not stop medications suddenly without medical advice.
           </ThemedText>
         </View>
+
+        {/* ─── sources ─── */}
+        <View style={styles.sourcesBlock}>
+          <ThemedText type="caption" style={[styles.sourcesHeading, { color: theme.textSecondary }]}>
+            SOURCES
+          </ThemedText>
+          {[
+            { label: "PHARMAC — New Zealand Pharmaceutical Schedule", url: "https://www.pharmac.govt.nz/pharmaceutical-schedule" },
+            { label: "New Zealand Formulary (NZF) — Medicines Information", url: "https://nzf.org.nz/" },
+          ].map(({ label, url }) => (
+            <Pressable key={url} onPress={() => Linking.openURL(url)}>
+              <ThemedText type="caption" style={styles.sourceLink}>{label}</ThemedText>
+            </Pressable>
+          ))}
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -273,5 +288,20 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.medium,
     alignItems: "flex-start",
+  },
+
+  sourcesBlock: {
+    gap: Spacing.sm,
+  },
+
+  sourcesHeading: {
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+
+  sourceLink: {
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    lineHeight: 20,
   },
 });

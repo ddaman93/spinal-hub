@@ -227,6 +227,21 @@ export default function MentalHealthResourcesScreen() {
         {SCI_SUPPORT.map((resource) => (
           <ResourceCard key={resource.id} resource={resource} theme={theme} />
         ))}
+
+        {/* SOURCES */}
+        <View style={[styles.card, { backgroundColor: theme.backgroundDefault }]}>
+          <View style={styles.cardContent}>
+            <ThemedText type="small" style={styles.sourcesHeading}>SOURCES</ThemedText>
+            {[
+              { label: "MSKTC — Managing Depression After Spinal Cord Injury", url: "https://msktc.org/sci/factsheets/depression-and-spinal-cord-injury" },
+              { label: "MSKTC — Adjusting to Life After Spinal Cord Injury", url: "https://msktc.org/sci/factsheets/adjusting-life-after-spinal-cord-injury" },
+            ].map(({ label, url }) => (
+              <Pressable key={url} onPress={() => Linking.openURL(url)}>
+                <ThemedText type="small" style={styles.sourceLink}>{label}</ThemedText>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -295,5 +310,18 @@ const styles = StyleSheet.create({
   buttonText: {
     fontWeight: "600",
     fontSize: 14,
+  },
+
+  sourcesHeading: {
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    opacity: 0.6,
+  },
+
+  sourceLink: {
+    color: "#007AFF",
+    textDecorationLine: "underline",
+    lineHeight: 22,
   },
 });
