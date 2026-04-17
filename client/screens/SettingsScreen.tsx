@@ -168,6 +168,17 @@ export default function SettingsScreen() {
 
         </View>
 
+        {/* Medical disclaimer */}
+        <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
+          MEDICAL DISCLAIMER
+        </ThemedText>
+        <View style={[styles.disclaimerCard, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}>
+          <Feather name="alert-circle" size={18} color={theme.textSecondary} style={{ marginTop: 1, flexShrink: 0 }} />
+          <ThemedText type="small" style={[styles.disclaimerText, { color: theme.textSecondary }]}>
+            Spinal Hub is for informational purposes only and does not constitute medical advice, diagnosis, or treatment. Always consult your doctor, spinal specialist, or qualified healthcare provider before making any decisions about your health or care.
+          </ThemedText>
+        </View>
+
         {/* Danger zone */}
         <ThemedText type="small" style={[styles.sectionLabel, { color: theme.textSecondary }]}>
           ACCOUNT
@@ -238,5 +249,18 @@ const styles = StyleSheet.create({
   },
   settingDescription: {
     opacity: 0.7,
+  },
+  disclaimerCard: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.medium,
+    borderWidth: 1,
+    alignItems: "flex-start",
+  },
+  disclaimerText: {
+    flex: 1,
+    lineHeight: 20,
+    opacity: 0.8,
   },
 });
