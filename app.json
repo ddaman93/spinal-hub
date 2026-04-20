@@ -18,7 +18,14 @@
         "NSCalendarsUsageDescription": "Allow Spinal Hub to add your appointments to your calendar.",
         "NSUserNotificationsUsageDescription": "Get reminders for medications, pressure relief breaks, and appointments.",
         "ITSAppUsesNonExemptEncryption": false,
-      "usesAppleSignIn": true
+        "usesAppleSignIn": true,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.1082274051218-jg2j75bptak19mkvd06vasemicbn543a"
+            ]
+          }
+        ]
       }
     },
     "android": {
