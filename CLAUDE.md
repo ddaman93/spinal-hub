@@ -1,5 +1,13 @@
 # Spinal Hub — Claude Instructions
 
+## App Store Build Rules
+
+**Every time you touch `app.json` for a build or submit:**
+- Bump `ios.buildNumber` by 1 (e.g. "9" → "10")
+- Bump `version` by a patch or minor version (e.g. "1.2.0" → "1.2.1")
+- Do both in the same commit — never bump one without the other
+- Apple rejects builds if `version` is the same as or lower than the previously approved version
+
 ## CRITICAL: Git Safety Rules
 
 **NEVER run `git checkout HEAD -- <file>` or any destructive git reset on individual files without explicit confirmation.**
