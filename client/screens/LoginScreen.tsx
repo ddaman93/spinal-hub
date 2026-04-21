@@ -369,11 +369,6 @@ export default function LoginScreen() {
                     ) : (
                       <UnconfiguredOAuthButton label="Google" icon="google" alertTitle="Google Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file." C={C} />
                     )}
-                    {hasFacebook ? (
-                      <FacebookButton onOAuth={handleOAuth} style={{ flex: 1 }} C={C} />
-                    ) : (
-                      <UnconfiguredOAuthButton label="Facebook" icon="facebook-f" alertTitle="Facebook Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_FACEBOOK_APP_ID to your .env file." C={C} />
-                    )}
                   </View>
 
                   {Platform.OS === "ios" && (
@@ -440,7 +435,7 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1 },
   dividerText: { fontSize: 12 },
 
-  oauthRow: { flexDirection: "row", gap: 10 },
+  oauthRow: { flexDirection: "row", gap: 10, width: "100%" },
   appleBtn: { width: "100%", height: 48, marginTop: 10 },
 
   footer: { flexDirection: "row", alignItems: "center", marginTop: 24 },
