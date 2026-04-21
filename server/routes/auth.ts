@@ -85,10 +85,10 @@ export async function loginRoute(req: Request, res: Response) {
 }
 
 export async function oauthRoute(req: Request, res: Response) {
-  const { provider, accessToken, fullName } = req.body;
+  const { provider, accessToken, idToken, fullName } = req.body;
 
-  if (!provider || !accessToken) {
-    return res.status(400).json({ message: "provider and accessToken are required." });
+  if (!provider || (!accessToken && !idToken)) {
+    return res.status(400).json({ message: "provider and a token are required." });
   }
 
   let providerEmail: string;
@@ -96,6 +96,9 @@ export async function oauthRoute(req: Request, res: Response) {
 
   try {
     if (provider === "apple") {
+      if (!accessToken) {
+        return res.status(400).json({ message: "accessToken is required for Apple." });
+      }
       const { payload } = await jose.jwtVerify(accessToken, APPLE_JWKS, {
         issuer: "https://appleid.apple.com",
         audience: "com.spinalhub.app",
@@ -105,19 +108,40 @@ export async function oauthRoute(req: Request, res: Response) {
       providerEmail = (payload.email as string | undefined)?.toLowerCase() ?? `${sub}@privaterelay.appleid.com`;
       providerName = fullName ?? "Apple User";
     } else if (provider === "google") {
-      const infoRes = await fetch(
-        `https://www.googleapis.com/oauth2/v3/userinfo`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
-      if (!infoRes.ok) {
-        return res.status(401).json({ message: "Invalid Google access token." });
+      // Native iOS/Android Google flows often return only an id_token. Prefer it
+      // when available and verify via Google's tokeninfo endpoint. Fall back to
+      // access_token + userinfo for flows that return one.
+      if (idToken) {
+        const infoRes = await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+        );
+        if (!infoRes.ok) {
+          return res.status(401).json({ message: "Invalid Google ID token." });
+        }
+        const info = await infoRes.json() as { email?: string; name?: string; aud?: string; iss?: string };
+        if (info.iss !== "accounts.google.com" && info.iss !== "https://accounts.google.com") {
+          return res.status(401).json({ message: "Invalid Google ID token issuer." });
+        }
+        if (!info.email) {
+          return res.status(401).json({ message: "Could not retrieve email from Google." });
+        }
+        providerEmail = info.email.toLowerCase();
+        providerName = info.name || providerEmail;
+      } else {
+        const infoRes = await fetch(
+          `https://www.googleapis.com/oauth2/v3/userinfo`,
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        );
+        if (!infoRes.ok) {
+          return res.status(401).json({ message: "Invalid Google access token." });
+        }
+        const info = await infoRes.json() as { email?: string; name?: string };
+        if (!info.email) {
+          return res.status(401).json({ message: "Could not retrieve email from Google." });
+        }
+        providerEmail = info.email.toLowerCase();
+        providerName = info.name || providerEmail;
       }
-      const info = await infoRes.json() as { email?: string; name?: string };
-      if (!info.email) {
-        return res.status(401).json({ message: "Could not retrieve email from Google." });
-      }
-      providerEmail = info.email.toLowerCase();
-      providerName = info.name || providerEmail;
     } else if (provider === "facebook") {
       const infoRes = await fetch(
         `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`,

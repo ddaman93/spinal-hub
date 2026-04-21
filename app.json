@@ -3,7 +3,7 @@
     "name": "Spinal Hub",
     "slug": "spinal-hub",
     "owner": "spinal-hub",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "spinalhub",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.spinalhub.app",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Spinal Hub uses your location to show local weather, nearby accessible transport, and carer services in your area.",
         "NSCalendarsUsageDescription": "Allow Spinal Hub to add your appointments to your calendar.",
@@ -36,7 +36,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.spinalhub.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",

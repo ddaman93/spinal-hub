@@ -87,18 +87,34 @@ type Colors = typeof DARK;
 // ---------------------------------------------------------------------------
 // OAuth sub-components
 // ---------------------------------------------------------------------------
-type OAuthHandler = (provider: "google" | "facebook", accessToken: string) => Promise<void>;
+type OAuthTokens = { accessToken?: string; idToken?: string };
+type OAuthHandler = (provider: "google" | "facebook", tokens: OAuthTokens) => Promise<void>;
 
-function GoogleButton({ onOAuth, C }: { onOAuth: OAuthHandler; C: Colors }) {
+function GoogleButton({ onOAuth, onError, C }: { onOAuth: OAuthHandler; onError: (msg: string) => void; C: Colors }) {
   const [, , promptAsync] = Google.useAuthRequest({
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined,
   });
   async function handlePress() {
-    const result = await promptAsync();
-    if (result.type === "success" && result.authentication?.accessToken) {
-      await onOAuth("google", result.authentication.accessToken);
+    try {
+      const result = await promptAsync();
+      if (result.type === "success") {
+        const accessToken = result.authentication?.accessToken;
+        const idToken = result.authentication?.idToken;
+        if (accessToken || idToken) {
+          await onOAuth("google", { accessToken, idToken });
+        } else {
+          onError("Google sign-in didn't return a token. Please try again.");
+        }
+      } else if (result.type === "error") {
+        onError(`Google sign-in error: ${(result as { error?: { message?: string } }).error?.message ?? "unknown"}`);
+      } else if (result.type !== "cancel") {
+        onError("Google sign-in didn't complete. Please try again.");
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "unknown error";
+      onError(`Google sign-in failed: ${msg}`);
     }
   }
   return (
@@ -116,7 +132,7 @@ function FacebookButton({ onOAuth, C }: { onOAuth: OAuthHandler; C: Colors }) {
   async function handlePress() {
     const result = await promptAsync();
     if (result.type === "success" && result.authentication?.accessToken) {
-      await onOAuth("facebook", result.authentication.accessToken);
+      await onOAuth("facebook", { accessToken: result.authentication.accessToken });
     }
   }
   return (
@@ -226,13 +242,13 @@ export default function SignUpScreen() {
     }
   }
 
-  async function handleOAuth(provider: "google" | "facebook", accessToken: string) {
+  async function handleOAuth(provider: "google" | "facebook", tokens: OAuthTokens) {
     setLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/auth/oauth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, accessToken }),
+        body: JSON.stringify({ provider, ...tokens }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message || "OAuth sign-up failed."); return; }
@@ -376,7 +392,7 @@ export default function SignUpScreen() {
                   </View>
 
                   <View style={styles.oauthRow}>
-                    {hasGoogle ? <GoogleButton onOAuth={handleOAuth} C={C} /> : <UnconfiguredOAuthButton label="Google" icon="google" alertTitle="Google Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file." C={C} />}
+                    {hasGoogle ? <GoogleButton onOAuth={handleOAuth} onError={setError} C={C} /> : <UnconfiguredOAuthButton label="Google" icon="google" alertTitle="Google Sign-In Not Configured" alertMessage="Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to your .env file." C={C} />}
                   </View>
 
                   {Platform.OS === "ios" && (
