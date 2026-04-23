@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   EMERGENCY_CONTACTS: "emergency_contacts",
   SKIN_CHECK_ENTRIES: "skin_check_entries",
   CARE_PREFERENCES: "care_preferences",
+  BLADDER_ENTRIES: "bladder_entries",
 } as const;
 
 export type VitalEntry = {
@@ -112,6 +113,14 @@ export type SkinCheckEntry = {
   id: string;
   location: "Tailbone" | "Left Hip" | "Right Hip" | "Left Heel" | "Right Heel" | "Elbows" | "Other";
   severity: "clear" | "redness" | "broken";
+  notes?: string;
+  timestamp: string;
+};
+
+export type BladderEntry = {
+  id: string;
+  type: "catheterization" | "spontaneous" | "leak" | "accident";
+  volume?: number;
   notes?: string;
   timestamp: string;
 };
@@ -366,6 +375,20 @@ export const storage = {
   carePreferences: {
     get: () => getItem<CarePreferences>(STORAGE_KEYS.CARE_PREFERENCES),
     save: (prefs: CarePreferences) => setItem(STORAGE_KEYS.CARE_PREFERENCES, prefs),
+  },
+
+  bladder: {
+    getAll: () => getItem<BladderEntry[]>(STORAGE_KEYS.BLADDER_ENTRIES),
+    save: (entries: BladderEntry[]) => setItem(STORAGE_KEYS.BLADDER_ENTRIES, entries),
+    add: async (entry: BladderEntry) => {
+      const entries = (await storage.bladder.getAll()) || [];
+      entries.unshift(entry);
+      await storage.bladder.save(entries);
+    },
+    delete: async (id: string) => {
+      const entries = (await storage.bladder.getAll()) || [];
+      await storage.bladder.save(entries.filter((e) => e.id !== id));
+    },
   },
 };
 
