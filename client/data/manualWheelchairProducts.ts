@@ -80,6 +80,7 @@ export const POWER_ASSIST_WHEELS: ManualWheelchairProduct[] = [
     whoItsFor:
       "Ideal for manual wheelchair users who want in-wheel power assistance while keeping their chair's existing form factor and manoeuvrability. A strong option for those with upper limb fatigue, shoulder injuries, or anyone who wants extra help on hills and longer distances without switching to a full power chair.",
     productUrl: "https://medifab.com/nz/product/quickie-xtender-wheelchair-power-assist-wheels/",
+    videoUrl: "https://www.youtube.com/embed/3V1uDbt7fOE",
   },
   {
     id: "smoov-one",
