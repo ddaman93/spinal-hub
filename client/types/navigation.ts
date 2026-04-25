@@ -52,6 +52,7 @@ export type MainStackParamList = {
       whatItDoes?: string;
       whoItsFor?: string;
       productUrl?: string;
+      videoUrl?: string;
     };
   };
 

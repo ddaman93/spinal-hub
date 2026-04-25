@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, ScrollView, Pressable, Linking } from "react-native";
 import { Image } from "expo-image";
+import { WebView } from "react-native-webview";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -90,6 +91,19 @@ export default function ProductDetailScreen() {
             </View>
           )}
 
+          {/* YOUTUBE VIDEO */}
+          {product.videoUrl && (
+            <View style={styles.videoContainer}>
+              <WebView
+                source={{ uri: product.videoUrl }}
+                style={styles.video}
+                allowsFullscreenVideo
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+              />
+            </View>
+          )}
+
           {/* PRODUCT LINK - WINDOWS */}
           {product.productUrl && (
             <Pressable
@@ -160,5 +174,14 @@ const styles = StyleSheet.create({
   },
   linkButtonText: {
     fontWeight: "600",
+  },
+  videoContainer: {
+    height: 220,
+    borderRadius: BorderRadius.medium,
+    overflow: "hidden",
+    marginTop: Spacing.md,
+  },
+  video: {
+    flex: 1,
   },
 });

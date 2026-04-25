@@ -25,6 +25,7 @@ export type ManualWheelchairProduct = {
   whatItDoes?: string;
   whoItsFor?: string;
   productUrl?: string;
+  videoUrl?: string;
   contentFit?: "cover" | "contain";
 };
 
@@ -196,6 +197,23 @@ export const HANDCYCLE_ATTACHMENTS: ManualWheelchairProduct[] = [
     whoItsFor:
       "Ideal for active manual wheelchair users who want freedom to explore outdoors, commute to work, or keep up with friends and family on outings. Suited for those who need reliable powered mobility over longer distances but prefer to use their manual chair indoors or in tight spaces.",
     productUrl: "https://www.permobil.com/en-nz/products/power-assist/batec/batec-electric-2",
+  },
+  {
+    id: "sirocco-power-add-on",
+    title: "Sirocco Power Add-On",
+    description:
+      "Lightweight front-wheel power add-on for manual wheelchairs with intuitive push-sensing control.",
+    image: "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/manual_%20wheelchair_%20tech/medifab/Sirocco%20Power%20Add-On.png",
+    tags: ["manual-wheelchair", "handcycle", "outdoor", "portable"],
+    category: "handcycle",
+    whatItIs:
+      "The Sirocco Power Add-On is a compact front-wheel attachment from Medifab that connects to your manual wheelchair, converting it into a power-assisted three-wheeler. Designed for everyday use, it combines a lightweight frame with an integrated motor and battery in a streamlined package that's quick to attach and detach.",
+    whatItDoes:
+      "The Sirocco provides electric propulsion through a front drive wheel, allowing you to travel further with less effort. It handles inclines, varied terrain, and longer distances that would be challenging in a standard manual chair. The intuitive controls let you manage speed comfortably, and the system is designed to attach and detach quickly so you can switch between powered and manual use as needed.",
+    whoItsFor:
+      "Well suited to manual wheelchair users who want powered outdoor mobility without the bulk of a full power wheelchair. A practical option for those who need help with hills and longer distances but still prefer a manual chair for indoor use. Available through Medifab NZ, making it an accessible option for New Zealand users.",
+    productUrl: "https://medifab.com/au/product/sirocco-power-add-on/",
+    videoUrl: "https://www.youtube.com/embed/nQoz54bhBcs",
   },
   {
     id: "empulse-f35",
