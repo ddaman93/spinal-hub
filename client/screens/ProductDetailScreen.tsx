@@ -102,18 +102,19 @@ export default function ProductDetailScreen() {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; width: 100%; height: 100%; }
-  iframe { width: 100%; height: 100%; border: none; display: block; }
+  html, body { background: #000; width: 100%; height: 100vh; overflow: hidden; }
+  iframe { width: 100%; height: 100vh; border: none; display: block; }
 </style>
 </head>
 <body>
 <iframe
-  src="${product.videoUrl}?playsinline=1&rel=0"
+  src="${product.videoUrl}?playsinline=1&rel=0&origin=https://spinal-hub.onrender.com"
   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
   allowfullscreen
 ></iframe>
 </body>
 </html>`,
+                  baseUrl: "https://spinal-hub.onrender.com",
                 }}
                 style={styles.video}
                 allowsFullscreenVideo
