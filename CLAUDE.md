@@ -63,7 +63,20 @@ When adding or restructuring product sections in Spinal Hub, follow this procedu
 - Before committing new `productUrl` values, confirm they open successfully (no 404).
 - Prefer canonical product pages (e.g. Shopify `/products/...`) over non-canonical or redirected URLs.
 
-6) Minimal change principle
+6) YouTube video embeds
+- Products can have an optional `videoUrl` field (a YouTube embed URL, e.g. `https://www.youtube.com/embed/VIDEO_ID`).
+- **Always use the HTML + baseUrl pattern** — never load the YouTube URL directly via `source={{ uri }}`. Direct URI loads produce error 153 because YouTube blocks null-origin embeds.
+- The correct pattern (already implemented in `ProductDetailScreen.tsx`):
+  ```js
+  source={{
+    html: `<!DOCTYPE html>...<iframe src="${videoUrl}?playsinline=1&rel=0&origin=https://spinal-hub.onrender.com" ...></iframe>...`,
+    baseUrl: "https://spinal-hub.onrender.com",
+  }}
+  ```
+- Use `height: 100vh` on both `body` and `iframe` in the HTML to prevent a black strip at the bottom.
+- Add `videoUrl` to both `ManualWheelchairProduct` (or whichever product type) and the `ProductDetail` navigation param type in `client/types/navigation.ts`.
+
+7) Minimal change principle
 - Touch the fewest files needed.
 - Avoid changing types unless required.
 - Keep existing naming conventions and directory patterns.
