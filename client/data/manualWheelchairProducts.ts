@@ -65,6 +65,22 @@ export const POWER_ASSIST_WHEELS: ManualWheelchairProduct[] = [
     productUrl: "https://invacareonline.co.nz/products/alber-e-motion-m25-power-add-on?srsltid=AfmBOoq0AXynzA4BZA5J3wH3dVnziO5fguCPsN1JluwBVvaL_SFIAJDA",
   },
   {
+    id: "quickie-xtender",
+    title: "Quickie Xtender",
+    description:
+      "Rear-mounted power assist wheels that replace standard wheels for intuitive push-sensing propulsion.",
+    image: "https://pub-f8dc6a60de674bf8972179fad120cdb9.r2.dev/assistive-tech/manual_%20wheelchair_%20tech/Quickie-Xtender.png",
+    tags: ["manual-wheelchair", "power-assist"],
+    category: "power-assist",
+    whatItIs:
+      "The Quickie Xtender is a power assist wheel system from Sunrise Medical that replaces your existing manual wheelchair wheels. Each wheel contains a built-in motor and battery that senses your push and adds power, transforming your manual chair into a power-assisted one without changing its profile.",
+    whatItDoes:
+      "The Xtender detects each push stroke and amplifies your effort with motor assistance, reducing the force required to propel your chair. It helps you tackle inclines, rough terrain, and longer distances with significantly less shoulder strain. The system is designed to feel natural and responsive, closely matching your intended direction and speed.",
+    whoItsFor:
+      "Ideal for manual wheelchair users who want in-wheel power assistance while keeping their chair's existing form factor and manoeuvrability. A strong option for those with upper limb fatigue, shoulder injuries, or anyone who wants extra help on hills and longer distances without switching to a full power chair.",
+    productUrl: "https://medifab.com/nz/product/quickie-xtender-wheelchair-power-assist-wheels/",
+  },
+  {
     id: "smoov-one",
     title: "SMOOV one",
     description:
