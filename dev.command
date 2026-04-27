@@ -15,7 +15,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "  Expo URL for your phone:"
 echo "  $URL"
 echo ""
-echo "  API pointing to: http://$IP:3000"
+echo "  API pointing to: http://$IP:5000"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo -n "$URL" | pbcopy
@@ -25,10 +25,10 @@ echo ""
 open -a Messages
 
 # Start backend server in background, bound to all interfaces
-EXPO_PUBLIC_DOMAIN=http://$IP:3000 npm run server:dev &
+EXPO_PUBLIC_DOMAIN=http://$IP:5000 npm run server:dev &
 SERVER_PID=$!
 
 # Start Expo with the LAN IP as the API domain
-EXPO_PUBLIC_DOMAIN=http://$IP:3000 npx expo start --lan
+EXPO_PUBLIC_DOMAIN=http://$IP:5000 npx expo start --lan
 
 kill $SERVER_PID 2>/dev/null
