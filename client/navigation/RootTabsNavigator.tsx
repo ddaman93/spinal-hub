@@ -38,6 +38,7 @@ import {
 import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScreen";
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
+import BladderLogScreen from "@/screens/tools/BladderLogScreen";
 import CarePreferencesScreen from "@/screens/tools/CarePreferencesScreen";
 import AutonomicDysreflexiaScreen from "@/screens/tools/AutonomicDysreflexiaScreen";
 import SkinCareScreen from "@/screens/SkinCareScreen";
@@ -551,6 +552,16 @@ function ToolsStackNavigator() {
         options={{
           ...opaqueScreenOptions,
           headerTitle: "Skin Check Log",
+        }}
+      />
+
+      {/* BLADDER LOG */}
+      <ToolsStack.Screen
+        name="BladderLog"
+        component={BladderLogScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Bladder Log",
         }}
       />
 

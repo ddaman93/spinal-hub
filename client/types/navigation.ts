@@ -69,6 +69,7 @@ export type MainStackParamList = {
   EmergencyContacts: undefined;
   PressureReliefTimer: undefined;
   NZSpinalTrust: undefined;
+  BladderLog: undefined;
 
   AutonomicDysreflexia: undefined;
   SCIMedications: undefined;
