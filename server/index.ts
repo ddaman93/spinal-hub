@@ -30,6 +30,11 @@ function setupCors(app: express.Application) {
         "http://127.0.0.1:8081",
       ]);
 
+      // Also allow any LAN IP (192.168.x.x or 10.x.x.x) on port 8081
+      if (origin && /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01]))\d+\.\d+:8081$/.test(origin)) {
+        allowedOrigins.add(origin);
+      }
+
       // If there is an Origin header and it's allowed, echo it back.
       // (Required when using credentials.)
       if (origin && allowedOrigins.has(origin)) {
