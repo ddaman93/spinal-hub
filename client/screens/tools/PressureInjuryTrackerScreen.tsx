@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import {
-  View, ScrollView, Pressable, StyleSheet, ActivityIndicator, Alert,
+  View, ScrollView, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator, Alert,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -112,14 +112,14 @@ function SiteButton({
   const isActive = !!injury;
 
   return (
-    <Pressable
+    <TouchableOpacity
       onPress={onPress}
-      style={({ pressed }) => [
+      activeOpacity={0.65}
+      style={[
         styles.siteBtn,
         {
           backgroundColor: isActive ? color + "22" : theme.backgroundSecondary,
           borderColor: isActive ? color : theme.backgroundTertiary,
-          opacity: pressed ? 0.7 : 1,
         },
       ]}
     >
@@ -133,7 +133,7 @@ function SiteButton({
         </ThemedText>
       )}
       <Feather name="chevron-right" size={13} color={theme.textSecondary} />
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 
@@ -201,26 +201,27 @@ export default function PressureInjuryTrackerScreen() {
   const healed = injuries.filter((i) => i.status === "healed");
 
   function handleSitePress(site: Site) {
-    const existing = injuries.find((i) => i.site === site.id && i.status === "active");
-    if (existing) {
-      navigation.navigate("PressureInjuryDetail", {
-        injuryId: existing.id,
-        site: existing.site,
-        siteLabel: existing.siteLabel,
-      });
-      return;
+    try {
+      const existing = injuries.find((i) => i.site === site.id && i.status === "active");
+      if (existing) {
+        navigation.navigate("PressureInjuryDetail", {
+          injuryId: existing.id,
+          site: existing.site,
+          siteLabel: existing.siteLabel,
+        });
+        return;
+      }
+      Alert.alert(
+        site.label,
+        "Start tracking a wound at this site?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Start Tracking", onPress: () => createWound(site) },
+        ]
+      );
+    } catch (e: any) {
+      Alert.alert("Error", e?.message ?? "Something went wrong");
     }
-    Alert.alert(
-      site.label,
-      "Start tracking a wound at this site?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Start Tracking",
-          onPress: () => createWound(site),
-        },
-      ]
-    );
   }
 
   async function createWound(site: Site) {
