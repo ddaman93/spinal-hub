@@ -24,11 +24,16 @@ echo "  Open Messages on your Mac, paste it, send to yourself"
 echo ""
 open -a Messages
 
-# Start backend server in background, bound to all interfaces
-EXPO_PUBLIC_DOMAIN=http://$IP:5000 npm run server:dev &
+# Write .env.local to override production .env — Expo gives .env.local higher priority
+echo "EXPO_PUBLIC_DOMAIN=http://$IP:5000" > .env.local
+
+# Start backend server in background
+npm run server:dev &
 SERVER_PID=$!
 
-# Start Expo with the LAN IP as the API domain
-EXPO_PUBLIC_DOMAIN=http://$IP:5000 npx expo start --lan
+# Start Expo
+npx expo start --lan
 
+# Clean up .env.local when Expo exits
+rm -f .env.local
 kill $SERVER_PID 2>/dev/null
