@@ -9,7 +9,7 @@ export function getApiUrl(): string {
   const host = process.env.EXPO_PUBLIC_DOMAIN;
 
   if (host) {
-    return `https://${host}`;
+    return host.startsWith("http") ? host : `https://${host}`;
   }
 
   // Fallback for web development
