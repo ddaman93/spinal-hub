@@ -179,7 +179,8 @@ function FocusInput(props: React.ComponentProps<typeof TextInput> & {
   C: Colors;
 }) {
   const [focused, setFocused] = useState(false);
-  const { icon, C, ...rest } = props;
+  const [shown, setShown] = useState(false);
+  const { icon, C, secureTextEntry, ...rest } = props;
   return (
     <View style={[
       inputStyle(C).wrap,
@@ -188,11 +189,17 @@ function FocusInput(props: React.ComponentProps<typeof TextInput> & {
       <Feather name={icon} size={16} color={focused ? C.inputFocusBorder : C.textDim} style={{ marginRight: 10 }} />
       <TextInput
         {...rest}
+        secureTextEntry={secureTextEntry && !shown}
         style={{ flex: 1, color: C.text, fontSize: 15 }}
         placeholderTextColor={C.textDim}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
       />
+      {secureTextEntry && (
+        <Pressable onPress={() => setShown(v => !v)} hitSlop={8}>
+          <Feather name={shown ? "eye" : "eye-off"} size={16} color={C.textDim} />
+        </Pressable>
+      )}
     </View>
   );
 }
