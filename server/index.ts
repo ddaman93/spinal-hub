@@ -27,6 +27,7 @@ function setupCors(app: express.Application) {
     if (process.env.NODE_ENV !== "production") {
       res.header("Access-Control-Allow-Origin", origin || "*");
       res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Allow-Private-Network", "true");
       res.header("Vary", "Origin");
       res.header(
         "Access-Control-Allow-Methods",
