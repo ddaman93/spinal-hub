@@ -23,28 +23,10 @@ function setupCors(app: express.Application) {
   app.use((req, res, next) => {
     const origin = req.header("origin");
 
-    // DEV: allow Expo web dev server origins
+    // DEV: allow all origins so any LAN IP or localhost can reach the server
     if (process.env.NODE_ENV !== "production") {
-      const allowedOrigins = new Set<string>([
-        "http://localhost:8081",
-        "http://127.0.0.1:8081",
-      ]);
-
-      // Also allow any LAN IP (192.168.x.x or 10.x.x.x) on port 8081
-      if (origin && /^http:\/\/(192\.168\.|10\.|172\.(1[6-9]|2\d|3[01]))\d+\.\d+:8081$/.test(origin)) {
-        allowedOrigins.add(origin);
-      }
-
-      // If there is an Origin header and it's allowed, echo it back.
-      // (Required when using credentials.)
-      if (origin && allowedOrigins.has(origin)) {
-        res.header("Access-Control-Allow-Origin", origin);
-        res.header("Access-Control-Allow-Credentials", "true");
-      }
-
-      // If there's no Origin header (e.g. curl), we don't need CORS headers.
-      // If it's a different Origin, we intentionally do NOT set ACAO.
-
+      res.header("Access-Control-Allow-Origin", origin || "*");
+      res.header("Access-Control-Allow-Credentials", "true");
       res.header("Vary", "Origin");
       res.header(
         "Access-Control-Allow-Methods",
