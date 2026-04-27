@@ -79,17 +79,18 @@ export const STAGE_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Body silhouette SVG (back view, simplified anatomical)
 // ---------------------------------------------------------------------------
+const MAP_WIDTH = 180;
+const MAP_HEIGHT = 396; // 220 * scale (180/100 = 1.8)
+const SCALE = MAP_WIDTH / 100;
+const HIT = 36; // touch target size in px
+
 function BodyMap({
   injuries,
   onSitePress,
-  width,
 }: {
   injuries: any[];
   onSitePress: (site: Site) => void;
-  width: number;
 }) {
-  const scale = width / 100;
-  const height = 220 * scale;
   const { theme } = useTheme();
 
   function getSiteColor(siteId: string): string {
@@ -99,68 +100,62 @@ function BodyMap({
   }
 
   return (
-    <View style={{ width, height, alignSelf: "center" }}>
-      <Svg width={width} height={height} viewBox="0 0 100 220">
-        {/* Body outline — back view */}
+    <View style={{ width: MAP_WIDTH, height: MAP_HEIGHT, alignSelf: "center" }}>
+      {/* Body silhouette — purely visual, no interaction */}
+      <Svg width={MAP_WIDTH} height={MAP_HEIGHT} viewBox="0 0 100 220" style={{ position: "absolute" }}>
         <G opacity={0.25} fill={theme.text}>
-          {/* Head */}
           <Ellipse cx="50" cy="10" rx="9" ry="10" />
-          {/* Neck */}
           <Path d="M45,19 Q50,23 55,19 L55,25 Q50,27 45,25 Z" />
-          {/* Torso */}
           <Path d="M28,25 Q22,28 20,40 L18,75 Q20,80 30,82 L30,95 Q35,100 50,100 Q65,100 70,95 L70,82 Q80,80 82,75 L80,40 Q78,28 72,25 Z" />
-          {/* Left upper arm */}
           <Path d="M28,25 Q18,30 14,55 Q14,62 18,65 Q22,62 24,55 L28,35 Z" />
-          {/* Right upper arm */}
           <Path d="M72,25 Q82,30 86,55 Q86,62 82,65 Q78,62 76,55 L72,35 Z" />
-          {/* Left forearm */}
           <Path d="M14,55 Q10,65 12,80 Q16,82 20,78 Q20,65 18,65 Z" />
-          {/* Right forearm */}
           <Path d="M86,55 Q90,65 88,80 Q84,82 80,78 Q80,65 82,65 Z" />
-          {/* Left thigh */}
           <Path d="M30,95 Q26,100 26,140 Q28,148 34,148 Q40,145 40,138 L38,95 Z" />
-          {/* Right thigh */}
           <Path d="M70,95 Q74,100 74,140 Q72,148 66,148 Q60,145 60,138 L62,95 Z" />
-          {/* Left lower leg */}
           <Path d="M26,140 Q24,165 26,185 Q28,190 34,190 Q38,187 38,180 L34,148 Z" />
-          {/* Right lower leg */}
           <Path d="M74,140 Q76,165 74,185 Q72,190 66,190 Q62,187 62,180 L66,148 Z" />
-          {/* Left foot */}
           <Path d="M26,185 Q22,195 24,205 Q28,210 36,208 Q40,200 38,190 Z" />
-          {/* Right foot */}
           <Path d="M74,185 Q78,195 76,205 Q72,210 64,208 Q60,200 62,190 Z" />
         </G>
-
-        {/* Pressure point hotspots */}
+        {/* Visible dots — no interaction */}
         {SITES.map((site) => {
           const color = getSiteColor(site.id);
           const isActive = injuries.some((i) => i.site === site.id && i.status === "active");
           return (
-            <G key={site.id}>
-              {/* Invisible large hit target */}
-              <Circle
-                cx={site.x}
-                cy={site.y}
-                r={10}
-                fill="transparent"
-                onPress={() => onSitePress(site)}
-              />
-              {/* Visible dot */}
-              <Circle
-                cx={site.x}
-                cy={site.y}
-                r={isActive ? 5.5 : 4}
-                fill={color}
-                opacity={isActive ? 1 : 0.45}
-                stroke={isActive ? "#fff" : theme.text}
-                strokeWidth={isActive ? 1 : 0.5}
-                strokeOpacity={isActive ? 0.9 : 0.3}
-                onPress={() => onSitePress(site)}
-              />
-            </G>
+            <Circle
+              key={site.id}
+              cx={site.x}
+              cy={site.y}
+              r={isActive ? 5.5 : 4}
+              fill={color}
+              opacity={isActive ? 1 : 0.45}
+              stroke={isActive ? "#fff" : theme.text}
+              strokeWidth={isActive ? 1 : 0.5}
+              strokeOpacity={isActive ? 0.9 : 0.3}
+            />
           );
         })}
       </Svg>
+
+      {/* Pressable touch targets overlaid absolutely — work on web + native */}
+      {SITES.map((site) => (
+        <Pressable
+          key={site.id}
+          onPress={() => onSitePress(site)}
+          style={({ pressed }) => ({
+            position: "absolute",
+            left: site.x * SCALE - HIT / 2,
+            top: site.y * SCALE - HIT / 2,
+            width: HIT,
+            height: HIT,
+            borderRadius: HIT / 2,
+            backgroundColor: pressed ? "rgba(255,255,255,0.15)" : "transparent",
+            alignItems: "center",
+            justifyContent: "center",
+          })}
+        />
+      ))}
     </View>
   );
 }
@@ -289,7 +284,7 @@ export default function PressureInjuryTrackerScreen() {
           {loading ? (
             <ActivityIndicator color={theme.primary} />
           ) : (
-            <BodyMap injuries={injuries} onSitePress={handleSitePress} width={180} />
+            <BodyMap injuries={injuries} onSitePress={handleSitePress} />
           )}
           <ThemedText type="caption" style={[styles.mapHint, { color: theme.textSecondary }]}>
             Tap a dot to view or start tracking a wound
