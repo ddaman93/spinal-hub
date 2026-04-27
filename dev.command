@@ -27,8 +27,8 @@ open -a Messages
 # Write .env.local to override production .env — Expo gives .env.local higher priority
 echo "EXPO_PUBLIC_DOMAIN=http://$IP:5000" > .env.local
 
-# Start backend server in background
-npm run server:dev &
+# Start backend server bound to all interfaces so LAN IP can reach it
+SERVER_HOST=0.0.0.0 npm run server:dev &
 SERVER_PID=$!
 
 # Start Expo
