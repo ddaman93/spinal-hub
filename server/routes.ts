@@ -7,6 +7,8 @@ import { getChatMessages, postChatMessage, reportMessage, getAdminReports, delet
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
+import { createInvite, joinWithCode, getRelationships, revokeRelationship } from "./routes/care";
+import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { authStorage } from "./storage";
 import { db } from "./db";
 import { userProfiles } from "@shared/schema";
@@ -73,6 +75,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Feedback
   app.post("/api/feedback", postFeedback);
+
+  // Care relationships & invite system
+  app.post("/api/care/invite", createInvite);
+  app.post("/api/care/join", joinWithCode);
+  app.get("/api/care/relationships", getRelationships);
+  app.delete("/api/care/relationships/:id", revokeRelationship);
+
+  // Pressure injury tracker
+  app.get("/api/pressure-injuries", getInjuries);
+  app.post("/api/pressure-injuries", createInjury);
+  app.patch("/api/pressure-injuries/:id", updateInjury);
+  app.delete("/api/pressure-injuries/:id", deleteInjury);
+  app.get("/api/pressure-injuries/:id/checks", getChecks);
+  app.post("/api/pressure-injuries/:id/checks", addCheck);
 
   // User profiles (JWT-protected)
   app.get("/api/profile", async (req: Request, res: Response) => {
