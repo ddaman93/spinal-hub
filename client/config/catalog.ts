@@ -91,6 +91,13 @@ export const CATEGORIES: CategoryConfig[] = [
         icon: "droplet",
         route: "BladderLog",
       },
+      {
+        id: "pressure-injury",
+        name: "Pressure Injury Tracker",
+        description: "Track, stage, and document wound sites with your care team",
+        icon: "shield",
+        route: "PressureInjuryTracker",
+      },
     ],
   },
 

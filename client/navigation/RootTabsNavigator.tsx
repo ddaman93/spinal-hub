@@ -39,6 +39,10 @@ import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScre
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
 import BladderLogScreen from "@/screens/tools/BladderLogScreen";
+import PressureInjuryTrackerScreen from "@/screens/tools/PressureInjuryTrackerScreen";
+import PressureInjuryDetailScreen from "@/screens/tools/PressureInjuryDetailScreen";
+import AddPressureCheckScreen from "@/screens/tools/AddPressureCheckScreen";
+import CareNetworkScreen from "@/screens/tools/CareNetworkScreen";
 import CarePreferencesScreen from "@/screens/tools/CarePreferencesScreen";
 import AutonomicDysreflexiaScreen from "@/screens/tools/AutonomicDysreflexiaScreen";
 import SkinCareScreen from "@/screens/SkinCareScreen";
@@ -563,6 +567,28 @@ function ToolsStackNavigator() {
           ...opaqueScreenOptions,
           headerTitle: "Bladder Log",
         }}
+      />
+
+      {/* PRESSURE INJURY TRACKER */}
+      <ToolsStack.Screen
+        name="PressureInjuryTracker"
+        component={PressureInjuryTrackerScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Pressure Injury Tracker" }}
+      />
+      <ToolsStack.Screen
+        name="PressureInjuryDetail"
+        component={PressureInjuryDetailScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Wound Detail" }}
+      />
+      <ToolsStack.Screen
+        name="AddPressureCheck"
+        component={AddPressureCheckScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Add Assessment" }}
+      />
+      <ToolsStack.Screen
+        name="CareNetwork"
+        component={CareNetworkScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Care Network" }}
       />
 
       {/* CARE PREFERENCES */}
