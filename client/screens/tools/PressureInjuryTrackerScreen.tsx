@@ -201,26 +201,15 @@ export default function PressureInjuryTrackerScreen() {
   const healed = injuries.filter((i) => i.status === "healed");
 
   function handleSitePress(site: Site) {
-    try {
-      const existing = injuries.find((i) => i.site === site.id && i.status === "active");
-      if (existing) {
-        navigation.navigate("PressureInjuryDetail", {
-          injuryId: existing.id,
-          site: existing.site,
-          siteLabel: existing.siteLabel,
-        });
-        return;
-      }
-      Alert.alert(
-        site.label,
-        "Start tracking a wound at this site?",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Start Tracking", onPress: () => createWound(site) },
-        ]
-      );
-    } catch (e: any) {
-      Alert.alert("Error", e?.message ?? "Something went wrong");
+    const existing = injuries.find((i) => i.site === site.id && i.status === "active");
+    if (existing) {
+      navigation.navigate("PressureInjuryDetail", {
+        injuryId: existing.id,
+        site: existing.site,
+        siteLabel: existing.siteLabel,
+      });
+    } else {
+      createWound(site);
     }
   }
 
