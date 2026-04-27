@@ -7,7 +7,6 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
-import Svg, { Ellipse, Path, Circle, G } from "react-native-svg";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -79,84 +78,62 @@ export const STAGE_LABELS: Record<string, string> = {
 // ---------------------------------------------------------------------------
 // Body silhouette SVG (back view, simplified anatomical)
 // ---------------------------------------------------------------------------
-const MAP_WIDTH = 180;
-const MAP_HEIGHT = 396; // 220 * scale (180/100 = 1.8)
-const SCALE = MAP_WIDTH / 100;
-const HIT = 36; // touch target size in px
+// Grouped site layout for the button grid
+const SITE_GROUPS = [
+  {
+    label: "Head & Upper Back",
+    sites: ["occiput", "left_scapula", "right_scapula"],
+  },
+  {
+    label: "Arms",
+    sites: ["left_elbow", "right_elbow"],
+  },
+  {
+    label: "Pelvis & Hips",
+    sites: ["sacrum", "left_ischium", "right_ischium", "left_trochanter", "right_trochanter"],
+  },
+  {
+    label: "Ankles & Heels",
+    sites: ["left_malleolus", "right_malleolus", "left_heel", "right_heel"],
+  },
+];
 
-function BodyMap({
-  injuries,
-  onSitePress,
+function SiteButton({
+  site,
+  injury,
+  onPress,
 }: {
-  injuries: any[];
-  onSitePress: (site: Site) => void;
+  site: Site;
+  injury: any | null;
+  onPress: () => void;
 }) {
   const { theme } = useTheme();
-
-  function getSiteColor(siteId: string): string {
-    const match = injuries.find((i) => i.site === siteId && i.status === "active");
-    if (!match) return theme.backgroundTertiary;
-    return stageColor(match.latestStage);
-  }
+  const color = injury ? stageColor(injury.latestStage) : theme.backgroundTertiary;
+  const isActive = !!injury;
 
   return (
-    <View style={{ width: MAP_WIDTH, height: MAP_HEIGHT, alignSelf: "center" }}>
-      {/* Body silhouette — purely visual, no interaction */}
-      <Svg width={MAP_WIDTH} height={MAP_HEIGHT} viewBox="0 0 100 220" style={{ position: "absolute" }}>
-        <G opacity={0.25} fill={theme.text}>
-          <Ellipse cx="50" cy="10" rx="9" ry="10" />
-          <Path d="M45,19 Q50,23 55,19 L55,25 Q50,27 45,25 Z" />
-          <Path d="M28,25 Q22,28 20,40 L18,75 Q20,80 30,82 L30,95 Q35,100 50,100 Q65,100 70,95 L70,82 Q80,80 82,75 L80,40 Q78,28 72,25 Z" />
-          <Path d="M28,25 Q18,30 14,55 Q14,62 18,65 Q22,62 24,55 L28,35 Z" />
-          <Path d="M72,25 Q82,30 86,55 Q86,62 82,65 Q78,62 76,55 L72,35 Z" />
-          <Path d="M14,55 Q10,65 12,80 Q16,82 20,78 Q20,65 18,65 Z" />
-          <Path d="M86,55 Q90,65 88,80 Q84,82 80,78 Q80,65 82,65 Z" />
-          <Path d="M30,95 Q26,100 26,140 Q28,148 34,148 Q40,145 40,138 L38,95 Z" />
-          <Path d="M70,95 Q74,100 74,140 Q72,148 66,148 Q60,145 60,138 L62,95 Z" />
-          <Path d="M26,140 Q24,165 26,185 Q28,190 34,190 Q38,187 38,180 L34,148 Z" />
-          <Path d="M74,140 Q76,165 74,185 Q72,190 66,190 Q62,187 62,180 L66,148 Z" />
-          <Path d="M26,185 Q22,195 24,205 Q28,210 36,208 Q40,200 38,190 Z" />
-          <Path d="M74,185 Q78,195 76,205 Q72,210 64,208 Q60,200 62,190 Z" />
-        </G>
-        {/* Visible dots — no interaction */}
-        {SITES.map((site) => {
-          const color = getSiteColor(site.id);
-          const isActive = injuries.some((i) => i.site === site.id && i.status === "active");
-          return (
-            <Circle
-              key={site.id}
-              cx={site.x}
-              cy={site.y}
-              r={isActive ? 5.5 : 4}
-              fill={color}
-              opacity={isActive ? 1 : 0.45}
-              stroke={isActive ? "#fff" : theme.text}
-              strokeWidth={isActive ? 1 : 0.5}
-              strokeOpacity={isActive ? 0.9 : 0.3}
-            />
-          );
-        })}
-      </Svg>
-
-      {/* Pressable touch targets overlaid absolutely — work on web + native */}
-      {SITES.map((site) => (
-        <Pressable
-          key={site.id}
-          onPress={() => onSitePress(site)}
-          style={({ pressed }) => ({
-            position: "absolute",
-            left: site.x * SCALE - HIT / 2,
-            top: site.y * SCALE - HIT / 2,
-            width: HIT,
-            height: HIT,
-            borderRadius: HIT / 2,
-            backgroundColor: pressed ? "rgba(255,255,255,0.15)" : "transparent",
-            alignItems: "center",
-            justifyContent: "center",
-          })}
-        />
-      ))}
-    </View>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.siteBtn,
+        {
+          backgroundColor: isActive ? color + "22" : theme.backgroundSecondary,
+          borderColor: isActive ? color : theme.backgroundTertiary,
+          opacity: pressed ? 0.7 : 1,
+        },
+      ]}
+    >
+      <View style={[styles.siteDot, { backgroundColor: color, opacity: isActive ? 1 : 0.4 }]} />
+      <ThemedText type="caption" style={{ flex: 1, fontSize: 12, fontWeight: isActive ? "600" : "400" }}>
+        {site.shortLabel}
+      </ThemedText>
+      {isActive && (
+        <ThemedText type="caption" style={{ color, fontWeight: "700", fontSize: 11 }}>
+          {STAGE_LABELS[injury.latestStage] ?? ""}
+        </ThemedText>
+      )}
+      <Feather name="chevron-right" size={13} color={theme.textSecondary} />
+    </Pressable>
   );
 }
 
@@ -269,7 +246,7 @@ export default function PressureInjuryTrackerScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: headerHeight + Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }}
       >
-        {/* Legend */}
+        {/* Stage legend */}
         <View style={styles.legend}>
           {Object.entries(STAGE_LABELS).map(([key, label]) => (
             <View key={key} style={styles.legendItem}>
@@ -279,17 +256,27 @@ export default function PressureInjuryTrackerScreen() {
           ))}
         </View>
 
-        {/* Body map */}
-        <View style={styles.mapContainer}>
-          {loading ? (
+        {/* Site buttons grouped by body region */}
+        {loading ? (
+          <View style={{ alignItems: "center", paddingVertical: Spacing.xl }}>
             <ActivityIndicator color={theme.primary} />
-          ) : (
-            <BodyMap injuries={injuries} onSitePress={handleSitePress} />
-          )}
-          <ThemedText type="caption" style={[styles.mapHint, { color: theme.textSecondary }]}>
-            Tap a dot to view or start tracking a wound
-          </ThemedText>
-        </View>
+          </View>
+        ) : (
+          SITE_GROUPS.map((group) => (
+            <View key={group.label} style={styles.section}>
+              <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                {group.label.toUpperCase()}
+              </ThemedText>
+              {group.sites.map((siteId) => {
+                const site = SITES.find((s) => s.id === siteId)!;
+                const injury = injuries.find((i) => i.site === siteId && i.status === "active");
+                return (
+                  <SiteButton key={siteId} site={site} injury={injury ?? null} onPress={() => handleSitePress(site)} />
+                );
+              })}
+            </View>
+          ))
+        )}
 
         {/* Active wounds */}
         {active.length > 0 && (
@@ -367,9 +354,16 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  mapContainer: { alignItems: "center", paddingVertical: Spacing.sm },
-  mapHint: { marginTop: Spacing.sm, fontSize: 11 },
   section: { paddingHorizontal: Spacing.lg, marginTop: Spacing.lg, gap: Spacing.sm },
+  siteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.small,
+    borderWidth: 1,
+  },
+  siteDot: { width: 10, height: 10, borderRadius: 5 },
   sectionTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 2 },
   card: {
     flexDirection: "row",
