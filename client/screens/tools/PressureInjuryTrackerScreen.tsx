@@ -136,7 +136,16 @@ function BodyMap({
           const color = getSiteColor(site.id);
           const isActive = injuries.some((i) => i.site === site.id && i.status === "active");
           return (
-            <G key={site.id} onPress={() => onSitePress(site)}>
+            <G key={site.id}>
+              {/* Invisible large hit target */}
+              <Circle
+                cx={site.x}
+                cy={site.y}
+                r={10}
+                fill="transparent"
+                onPress={() => onSitePress(site)}
+              />
+              {/* Visible dot */}
               <Circle
                 cx={site.x}
                 cy={site.y}
@@ -146,6 +155,7 @@ function BodyMap({
                 stroke={isActive ? "#fff" : theme.text}
                 strokeWidth={isActive ? 1 : 0.5}
                 strokeOpacity={isActive ? 0.9 : 0.3}
+                onPress={() => onSitePress(site)}
               />
             </G>
           );
@@ -262,7 +272,7 @@ export default function PressureInjuryTrackerScreen() {
     <ThemedView style={{ flex: 1 }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + Spacing.xl }}
+        contentContainerStyle={{ paddingTop: headerHeight + Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }}
       >
         {/* Legend */}
         <View style={styles.legend}>
@@ -356,13 +366,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.xs,
     gap: Spacing.sm,
     justifyContent: "center",
   },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  mapContainer: { alignItems: "center", paddingVertical: Spacing.lg },
+  mapContainer: { alignItems: "center", paddingVertical: Spacing.sm },
   mapHint: { marginTop: Spacing.sm, fontSize: 11 },
   section: { paddingHorizontal: Spacing.lg, marginTop: Spacing.lg, gap: Spacing.sm },
   sectionTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 2 },
