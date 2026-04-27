@@ -234,7 +234,7 @@ function setupExpoProxy(app: express.Application) {
   configureExpoAndLanding(app);
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  const host = process.env.SERVER_HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost");
+  const host = process.env.SERVER_HOST || "0.0.0.0";
   server.listen({ port, host }, () => {
     log(`express server serving on port ${port}`);
   });
