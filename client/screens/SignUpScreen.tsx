@@ -333,7 +333,7 @@ export default function SignUpScreen() {
               {/* Header */}
               <View style={styles.hero}>
                 <Image
-                  source={require("../../assets/images/icon.png")}
+                  source={require("../../assets/images/logo-header.png")}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
   hero: { alignItems: "center", marginBottom: 28 },
   logoGradient: { width: 68, height: 68, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 14 },
   logoShadow: { shadowColor: "#00E676", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.7, shadowRadius: 22, elevation: 10 },
-  logoImage: { width: 120, height: 120, marginBottom: 14 },
+  logoImage: { width: 220, height: 50, marginBottom: 14 },
   termsRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 14 },
   checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, alignItems: "center", justifyContent: "center", marginTop: 1, flexShrink: 0 },
   termsText: { flex: 1, lineHeight: 18 },

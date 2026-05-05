@@ -12,7 +12,7 @@ export function HeaderTitle({ title }: HeaderTitleProps) {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../assets/images/icon.png")}
+        source={require("../../assets/images/logo-header.png")}
         style={styles.icon}
         resizeMode="contain"
       />
@@ -28,10 +28,9 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   icon: {
-    width: 36,
-    height: 36,
+    width: 120,
+    height: 27,
     marginRight: Spacing.sm,
-    borderRadius: 6,
   },
   title: {
     fontSize: 17,

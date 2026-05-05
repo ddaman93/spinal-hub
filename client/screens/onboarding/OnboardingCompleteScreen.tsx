@@ -96,7 +96,7 @@ export default function OnboardingCompleteScreen() {
       <View style={styles.content}>
         {/* Logo */}
         <Image
-          source={require("../../../assets/images/icon.png")}
+          source={require("../../../assets/images/logo-header.png")}
           style={styles.logoImage}
           resizeMode="contain"
         />
@@ -167,8 +167,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   logoImage: {
-    width: 140,
-    height: 140,
+    width: 240,
+    height: 54,
     marginBottom: Spacing.xl,
   },
   title: {

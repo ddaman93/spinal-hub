@@ -343,7 +343,7 @@ export default function LoginScreen() {
               {/* Hero */}
               <View style={styles.hero}>
                 <Image
-                  source={require("../../assets/images/icon.png")}
+                  source={require("../../assets/images/logo-header.png")}
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   hero: { alignItems: "center", marginBottom: 32, marginTop: 16 },
   logoGradient: { width: 72, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 16 },
   logoShadow: { shadowColor: "#00E676", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.7, shadowRadius: 24, elevation: 12 },
-  logoImage: { width: 120, height: 120, marginBottom: 16 },
+  logoImage: { width: 220, height: 50, marginBottom: 16 },
   appName: { fontSize: 32, fontWeight: "800", letterSpacing: -0.5 },
   tagline: { marginTop: 4, fontSize: 15 },
 
