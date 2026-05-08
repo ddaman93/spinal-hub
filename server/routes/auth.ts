@@ -158,7 +158,8 @@ export async function oauthRoute(req: Request, res: Response) {
     } else {
       return res.status(400).json({ message: "Unsupported provider." });
     }
-  } catch {
+  } catch (err) {
+    console.error("[oauth] token verification failed:", err);
     return res.status(502).json({ message: "Failed to verify OAuth token with provider." });
   }
 

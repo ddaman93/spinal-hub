@@ -297,20 +297,29 @@ export default function LoginScreen() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-      if (!credential.identityToken) { setError("Apple sign-in failed. Please try again."); return; }
+      if (!credential.identityToken) {
+        setError("Apple returned no identity token. Try signing out of iCloud and back in.");
+        return;
+      }
       const fullName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(" ") || undefined;
       setLoading(true);
-      const res = await fetch(`${getApiUrl()}/api/auth/oauth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "apple", accessToken: credential.identityToken, fullName }),
-      });
+      let res: Response;
+      try {
+        res = await fetch(`${getApiUrl()}/api/auth/oauth`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ provider: "apple", accessToken: credential.identityToken, fullName }),
+        });
+      } catch (networkErr: any) {
+        setError(`Cannot reach server. Check your connection. (${networkErr?.message ?? "network error"})`);
+        return;
+      }
       const data = await res.json();
       if (!res.ok) { setError(data.message || "Apple sign-in failed."); return; }
       await saveToken(data.token);
       triggerLogin();
     } catch (e: any) {
-      if (e.code !== "ERR_REQUEST_CANCELED") setError("Apple sign-in failed. Please try again.");
+      if (e.code !== "ERR_REQUEST_CANCELED") setError(`Apple sign-in error: ${e?.message ?? e?.code ?? "unknown"}`);
     } finally {
       setLoading(false);
     }
