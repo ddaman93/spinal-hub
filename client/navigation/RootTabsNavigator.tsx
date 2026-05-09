@@ -130,7 +130,7 @@ function HomeStackNavigator() {
         component={DashboardScreen}
         options={{
           headerTitle: () => (
-            <HeaderTitle title="Spinal Hub" />
+            <HeaderTitle />
           ),
         }}
       />

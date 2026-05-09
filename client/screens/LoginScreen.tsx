@@ -356,7 +356,6 @@ export default function LoginScreen() {
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-                <ThemedText type="h1" style={[styles.appName, { color: C.text }]}>Spinal Hub</ThemedText>
                 <ThemedText type="body" style={[styles.tagline, { color: C.textMuted }]}>Your SCI companion</ThemedText>
               </View>
 
@@ -445,8 +444,7 @@ const styles = StyleSheet.create({
   hero: { alignItems: "center", marginBottom: 32, marginTop: 16 },
   logoGradient: { width: 72, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", marginBottom: 16 },
   logoShadow: { shadowColor: "#00E676", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.7, shadowRadius: 24, elevation: 12 },
-  logoImage: { width: 220, height: 50, marginBottom: 16 },
-  appName: { fontSize: 32, fontWeight: "800", letterSpacing: -0.5 },
+  logoImage: { width: 280, height: 70, marginBottom: 16 },
   tagline: { marginTop: 4, fontSize: 15 },
 
   card: { width: "100%", borderRadius: 24, overflow: "hidden", borderWidth: 1 },

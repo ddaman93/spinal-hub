@@ -5,14 +5,24 @@ import { ThemedText } from "@/components/ThemedText";
 import { Spacing } from "@/constants/theme";
 
 interface HeaderTitleProps {
-  title: string;
+  title?: string;
 }
 
 export function HeaderTitle({ title }: HeaderTitleProps) {
+  if (!title) {
+    return (
+      <Image
+        source={require("../../assets/images/logo-header.png")}
+        style={styles.wordmark}
+        resizeMode="contain"
+      />
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../assets/images/logo-header.png")}
+        source={require("../../assets/images/logo-mark.png")}
         style={styles.icon}
         resizeMode="contain"
       />
@@ -27,9 +37,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-start",
   },
+  wordmark: {
+    width: 160,
+    height: 40,
+  },
   icon: {
-    width: 120,
-    height: 27,
+    width: 24,
+    height: 24,
     marginRight: Spacing.sm,
   },
   title: {
