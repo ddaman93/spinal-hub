@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   wordmark: {
-    width: 160,
-    height: 40,
+    width: 200,
+    height: 50,
   },
   icon: {
     width: 24,
