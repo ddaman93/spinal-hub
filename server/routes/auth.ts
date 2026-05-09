@@ -100,7 +100,6 @@ export async function oauthRoute(req: Request, res: Response) {
         return res.status(400).json({ message: "accessToken is required for Apple." });
       }
       const tokenStr = String(accessToken).trim();
-      console.log("[apple] token type:", typeof accessToken, "len:", tokenStr.length, "parts:", tokenStr.split(".").length, "start:", tokenStr.slice(0, 30));
       const { payload } = await jose.jwtVerify(tokenStr, APPLE_JWKS, {
         issuer: "https://appleid.apple.com",
         audience: "com.spinalhub.app",
