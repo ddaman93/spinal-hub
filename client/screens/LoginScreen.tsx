@@ -311,7 +311,7 @@ export default function LoginScreen() {
           body: JSON.stringify({ provider: "apple", accessToken: credential.identityToken, fullName }),
         });
       } catch (networkErr: any) {
-        setError(`Cannot reach server. Check your connection. (${networkErr?.message ?? "network error"})`);
+        setError(`URL: ${getApiUrl()} — ${networkErr?.message ?? "network error"}`);
         return;
       }
       const data = await res.json();
