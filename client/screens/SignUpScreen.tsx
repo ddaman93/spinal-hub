@@ -21,6 +21,7 @@ import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import * as Google from "expo-auth-session/providers/google";
+import { ResponseType } from "expo-auth-session";
 import * as Facebook from "expo-auth-session/providers/facebook";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -95,6 +96,8 @@ function GoogleButton({ onOAuth, onError, C }: { onOAuth: OAuthHandler; onError:
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined,
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined,
+    responseType: ResponseType.IdToken,
+    scopes: ["openid", "profile", "email"],
   });
   async function handlePress() {
     try {
