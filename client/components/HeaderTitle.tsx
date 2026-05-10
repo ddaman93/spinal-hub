@@ -42,12 +42,12 @@ const styles = StyleSheet.create({
     height: 56,
   },
   icon: {
-    width: 24,
-    height: 24,
+    width: 48,
+    height: 48,
     marginRight: Spacing.sm,
   },
   title: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "600",
   },
 });
