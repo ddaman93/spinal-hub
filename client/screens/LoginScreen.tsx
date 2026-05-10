@@ -96,8 +96,8 @@ function GoogleButton({ onOAuth, onError, style, C }: { onOAuth: OAuthHandler; o
     try {
       const result = await promptAsync();
       if (result.type === "success") {
-        const accessToken = result.authentication?.accessToken;
-        const idToken = result.authentication?.idToken;
+        const accessToken = result.authentication?.accessToken ?? (result.params as Record<string, string>)?.access_token;
+        const idToken = result.authentication?.idToken ?? (result.params as Record<string, string>)?.id_token;
         if (accessToken || idToken) {
           await onOAuth("google", { accessToken, idToken });
         } else {
