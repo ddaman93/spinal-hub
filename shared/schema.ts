@@ -1,5 +1,13 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  integer,
+  index,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,15 +15,23 @@ import { z } from "zod";
 // users
 // ---------------------------------------------------------------------------
 
-export const users = pgTable("users", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull().default(""),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    passwordHash: text("password_hash").notNull().default(""),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    emailLowerIdx: uniqueIndex("users_email_lower_idx").on(
+      sql`lower(${t.email})`,
+    ),
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // user_profiles
@@ -53,18 +69,27 @@ export const userProfiles = pgTable("user_profiles", {
 // chat_messages
 // ---------------------------------------------------------------------------
 
-export const chatMessages = pgTable("chat_messages", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  channel: text("channel").notNull(),
-  authorId: varchar("author_id").references(() => users.id, {
-    onDelete: "set null",
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    channel: text("channel").notNull(),
+    authorId: varchar("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    authorName: text("author_name").notNull(),
+    text: text("text").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    channelCreatedAtIdx: index("chat_messages_channel_created_at_idx").on(
+      t.channel,
+      t.createdAt,
+    ),
   }),
-  authorName: text("author_name").notNull(),
-  text: text("text").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+);
 
 // ---------------------------------------------------------------------------
 // feedback
@@ -84,39 +109,56 @@ export const feedback = pgTable("feedback", {
 // sci_provider_reviews
 // ---------------------------------------------------------------------------
 
-export const sciProviderReviews = pgTable("sci_provider_reviews", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  providerId: text("provider_id").notNull(),
-  authorId: varchar("author_id").references(() => users.id, {
-    onDelete: "set null",
+export const sciProviderReviews = pgTable(
+  "sci_provider_reviews",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    providerId: text("provider_id").notNull(),
+    authorId: varchar("author_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    authorName: text("author_name").notNull().default("Anonymous"),
+    rating: integer("rating").notNull(),
+    comment: text("comment").notNull().default(""),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    providerCreatedAtIdx: index(
+      "sci_provider_reviews_provider_created_at_idx",
+    ).on(t.providerId, t.createdAt.desc()),
   }),
-  authorName: text("author_name").notNull().default("Anonymous"),
-  rating: integer("rating").notNull(),
-  comment: text("comment").notNull().default(""),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+);
 
 // ---------------------------------------------------------------------------
 // message_reports
 // ---------------------------------------------------------------------------
 
-export const messageReports = pgTable("message_reports", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  messageId: varchar("message_id").notNull(),
-  channel: text("channel").notNull(),
-  reportedAuthor: text("reported_author").notNull(),
-  messageText: text("message_text").notNull(),
-  reporterId: varchar("reporter_id").references(() => users.id, {
-    onDelete: "set null",
+export const messageReports = pgTable(
+  "message_reports",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    messageId: varchar("message_id").notNull(),
+    channel: text("channel").notNull(),
+    reportedAuthor: text("reported_author").notNull(),
+    messageText: text("message_text").notNull(),
+    reporterId: varchar("reporter_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    reporterName: text("reporter_name"),
+    resolved: text("resolved").notNull().default("pending"), // pending | removed | dismissed
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    resolvedCreatedAtIdx: index("message_reports_resolved_created_at_idx").on(
+      t.resolved,
+      t.createdAt,
+    ),
   }),
-  reporterName: text("reporter_name"),
-  resolved: text("resolved").notNull().default("pending"), // pending | removed | dismissed
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+);
 
 // ---------------------------------------------------------------------------
 // Zod schemas + types
