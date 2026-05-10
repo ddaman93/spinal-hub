@@ -20,7 +20,7 @@ import { Feather, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import * as Google from "expo-auth-session/providers/google";
-import { ResponseType } from "expo-auth-session";
+import { makeRedirectUri } from "expo-auth-session";
 import * as Facebook from "expo-auth-session/providers/facebook";
 import * as WebBrowser from "expo-web-browser";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -87,21 +87,45 @@ type OAuthTokens = { accessToken?: string; idToken?: string };
 type OAuthHandler = (provider: "google" | "facebook", tokens: OAuthTokens) => Promise<void>;
 type Colors = typeof DARK;
 
+const IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID!;
+const ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID!;
+
 function GoogleButton({ onOAuth, onError, style, C }: { onOAuth: OAuthHandler; onError: (msg: string) => void; style?: object; C: Colors }) {
-  const [, , promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || undefined,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || undefined,
-    responseType: ResponseType.IdToken,
+  const iosScheme = `com.googleusercontent.apps.${IOS_CLIENT_ID.replace(".apps.googleusercontent.com", "")}`;
+  const redirectUri = makeRedirectUri({ scheme: iosScheme });
+  const [request, , promptAsync] = Google.useAuthRequest({
+    iosClientId: IOS_CLIENT_ID,
+    androidClientId: ANDROID_CLIENT_ID,
     scopes: ["openid", "profile", "email"],
+    redirectUri,
   });
   async function handlePress() {
     try {
       const result = await promptAsync();
       if (result.type === "success") {
-        const accessToken = result.authentication?.accessToken ?? (result.params as Record<string, string>)?.access_token;
-        const idToken = result.authentication?.idToken ?? (result.params as Record<string, string>)?.id_token;
-        if (accessToken || idToken) {
+        const params = result.params as Record<string, string>;
+        let idToken = result.authentication?.idToken ?? params.id_token;
+        let accessToken = result.authentication?.accessToken ?? params.access_token;
+
+        if (!idToken && !accessToken && params.code && request?.codeVerifier) {
+          const clientId = Platform.OS === "android" ? ANDROID_CLIENT_ID : IOS_CLIENT_ID;
+          const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: [
+              `grant_type=authorization_code`,
+              `code=${encodeURIComponent(params.code)}`,
+              `client_id=${encodeURIComponent(clientId)}`,
+              `code_verifier=${encodeURIComponent(request.codeVerifier)}`,
+              `redirect_uri=${encodeURIComponent(redirectUri)}`,
+            ].join("&"),
+          });
+          const tokenData = await tokenRes.json();
+          idToken = tokenData.id_token;
+          accessToken = tokenData.access_token;
+        }
+
+        if (idToken || accessToken) {
           await onOAuth("google", { accessToken, idToken });
         } else {
           onError("Google sign-in didn't return a token. Please try again.");
