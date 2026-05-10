@@ -345,7 +345,7 @@ export default function DashboardScreen() {
         {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.xl,
+          paddingTop: headerHeight + Spacing.sm,
           paddingBottom: insets.bottom + Spacing.xl,
           paddingHorizontal: Spacing.lg,
           gap: Spacing.md,
