@@ -132,9 +132,7 @@ function GoogleButton({ onOAuth, onError, C }: { onOAuth: OAuthHandler; onError:
         if (idToken || accessToken) {
           await onOAuth("google", { accessToken, idToken });
         } else {
-          const paramKeys = Object.keys(params).join(",") || "none";
-          const hasVerifier = !!request?.codeVerifier;
-          onError(`Debug: params=[${paramKeys}] auth=${!!result.authentication} verifier=${hasVerifier}`);
+          onError("Google sign-in didn't return a token. Please try again.");
         }
       } else if (result.type === "error") {
         onError(`Google sign-in error: ${(result as { error?: { message?: string } }).error?.message ?? "unknown"}`);
