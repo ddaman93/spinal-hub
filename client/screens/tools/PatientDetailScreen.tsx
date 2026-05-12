@@ -317,18 +317,19 @@ export default function PatientDetailScreen() {
                   onPress={() => handleTilePress(tile)}
                   style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, width: TILE_WIDTH }]}
                 >
-                  <ElevatedCard style={styles.tile} padding={Spacing.md}>
+                  <ElevatedCard style={styles.tile} padding={10}>
                     <View style={[styles.tileIcon, { backgroundColor: tile.color + "22" }]}>
-                      <Feather name={tile.icon as any} size={20} color={tile.color} />
+                      <Feather name={tile.icon as any} size={18} color={tile.color} />
                     </View>
-                    <ThemedText type="small" style={{ fontWeight: "600", fontSize: 13, marginTop: Spacing.sm }}>
+                    <ThemedText
+                      type="small"
+                      numberOfLines={2}
+                      style={{ fontWeight: "600", fontSize: 11, marginTop: 6, lineHeight: 14 }}
+                    >
                       {tile.label}
                     </ThemedText>
-                    <ThemedText type="caption" style={{ opacity: 0.5, fontSize: 11, marginTop: 2 }}>
-                      {tile.sublabel}
-                    </ThemedText>
                     <View style={styles.comingSoonBadge}>
-                      <ThemedText style={{ fontSize: 9, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
+                      <ThemedText style={{ fontSize: 8, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
                     </View>
                   </ElevatedCard>
                 </Pressable>
@@ -409,8 +410,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tile: { position: "relative", height: 110 },
-  tileIcon: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  tile: { position: "relative", height: 100 },
+  tileIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   comingSoonBadge: {
     position: "absolute",
     top: 8, right: 8,
