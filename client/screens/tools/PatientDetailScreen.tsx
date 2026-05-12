@@ -1,7 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View, ScrollView, Pressable, StyleSheet, ActivityIndicator, Alert, TextInput,
+  KeyboardAvoidingView, Platform, Dimensions,
 } from "react-native";
+
+const TILE_WIDTH = (Dimensions.get("window").width - 32 - 8) / 2; // 2 cols, 16px side padding each, 8px gap
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,19 +13,17 @@ import { Feather } from "@expo/vector-icons";
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
 import { ElevatedCard } from "@/components/ElevatedCard";
-import { GlassCard } from "@/components/GlassCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
-import { SITES, STAGE_LABELS, stageColor } from "./PressureInjuryTrackerScreen";
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, "PatientDetail">;
 
 // ---------------------------------------------------------------------------
-// Dashboard tile config
+// Tile config — role-based filtering applied at render time
 // ---------------------------------------------------------------------------
 type Tile = {
   id: string;
@@ -31,46 +32,54 @@ type Tile = {
   sublabel: string;
   color: string;
   screen?: keyof MainStackParamList;
-  wired: boolean;
+  roles: string[]; // which roles see this tile
 };
 
 const TILES: Tile[] = [
-  { id: "vitals",       icon: "activity",       label: "Vital Signs",        sublabel: "BP, HR, O₂, temp",          color: "#4A90D9", screen: "VitalsLog",           wired: false },
-  { id: "bladder",      icon: "droplet",         label: "Bladder Log",         sublabel: "Output, catheter, continence", color: "#00BCD4", screen: "BladderLog",          wired: false },
-  { id: "pain",         icon: "zap",             label: "Pain Journal",        sublabel: "Score, location, triggers",   color: "#FF7043", screen: "PainJournal",         wired: false },
-  { id: "medications",  icon: "package",         label: "Medications",         sublabel: "Doses, times, PRN",           color: "#9C27B0", screen: "MedicationTracker",   wired: false },
-  { id: "appointments", icon: "calendar",        label: "Appointments",        sublabel: "Upcoming, history",           color: "#FF9800", screen: "AppointmentScheduler",wired: false },
-  { id: "routine",      icon: "sun",             label: "Morning Routine",     sublabel: "ADLs, positioning",          color: "#FFC107", screen: "MorningRoutine",      wired: false },
-  { id: "evening",      icon: "moon",            label: "Evening Routine",     sublabel: "Skin check, positioning",     color: "#5C6BC0", screen: "EveningRoutine",      wired: false },
-  { id: "skin",         icon: "eye",             label: "Skin Check",          sublabel: "SkinCheck log",              color: "#26A69A", screen: undefined,             wired: false },
-  { id: "hydration",    icon: "droplet",         label: "Hydration",           sublabel: "Fluid intake tracker",       color: "#29B6F6", screen: "HydrationTracker",    wired: false },
-  { id: "care_prefs",   icon: "heart",           label: "Care Preferences",    sublabel: "Likes, dislikes, needs",     color: "#E91E63", screen: undefined,             wired: false },
+  { id: "wounds",       icon: "shield",   label: "Pressure Injuries", sublabel: "Wounds, staging, checks", color: "#FF6B6B", screen: "PressureInjuryTracker", roles: ["carer", "clinician"] },
+  { id: "vitals",       icon: "activity", label: "Vital Signs",       sublabel: "BP, HR, O₂, temp",        color: "#4A90D9", screen: "VitalsLog",             roles: ["carer", "clinician"] },
+  { id: "bladder",      icon: "droplet",  label: "Bladder Log",       sublabel: "Output, catheter",        color: "#00BCD4", screen: "BladderLog",            roles: ["carer", "clinician"] },
+  { id: "pain",         icon: "zap",      label: "Pain Journal",      sublabel: "Score, location",         color: "#FF7043", screen: "PainJournal",           roles: ["carer", "clinician"] },
+  { id: "medications",  icon: "package",  label: "Medications",       sublabel: "Doses, times, PRN",       color: "#9C27B0", screen: "MedicationTracker",     roles: ["carer", "clinician"] },
+  { id: "hydration",    icon: "droplet",  label: "Hydration",         sublabel: "Fluid intake",            color: "#29B6F6", screen: "HydrationTracker",      roles: ["carer", "clinician"] },
+  { id: "skin",         icon: "eye",      label: "Skin Check",        sublabel: "Skin check log",          color: "#26A69A", screen: undefined,               roles: ["carer", "clinician"] },
+  { id: "routine",      icon: "sun",      label: "Morning Routine",   sublabel: "ADLs, positioning",       color: "#FFC107", screen: "MorningRoutine",        roles: ["carer", "clinician", "family"] },
+  { id: "evening",      icon: "moon",     label: "Evening Routine",   sublabel: "Skin, positioning",       color: "#5C6BC0", screen: "EveningRoutine",        roles: ["carer", "clinician", "family"] },
+  { id: "appointments", icon: "calendar", label: "Appointments",      sublabel: "Upcoming, history",       color: "#FF9800", screen: "AppointmentScheduler",  roles: ["carer", "clinician", "family"] },
+  { id: "care_prefs",   icon: "heart",    label: "Care Preferences",  sublabel: "Likes, dislikes, needs",  color: "#E91E63", screen: undefined,               roles: ["carer", "clinician", "family"] },
 ];
 
+type Profile = {
+  aboutMe?: string | null;
+  injuryLevel?: string | null;
+  injuryType?: string | null;
+  injuryDate?: string | null;
+  rehabCentre?: string | null;
+  routineHighlights?: string | null;
+};
+
+type CareNote = {
+  id: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+};
+
 // ---------------------------------------------------------------------------
-// Wound card
+// Helpers
 // ---------------------------------------------------------------------------
-function WoundCard({ injury, onPress, theme }: { injury: any; onPress: () => void; theme: any }) {
-  const site = SITES.find((s) => s.id === injury.site);
-  const color = stageColor(injury.latestStage);
-  return (
-    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}>
-      <ElevatedCard style={styles.card} padding={0}>
-        <View style={[styles.cardAccent, { backgroundColor: color }]} />
-        <View style={styles.cardBody}>
-          <ThemedText type="small" style={{ fontWeight: "600" }}>
-            {site?.label ?? injury.siteLabel ?? injury.site}
-          </ThemedText>
-          <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 2 }}>
-            {STAGE_LABELS[injury.latestStage] ?? "No assessment"}
-            {injury.lastChecked ? `  ·  ${new Date(injury.lastChecked).toLocaleDateString()}` : ""}
-          </ThemedText>
-        </View>
-        <Feather name="chevron-right" size={16} color={theme.textSecondary} style={{ marginRight: Spacing.md }} />
-      </ElevatedCard>
-    </Pressable>
-  );
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
 }
+
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -80,55 +89,54 @@ export default function PatientDetailScreen() {
   const { params } = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const scrollRef = useRef<ScrollView>(null);
 
-  const [injuries, setInjuries] = useState<any[]>([]);
-  const [loadingInjuries, setLoadingInjuries] = useState(true);
-  const [carerNotes, setCarerNotes] = useState("");
-  const [notesEditing, setNotesEditing] = useState(false);
-  const [notesDraft, setNotesDraft] = useState("");
-  const [notesSaving, setNotesSaving] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [notes, setNotes] = useState<CareNote[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // New note input
+  const [noteDraft, setNoteDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
-    setLoadingInjuries(true);
+    setLoading(true);
     try {
       const token = await getToken();
-      const [injRes, profileRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/pressure-injuries?patientId=${encodeURIComponent(params.patientId)}`,
-          { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${getApiUrl()}/api/profile/${encodeURIComponent(params.patientId)}`,
-          { headers: { Authorization: `Bearer ${token}` } }),
+      const headers = { Authorization: `Bearer ${token}` };
+      const [profileRes, notesRes] = await Promise.all([
+        fetch(`${getApiUrl()}/api/care/profile/${encodeURIComponent(params.patientId)}`, { headers }),
+        fetch(`${getApiUrl()}/api/care/notes/${encodeURIComponent(params.patientId)}`, { headers }),
       ]);
-      if (injRes.ok) setInjuries(await injRes.json());
-      if (profileRes.ok) {
-        const p = await profileRes.json();
-        setCarerNotes(p.caregiverNotes ?? "");
-        setNotesDraft(p.caregiverNotes ?? "");
-      }
+      if (profileRes.ok) setProfile(await profileRes.json());
+      if (notesRes.ok) setNotes(await notesRes.json());
     } catch {
-      // silently fail
+      // silent
     } finally {
-      setLoadingInjuries(false);
+      setLoading(false);
     }
   }, [params.patientId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  async function saveNotes() {
-    setNotesSaving(true);
+  async function submitNote() {
+    if (!noteDraft.trim()) return;
+    setSubmitting(true);
     try {
       const token = await getToken();
-      const res = await fetch(`${getApiUrl()}/api/profile/${encodeURIComponent(params.patientId)}`, {
-        method: "PATCH",
+      const res = await fetch(`${getApiUrl()}/api/care/notes/${encodeURIComponent(params.patientId)}`, {
+        method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ caregiverNotes: notesDraft }),
+        body: JSON.stringify({ content: noteDraft.trim() }),
       });
       if (!res.ok) throw new Error();
-      setCarerNotes(notesDraft);
-      setNotesEditing(false);
+      const newNote: CareNote = await res.json();
+      setNotes((prev) => [newNote, ...prev]);
+      setNoteDraft("");
     } catch {
-      Alert.alert("Error", "Could not save notes.");
+      Alert.alert("Error", "Could not save note.");
     } finally {
-      setNotesSaving(false);
+      setSubmitting(false);
     }
   }
 
@@ -140,149 +148,195 @@ export default function PatientDetailScreen() {
     }
   }
 
-  const active = injuries.filter((i) => i.status === "active");
+  const hasIntro = profile?.aboutMe || profile?.injuryLevel || profile?.routineHighlights;
+  const visibleTiles = TILES.filter((t) => t.roles.includes(params.role));
+
+  const roleColor = params.role === "clinician" ? "#AF52DE" : params.role === "family" ? "#5B8DEF" : "#00E676";
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }}
-      >
-        {/* Patient header card */}
-        <ElevatedCard style={styles.patientCard} padding={Spacing.md}>
-          <View style={[styles.avatar, { backgroundColor: theme.primary + "22" }]}>
-            <Feather name="user" size={26} color={theme.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText type="h4">{params.patientName}</ThemedText>
-            <ThemedText type="caption" style={{ opacity: 0.5, marginTop: 2 }}>
-              Your role: {params.role.charAt(0).toUpperCase() + params.role.slice(1)}
-            </ThemedText>
-          </View>
-        </ElevatedCard>
-
-        {/* ── PRESSURE INJURIES ── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionDot, { backgroundColor: "#FF6B6B" }]} />
-            <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-              PRESSURE INJURIES
-            </ThemedText>
-            <Pressable
-              onPress={() => navigation.navigate("PressureInjuryTracker" as any)}
-              style={styles.sectionAction}
-            >
-              <ThemedText type="caption" style={{ color: theme.primary, fontWeight: "600" }}>View map</ThemedText>
-            </Pressable>
-          </View>
-
-          {loadingInjuries ? (
-            <ActivityIndicator color={theme.primary} style={{ alignSelf: "flex-start" }} />
-          ) : active.length > 0 ? (
-            active.map((injury) => (
-              <WoundCard
-                key={injury.id}
-                injury={injury}
-                theme={theme}
-                onPress={() => navigation.navigate("PressureInjuryDetail", {
-                  injuryId: injury.id, site: injury.site, siteLabel: injury.siteLabel,
-                })}
-              />
-            ))
-          ) : (
-            <ThemedText type="caption" style={{ opacity: 0.4 }}>No active wounds.</ThemedText>
-          )}
-        </View>
-
-        {/* ── CARER NOTES ── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionDot, { backgroundColor: "#00E676" }]} />
-            <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-              CARER NOTES
-            </ThemedText>
-            {!notesEditing && (
-              <Pressable onPress={() => { setNotesDraft(carerNotes); setNotesEditing(true); }} style={styles.sectionAction}>
-                <ThemedText type="caption" style={{ color: theme.primary, fontWeight: "600" }}>
-                  {carerNotes ? "Edit" : "Add note"}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }}
+        >
+          {/* ── PATIENT HEADER ── */}
+          <ElevatedCard style={styles.patientCard} padding={Spacing.md}>
+            <View style={[styles.avatar, { backgroundColor: theme.primary + "22" }]}>
+              <ThemedText style={{ fontSize: 22, fontWeight: "800", color: theme.primary }}>
+                {params.patientName.charAt(0).toUpperCase()}
+              </ThemedText>
+            </View>
+            <View style={{ flex: 1 }}>
+              <ThemedText type="h4">{params.patientName}</ThemedText>
+              {profile?.injuryLevel ? (
+                <ThemedText type="caption" style={{ opacity: 0.55, marginTop: 1 }}>
+                  {[profile.injuryLevel, profile.injuryType].filter(Boolean).join(" · ")}
                 </ThemedText>
-              </Pressable>
+              ) : null}
+            </View>
+            <View style={[styles.roleBadge, { backgroundColor: roleColor + "22" }]}>
+              <ThemedText type="caption" style={{ color: roleColor, fontWeight: "700", fontSize: 11 }}>
+                {params.role.charAt(0).toUpperCase() + params.role.slice(1)}
+              </ThemedText>
+            </View>
+          </ElevatedCard>
+
+          {/* ── PATIENT INTRO CARD ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionDot, { backgroundColor: "#5B8DEF" }]} />
+              <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                ABOUT THIS PATIENT
+              </ThemedText>
+            </View>
+
+            {loading ? (
+              <ActivityIndicator color={theme.primary} size="small" style={{ alignSelf: "flex-start" }} />
+            ) : hasIntro ? (
+              <ElevatedCard padding={Spacing.md}>
+                {profile?.aboutMe ? (
+                  <ThemedText type="small" style={{ lineHeight: 20, marginBottom: profile?.routineHighlights ? Spacing.md : 0 }}>
+                    {profile.aboutMe}
+                  </ThemedText>
+                ) : null}
+
+                {profile?.injuryDate || profile?.rehabCentre ? (
+                  <View style={styles.infoRow}>
+                    {profile.injuryDate ? (
+                      <View style={styles.infoChip}>
+                        <Feather name="calendar" size={12} color={theme.textSecondary} />
+                        <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
+                          Injured {profile.injuryDate}
+                        </ThemedText>
+                      </View>
+                    ) : null}
+                    {profile.rehabCentre ? (
+                      <View style={styles.infoChip}>
+                        <Feather name="map-pin" size={12} color={theme.textSecondary} />
+                        <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
+                          {profile.rehabCentre}
+                        </ThemedText>
+                      </View>
+                    ) : null}
+                  </View>
+                ) : null}
+
+                {profile?.routineHighlights ? (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    <View style={styles.routineHeader}>
+                      <Feather name="sun" size={14} color="#FFC107" />
+                      <ThemedText type="caption" style={{ fontWeight: "700", marginLeft: 6, color: "#FFC107" }}>
+                        ROUTINE HIGHLIGHTS
+                      </ThemedText>
+                    </View>
+                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85, marginTop: Spacing.xs }}>
+                      {profile.routineHighlights}
+                    </ThemedText>
+                  </>
+                ) : null}
+              </ElevatedCard>
+            ) : (
+              <ThemedText type="caption" style={{ opacity: 0.4 }}>
+                Patient hasn't filled in their intro yet.
+              </ThemedText>
             )}
           </View>
 
-          {notesEditing ? (
-            <View style={{ gap: Spacing.sm }}>
-              <TextInput
-                value={notesDraft}
-                onChangeText={setNotesDraft}
-                multiline
-                autoFocus
-                placeholder="Notes about care, observations, concerns..."
-                placeholderTextColor={theme.textSecondary}
-                style={[styles.notesInput, { backgroundColor: theme.backgroundSecondary, color: theme.text }]}
-              />
-              <View style={{ flexDirection: "row", gap: Spacing.sm }}>
-                <Pressable
-                  onPress={saveNotes}
-                  disabled={notesSaving}
-                  style={[styles.notesBtn, { backgroundColor: theme.primary }]}
-                >
-                  <ThemedText type="small" style={{ color: "#fff", fontWeight: "600" }}>
-                    {notesSaving ? "Saving…" : "Save"}
-                  </ThemedText>
-                </Pressable>
-                <Pressable
-                  onPress={() => setNotesEditing(false)}
-                  style={[styles.notesBtn, { backgroundColor: theme.backgroundTertiary }]}
-                >
-                  <ThemedText type="small">Cancel</ThemedText>
-                </Pressable>
-              </View>
+          {/* ── HANDOVER NOTES ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionDot, { backgroundColor: "#00E676" }]} />
+              <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                HANDOVER NOTES
+              </ThemedText>
             </View>
-          ) : carerNotes ? (
-            <ThemedText type="small" style={{ opacity: 0.8, lineHeight: 20 }}>{carerNotes}</ThemedText>
-          ) : (
-            <ThemedText type="caption" style={{ opacity: 0.4 }}>No notes yet. Tap "Add note" to start.</ThemedText>
-          )}
-        </View>
 
-        {/* ── CARE TOOLS GRID ── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={[styles.sectionDot, { backgroundColor: "#4A90D9" }]} />
-            <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-              CARE TOOLS
-            </ThemedText>
-          </View>
-
-          <View style={styles.tileGrid}>
-            {TILES.map((tile) => (
+            {/* Add note input */}
+            <View style={[styles.noteInputRow, { backgroundColor: theme.backgroundSecondary }]}>
+              <TextInput
+                value={noteDraft}
+                onChangeText={setNoteDraft}
+                placeholder="Add a handover note…"
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                style={{ flex: 1, color: theme.text, fontSize: 14, paddingVertical: Spacing.sm, maxHeight: 100 }}
+              />
               <Pressable
-                key={tile.id}
-                onPress={() => handleTilePress(tile)}
-                style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, width: "47%" }]}
+                onPress={submitNote}
+                disabled={submitting || !noteDraft.trim()}
+                style={[styles.noteSubmitBtn, { backgroundColor: noteDraft.trim() ? theme.primary : theme.backgroundTertiary }]}
               >
-              <ElevatedCard style={styles.tile} padding={Spacing.md}>
-                <View style={[styles.tileIcon, { backgroundColor: tile.color + "22" }]}>
-                  <Feather name={tile.icon as any} size={20} color={tile.color} />
-                </View>
-                <ThemedText type="small" style={{ fontWeight: "600", fontSize: 13, marginTop: Spacing.sm }}>
-                  {tile.label}
-                </ThemedText>
-                <ThemedText type="caption" style={{ opacity: 0.5, fontSize: 11, marginTop: 2 }}>
-                  {tile.sublabel}
-                </ThemedText>
-                {!tile.wired && (
-                  <View style={styles.comingSoonBadge}>
-                    <ThemedText style={{ fontSize: 9, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
-                  </View>
-                )}
-              </ElevatedCard>
+                {submitting
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Feather name="send" size={16} color={noteDraft.trim() ? "#fff" : theme.textSecondary} />
+                }
               </Pressable>
-            ))}
+            </View>
+
+            {/* Notes log */}
+            {loading ? (
+              <ActivityIndicator color={theme.primary} size="small" style={{ alignSelf: "flex-start" }} />
+            ) : notes.length > 0 ? (
+              notes.map((note) => (
+                <View key={note.id} style={[styles.noteCard, { backgroundColor: theme.backgroundSecondary }]}>
+                  <View style={styles.noteHeader}>
+                    <View style={[styles.noteAvatar, { backgroundColor: theme.primary + "22" }]}>
+                      <ThemedText style={{ fontSize: 11, fontWeight: "800", color: theme.primary }}>
+                        {note.authorName.charAt(0).toUpperCase()}
+                      </ThemedText>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>{note.authorName}</ThemedText>
+                      <ThemedText type="caption" style={{ opacity: 0.45 }}>{timeAgo(note.createdAt)}</ThemedText>
+                    </View>
+                  </View>
+                  <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }}>{note.content}</ThemedText>
+                </View>
+              ))
+            ) : (
+              <ThemedText type="caption" style={{ opacity: 0.4 }}>No handover notes yet.</ThemedText>
+            )}
           </View>
-        </View>
-      </ScrollView>
+
+          {/* ── CARE TOOLS (role-filtered) ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionDot, { backgroundColor: "#4A90D9" }]} />
+              <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                CARE TOOLS
+              </ThemedText>
+            </View>
+
+            <View style={styles.tileGrid}>
+              {visibleTiles.map((tile) => (
+                <Pressable
+                  key={tile.id}
+                  onPress={() => handleTilePress(tile)}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, width: TILE_WIDTH }]}
+                >
+                  <ElevatedCard style={styles.tile} padding={Spacing.md}>
+                    <View style={[styles.tileIcon, { backgroundColor: tile.color + "22" }]}>
+                      <Feather name={tile.icon as any} size={20} color={tile.color} />
+                    </View>
+                    <ThemedText type="small" style={{ fontWeight: "600", fontSize: 13, marginTop: Spacing.sm }}>
+                      {tile.label}
+                    </ThemedText>
+                    <ThemedText type="caption" style={{ opacity: 0.5, fontSize: 11, marginTop: 2 }}>
+                      {tile.sublabel}
+                    </ThemedText>
+                    <View style={styles.comingSoonBadge}>
+                      <ThemedText style={{ fontSize: 9, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
+                    </View>
+                  </ElevatedCard>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
@@ -302,6 +356,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  roleBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
   section: {
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
@@ -313,63 +372,49 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     marginBottom: 2,
   },
-  sectionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    flex: 1,
-  },
-  sectionAction: {
-    paddingVertical: 2,
-    paddingHorizontal: 4,
-  },
-  card: {
+  sectionDot: { width: 6, height: 6, borderRadius: 3 },
+  sectionTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, flex: 1 },
+  sectionAction: { paddingVertical: 2, paddingHorizontal: 4 },
+  infoRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.sm },
+  infoChip: { flexDirection: "row", alignItems: "center" },
+  divider: { height: 1, marginVertical: Spacing.md },
+  routineHeader: { flexDirection: "row", alignItems: "center" },
+  noteInputRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end",
     borderRadius: BorderRadius.medium,
-    overflow: "hidden",
-  },
-  cardAccent: { width: 4, alignSelf: "stretch" },
-  cardBody: { flex: 1, padding: Spacing.md },
-  notesInput: {
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.md,
-    fontSize: 14,
-    textAlignVertical: "top",
-    minHeight: 100,
-  },
-  notesBtn: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.small,
-    alignItems: "center",
-  },
-  tileGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    paddingLeft: Spacing.md,
+    paddingVertical: Spacing.xs,
     gap: Spacing.sm,
   },
-  tile: {
-    position: "relative",
+  noteSubmitBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.small,
+    alignItems: "center",
+    justifyContent: "center",
+    margin: 4,
   },
-  tileIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+  noteCard: {
+    borderRadius: BorderRadius.medium,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  noteHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
+  noteAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
   },
+  tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  tile: { position: "relative", height: 110 },
+  tileIcon: { width: 40, height: 40, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   comingSoonBadge: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
+    top: 8, right: 8,
+    paddingHorizontal: 5, paddingVertical: 2,
     borderRadius: 4,
     backgroundColor: "rgba(255,255,255,0.08)",
   },

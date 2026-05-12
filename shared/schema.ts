@@ -60,6 +60,10 @@ export const userProfiles = pgTable("user_profiles", {
   emergencyContactPhone: text("emergency_contact_phone"),
   careCompanies: text("care_companies"),
   caregiverNotes: text("caregiver_notes"),
+  sex: text("sex"),
+  // care intro (shown to support workers)
+  aboutMe: text("about_me"),
+  routineHighlights: text("routine_highlights"),
   // medical
   medications: text("medications"),
   allergies: text("allergies"),
@@ -256,6 +260,34 @@ export const pressureInjuryChecks = pgTable("pressure_injury_checks", {
 });
 
 // ---------------------------------------------------------------------------
+// care_notes  (shared handover log — multiple carers can add entries)
+// ---------------------------------------------------------------------------
+
+export const careNotes = pgTable(
+  "care_notes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    authorId: varchar("author_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    patientCreatedIdx: index("care_notes_patient_created_idx").on(
+      t.patientId,
+      t.createdAt,
+    ),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Zod schemas + types
 // ---------------------------------------------------------------------------
 
@@ -273,3 +305,4 @@ export type CareRelationship = typeof careRelationships.$inferSelect;
 export type InviteCode = typeof inviteCodes.$inferSelect;
 export type PressureInjury = typeof pressureInjuries.$inferSelect;
 export type PressureInjuryCheck = typeof pressureInjuryChecks.$inferSelect;
+export type CareNote = typeof careNotes.$inferSelect;
