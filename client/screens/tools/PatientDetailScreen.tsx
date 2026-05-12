@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, Dimensions,
 } from "react-native";
 
-const TILE_WIDTH = (Dimensions.get("window").width - 32 - 8) / 2; // 2 cols, 16px side padding each, 8px gap
+const TILE_WIDTH = (Dimensions.get("window").width - 48 - 16) / 3; // 3 cols, 24px padding each side, 8px * 2 gaps
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
