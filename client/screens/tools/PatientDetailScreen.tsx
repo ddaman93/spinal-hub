@@ -323,10 +323,17 @@ export default function PatientDetailScreen() {
                     </View>
                     <ThemedText
                       type="small"
-                      numberOfLines={2}
+                      numberOfLines={1}
                       style={{ fontWeight: "600", fontSize: 11, marginTop: 6, lineHeight: 14 }}
                     >
                       {tile.label}
+                    </ThemedText>
+                    <ThemedText
+                      type="caption"
+                      numberOfLines={2}
+                      style={{ opacity: 0.5, fontSize: 9, marginTop: 2, lineHeight: 12 }}
+                    >
+                      {tile.sublabel}
                     </ThemedText>
                     <View style={styles.comingSoonBadge}>
                       <ThemedText style={{ fontSize: 8, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
@@ -410,7 +417,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tile: { position: "relative", height: 100 },
+  tile: { position: "relative" },
   tileIcon: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   comingSoonBadge: {
     position: "absolute",
