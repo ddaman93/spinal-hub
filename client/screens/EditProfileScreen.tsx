@@ -21,22 +21,28 @@ import { getToken } from "@/lib/auth";
 import { ThemedText } from "@/components/ThemedText";
 import { ProfileSection } from "@/components/profile/ProfileSection";
 import { DropdownPicker } from "@/components/profile/DropdownPicker";
+import { MonthYearPicker } from "@/components/profile/MonthYearPicker";
+import { MultiSelectPicker } from "@/components/profile/MultiSelectPicker";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { UserProfile } from "@/types/user";
 import { MainStackParamList } from "@/types/navigation";
 import { PROFILE_STORAGE_KEY, DEFAULT_USER } from "@/screens/ProfileScreen";
+import {
+  NZ_REHAB_CENTRES,
+  NZ_CARE_COMPANY_NAMES,
+  WHEELCHAIR_MODELS_BY_TYPE,
+  MANUAL_WHEELCHAIR_MODELS,
+} from "@/data/profilePickerData";
 
 /* ─── dropdown options ─── */
 
 const WHEELCHAIR_TYPES = [
   "Manual Chair",
   "Power Chair",
+  "Power Assist",
   "Sport / Racing Chair",
-  "Beach / All-Terrain Chair",
-  "Standing Chair",
   "Tilt-in-Space Chair",
-  "Reclining Chair",
   "Mobility Scooter",
   "Other",
 ];
@@ -104,8 +110,7 @@ const BASIC_INFO: Field[] = [
 
 const CARE: Field[] = [
   { key: "emergencyContact", label: "Emergency Contact", placeholder: "Name — phone number" },
-  { key: "careCompanies", label: "Care Companies", placeholder: "Company names" },
-  { key: "caregiverNotes", label: "Caregiver Notes", placeholder: "Routine notes", multiline: true },
+  { key: "caregiverNotes", label: "Care Notes", placeholder: "Routine notes", multiline: true },
 ];
 
 /* ─── reusable text field ─── */
@@ -203,14 +208,15 @@ export default function EditProfileScreen() {
               options={INJURY_LEVELS}
               onChange={set("injuryLevel")}
             />
-            <FieldInput
-              field={{ key: "injuryDate", label: "Injury Date", placeholder: "e.g. March 2019" }}
+            <MonthYearPicker
+              label="Injury Date"
               value={draft.injuryDate}
               onChange={set("injuryDate")}
             />
-            <FieldInput
-              field={{ key: "rehabCentre", label: "Rehab Centre", placeholder: "Centre name and city" }}
+            <DropdownPicker
+              label="Rehab Centre"
               value={draft.rehabCentre}
+              options={NZ_REHAB_CENTRES}
               onChange={set("rehabCentre")}
               isLast
             />
@@ -221,20 +227,38 @@ export default function EditProfileScreen() {
               label="Wheelchair Type"
               value={draft.wheelchairType}
               options={WHEELCHAIR_TYPES}
-              onChange={set("wheelchairType")}
+              onChange={(v) => {
+                set("wheelchairType")(v);
+                set("wheelchairModel")(""); // reset model when type changes
+              }}
             />
-            <FieldInput
-              field={{ key: "wheelchairModel", label: "Wheelchair Model", placeholder: "e.g. Quickie Nitrum" }}
+            <DropdownPicker
+              label="Wheelchair Model"
               value={draft.wheelchairModel}
+              options={WHEELCHAIR_MODELS_BY_TYPE[draft.wheelchairType] ?? MANUAL_WHEELCHAIR_MODELS}
               onChange={set("wheelchairModel")}
               isLast
             />
           </ProfileSection>
 
           <ProfileSection title="Care & Support">
-            {CARE.map((f, i) => (
-              <FieldInput key={f.key} field={f} value={String(draft[f.key] ?? "")} onChange={set(f.key)} isLast={i === CARE.length - 1} />
-            ))}
+            <FieldInput
+              field={{ key: "emergencyContact", label: "Emergency Contact", placeholder: "Name — phone number" }}
+              value={String(draft.emergencyContact ?? "")}
+              onChange={set("emergencyContact")}
+            />
+            <MultiSelectPicker
+              label="Care Companies"
+              value={draft.careCompanies ?? ""}
+              options={NZ_CARE_COMPANY_NAMES}
+              onChange={set("careCompanies")}
+            />
+            <FieldInput
+              field={{ key: "caregiverNotes", label: "Care Notes", placeholder: "Routine notes", multiline: true }}
+              value={String(draft.caregiverNotes ?? "")}
+              onChange={set("caregiverNotes")}
+              isLast
+            />
           </ProfileSection>
 
           <ProfileSection title="My Care Intro">

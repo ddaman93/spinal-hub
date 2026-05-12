@@ -6,13 +6,13 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { OnboardingInput } from "@/components/onboarding/OnboardingInput";
 import { ChipSelector } from "@/components/onboarding/ChipSelector";
 import { DropdownPicker } from "@/components/profile/DropdownPicker";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { OnboardingStackParamList } from "@/navigation/OnboardingStack";
 import { StepHeader, FooterButtons } from "./InjuryDetailsScreen";
+import { WHEELCHAIR_MODELS_BY_TYPE, MANUAL_WHEELCHAIR_MODELS } from "@/data/profilePickerData";
 
 const WHEELCHAIR_TYPES = [
   "Manual Chair",
@@ -23,6 +23,8 @@ const WHEELCHAIR_TYPES = [
   "Mobility Scooter",
   "Other",
 ];
+
+const WHEELCHAIR_MODELS_OTHER = ["Other / Custom"];
 
 const ASSISTIVE_TECH_OPTIONS = [
   "Voice Control",
@@ -78,13 +80,13 @@ export default function MobilitySetupScreen() {
           label="Wheelchair Type"
           value={wheelchairType}
           options={WHEELCHAIR_TYPES}
-          onChange={setWheelchairType}
+          onChange={(v) => { setWheelchairType(v); setWheelchairModel(""); }}
         />
-        <OnboardingInput
+        <DropdownPicker
           label="Wheelchair Model"
           value={wheelchairModel}
+          options={WHEELCHAIR_MODELS_BY_TYPE[wheelchairType] ?? (wheelchairType ? WHEELCHAIR_MODELS_OTHER : MANUAL_WHEELCHAIR_MODELS)}
           onChange={setWheelchairModel}
-          placeholder="e.g. Quickie Nitrum, Permobil M3"
         />
         <ChipSelector
           label="Assistive Technology"

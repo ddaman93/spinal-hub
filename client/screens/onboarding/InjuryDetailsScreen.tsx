@@ -6,11 +6,12 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
-import { OnboardingInput } from "@/components/onboarding/OnboardingInput";
 import { DropdownPicker } from "@/components/profile/DropdownPicker";
+import { MonthYearPicker } from "@/components/profile/MonthYearPicker";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { OnboardingStackParamList } from "@/navigation/OnboardingStack";
+import { NZ_REHAB_CENTRES } from "@/data/profilePickerData";
 
 const INJURY_TYPES = ["Complete", "Incomplete"];
 
@@ -23,15 +24,6 @@ const INJURY_LEVELS = [
   "Other / Unsure",
 ];
 
-const REHAB_CENTRES = [
-  "Burwood Spinal Unit (Christchurch)",
-  "Auckland Spinal Rehabilitation Unit (Otara)",
-  "Wellington Spinal Unit (Hutt Hospital)",
-  "Middlemore Hospital Spinal Unit",
-  "Dunedin Hospital Rehab Unit",
-  "Other",
-  "None / Community",
-];
 
 const TOTAL_STEPS = 5;
 const STEP = 1;
@@ -81,16 +73,15 @@ export default function InjuryDetailsScreen() {
           options={INJURY_TYPES}
           onChange={setInjuryType}
         />
-        <OnboardingInput
+        <MonthYearPicker
           label="Injury Date"
           value={injuryDate}
           onChange={setInjuryDate}
-          placeholder="e.g. March 2019"
         />
         <DropdownPicker
           label="Rehab Centre"
           value={rehabCentre}
-          options={REHAB_CENTRES}
+          options={NZ_REHAB_CENTRES}
           onChange={setRehabCentre}
         />
       </ScrollView>

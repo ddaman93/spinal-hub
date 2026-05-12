@@ -7,10 +7,12 @@ import { Feather } from "@expo/vector-icons";
 
 import { ThemedText } from "@/components/ThemedText";
 import { OnboardingInput } from "@/components/onboarding/OnboardingInput";
+import { MultiSelectPicker } from "@/components/profile/MultiSelectPicker";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing } from "@/constants/theme";
 import { OnboardingStackParamList } from "@/navigation/OnboardingStack";
 import { StepHeader, FooterButtons } from "./InjuryDetailsScreen";
+import { NZ_CARE_COMPANY_NAMES } from "@/data/profilePickerData";
 
 export default function CareSupportScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<OnboardingStackParamList>>();
@@ -74,11 +76,11 @@ export default function CareSupportScreen() {
           placeholder="e.g. +64 21 987 6543"
           keyboardType="phone-pad"
         />
-        <OnboardingInput
+        <MultiSelectPicker
           label="Care Companies"
           value={careCompanies}
+          options={NZ_CARE_COMPANY_NAMES}
           onChange={setCareCompanies}
-          placeholder="e.g. Explore Support, Allied Health NZ"
         />
         <OnboardingInput
           label="Care Notes"
