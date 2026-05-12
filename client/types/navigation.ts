@@ -70,6 +70,24 @@ export type MainStackParamList = {
   EmergencyContacts: undefined;
   PressureReliefTimer: undefined;
   NZSpinalTrust: undefined;
+  BladderLog: undefined;
+
+  PressureInjuryTracker: undefined;
+  PressureInjuryDetail: {
+    injuryId: string;
+    site: string;
+    siteLabel?: string;
+  };
+  AddPressureCheck: {
+    injuryId: string;
+    site: string;
+  };
+  CareNetwork: undefined;
+  PatientDetail: {
+    patientId: string;
+    patientName: string;
+    role: string;
+  };
 
   AutonomicDysreflexia: undefined;
   SCIMedications: undefined;

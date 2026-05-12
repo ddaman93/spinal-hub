@@ -84,6 +84,20 @@ export const CATEGORIES: CategoryConfig[] = [
         icon: "activity",
         route: "PainJournal",
       },
+      {
+        id: "bladder",
+        name: "Bladder Log",
+        description: "Log catheterization and voiding events",
+        icon: "droplet",
+        route: "BladderLog",
+      },
+      {
+        id: "pressure-injury",
+        name: "Pressure Injury Tracker",
+        description: "Track, stage, and document wound sites with your care team",
+        icon: "shield",
+        route: "PressureInjuryTracker",
+      },
     ],
   },
 
