@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { careRelationships, inviteCodes, users, userProfiles } from "@shared/schema";
-import { eq, and, or } from "drizzle-orm";
+import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes } from "@shared/schema";
+import { eq, and, count, desc } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 
 function requireAuth(req: Request, res: Response): string | null {
@@ -143,4 +143,101 @@ export async function canAccessPatient(requesterId: string, patientId: string): 
     )
   );
   return !!rel;
+}
+
+// GET /api/care/patients — patients I support with summary data
+export async function getMyPatients(req: Request, res: Response) {
+  const caregiverId = requireAuth(req, res);
+  if (!caregiverId) return;
+
+  const rels = await db
+    .select({
+      relationshipId: careRelationships.id,
+      role: careRelationships.role,
+      linkedAt: careRelationships.createdAt,
+      patientId: users.id,
+      patientName: users.name,
+      injuryLevel: userProfiles.injuryLevel,
+      injuryType: userProfiles.injuryType,
+      aboutMe: userProfiles.aboutMe,
+    })
+    .from(careRelationships)
+    .innerJoin(users, eq(careRelationships.patientId, users.id))
+    .leftJoin(userProfiles, eq(careRelationships.patientId, userProfiles.userId))
+    .where(and(eq(careRelationships.caregiverId, caregiverId), eq(careRelationships.status, "active")));
+
+  // Count active wounds per patient
+  const patients = await Promise.all(
+    rels.map(async (rel) => {
+      const [woundRow] = await db
+        .select({ activeWounds: count() })
+        .from(pressureInjuries)
+        .where(and(eq(pressureInjuries.patientId, rel.patientId), eq(pressureInjuries.status, "active")));
+      return { ...rel, activeWoundCount: Number(woundRow?.activeWounds ?? 0) };
+    })
+  );
+
+  res.json(patients);
+}
+
+// GET /api/care/notes/:patientId — handover notes log (newest first)
+export async function getCareNotes(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+
+  const { patientId } = req.params;
+  if (!(await canAccessPatient(requesterId, patientId))) {
+    return res.status(403).json({ message: "Forbidden." });
+  }
+
+  const notes = await db
+    .select()
+    .from(careNotes)
+    .where(eq(careNotes.patientId, patientId))
+    .orderBy(desc(careNotes.createdAt))
+    .limit(50);
+
+  res.json(notes);
+}
+
+// POST /api/care/notes/:patientId — add a handover note
+export async function addCareNote(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+
+  const { patientId } = req.params;
+  if (!(await canAccessPatient(requesterId, patientId))) {
+    return res.status(403).json({ message: "Forbidden." });
+  }
+
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ message: "Content required." });
+
+  const [author] = await db.select({ name: users.name }).from(users).where(eq(users.id, requesterId));
+
+  const [note] = await db
+    .insert(careNotes)
+    .values({ patientId, authorId: requesterId, authorName: author?.name ?? "Unknown", content: content.trim() })
+    .returning();
+
+  res.status(201).json(note);
+}
+
+// GET /api/care/profile/:patientId — patient profile visible to linked carers
+export async function getPatientProfile(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+
+  const { patientId } = req.params;
+  if (!(await canAccessPatient(requesterId, patientId))) {
+    return res.status(403).json({ message: "Forbidden." });
+  }
+
+  const [profile] = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, patientId))
+    .limit(1);
+
+  res.json(profile ?? null);
 }

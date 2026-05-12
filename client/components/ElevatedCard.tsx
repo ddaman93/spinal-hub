@@ -18,7 +18,7 @@ export function ElevatedCard({ children, style, padding = Spacing.md }: Elevated
         styles.card,
         {
           backgroundColor: theme.backgroundDefault,
-          borderColor: theme.borderStrong,
+          borderColor: theme.border,
           shadowColor: isDark ? "#00E676" : "#000",
           padding,
         },

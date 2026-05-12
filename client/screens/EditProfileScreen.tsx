@@ -237,6 +237,20 @@ export default function EditProfileScreen() {
             ))}
           </ProfileSection>
 
+          <ProfileSection title="My Care Intro">
+            <FieldInput
+              field={{ key: "aboutMe", label: "About Me", placeholder: "Tell your support workers a little about you…", multiline: true }}
+              value={draft.aboutMe ?? ""}
+              onChange={set("aboutMe")}
+            />
+            <FieldInput
+              field={{ key: "routineHighlights", label: "Routine Highlights", placeholder: "Key things carers need to know about your morning/evening routine…", multiline: true }}
+              value={draft.routineHighlights ?? ""}
+              onChange={set("routineHighlights")}
+              isLast
+            />
+          </ProfileSection>
+
           <Pressable
             onPress={handleSave}
             disabled={saving}

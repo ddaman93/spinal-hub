@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback } from "react";
 import {
-  View, ScrollView, Pressable, StyleSheet, ActivityIndicator, Alert, TextInput,
-  KeyboardAvoidingView, Platform, Dimensions,
+  View, ScrollView, Pressable, StyleSheet, ActivityIndicator, Alert,
+  Dimensions,
 } from "react-native";
 
 const TILE_WIDTH = (Dimensions.get("window").width - 48 - 16) / 3; // 3 cols, 24px padding each side, 8px * 2 gaps
@@ -58,29 +58,6 @@ type Profile = {
   routineHighlights?: string | null;
 };
 
-type CareNote = {
-  id: string;
-  authorName: string;
-  content: string;
-  createdAt: string;
-};
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
-}
-
-
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
@@ -89,27 +66,18 @@ export default function PatientDetailScreen() {
   const { params } = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
-
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [notes, setNotes] = useState<CareNote[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // New note input
-  const [noteDraft, setNoteDraft] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const headers = { Authorization: `Bearer ${token}` };
-      const [profileRes, notesRes] = await Promise.all([
-        fetch(`${getApiUrl()}/api/care/profile/${encodeURIComponent(params.patientId)}`, { headers }),
-        fetch(`${getApiUrl()}/api/care/notes/${encodeURIComponent(params.patientId)}`, { headers }),
-      ]);
-      if (profileRes.ok) setProfile(await profileRes.json());
-      if (notesRes.ok) setNotes(await notesRes.json());
+      const res = await fetch(
+        `${getApiUrl()}/api/care/profile/${encodeURIComponent(params.patientId)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (res.ok) setProfile(await res.json());
     } catch {
       // silent
     } finally {
@@ -118,27 +86,6 @@ export default function PatientDetailScreen() {
   }, [params.patientId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
-
-  async function submitNote() {
-    if (!noteDraft.trim()) return;
-    setSubmitting(true);
-    try {
-      const token = await getToken();
-      const res = await fetch(`${getApiUrl()}/api/care/notes/${encodeURIComponent(params.patientId)}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ content: noteDraft.trim() }),
-      });
-      if (!res.ok) throw new Error();
-      const newNote: CareNote = await res.json();
-      setNotes((prev) => [newNote, ...prev]);
-      setNoteDraft("");
-    } catch {
-      Alert.alert("Error", "Could not save note.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   function handleTilePress(tile: Tile) {
     if (tile.screen) {
@@ -155,12 +102,10 @@ export default function PatientDetailScreen() {
 
   return (
     <ThemedView style={{ flex: 1 }}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          ref={scrollRef}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }}
-        >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: Spacing.sm, paddingBottom: insets.bottom + Spacing.xl }}
+      >
           {/* ── PATIENT HEADER ── */}
           <ElevatedCard style={styles.patientCard} padding={Spacing.md}>
             <View style={[styles.avatar, { backgroundColor: theme.primary + "22" }]}>
@@ -253,52 +198,23 @@ export default function PatientDetailScreen() {
                 HANDOVER NOTES
               </ThemedText>
             </View>
-
-            {/* Add note input */}
-            <View style={[styles.noteInputRow, { backgroundColor: theme.backgroundSecondary }]}>
-              <TextInput
-                value={noteDraft}
-                onChangeText={setNoteDraft}
-                placeholder="Add a handover note…"
-                placeholderTextColor={theme.textSecondary}
-                multiline
-                style={{ flex: 1, color: theme.text, fontSize: 14, paddingVertical: Spacing.sm, maxHeight: 100 }}
-              />
-              <Pressable
-                onPress={submitNote}
-                disabled={submitting || !noteDraft.trim()}
-                style={[styles.noteSubmitBtn, { backgroundColor: noteDraft.trim() ? theme.primary : theme.backgroundTertiary }]}
-              >
-                {submitting
-                  ? <ActivityIndicator color="#fff" size="small" />
-                  : <Feather name="send" size={16} color={noteDraft.trim() ? "#fff" : theme.textSecondary} />
-                }
-              </Pressable>
-            </View>
-
-            {/* Notes log */}
-            {loading ? (
-              <ActivityIndicator color={theme.primary} size="small" style={{ alignSelf: "flex-start" }} />
-            ) : notes.length > 0 ? (
-              notes.map((note) => (
-                <View key={note.id} style={[styles.noteCard, { backgroundColor: theme.backgroundSecondary }]}>
-                  <View style={styles.noteHeader}>
-                    <View style={[styles.noteAvatar, { backgroundColor: theme.primary + "22" }]}>
-                      <ThemedText style={{ fontSize: 11, fontWeight: "800", color: theme.primary }}>
-                        {note.authorName.charAt(0).toUpperCase()}
-                      </ThemedText>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <ThemedText type="small" style={{ fontWeight: "600" }}>{note.authorName}</ThemedText>
-                      <ThemedText type="caption" style={{ opacity: 0.45 }}>{timeAgo(note.createdAt)}</ThemedText>
-                    </View>
-                  </View>
-                  <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }}>{note.content}</ThemedText>
+            <Pressable
+              onPress={() => navigation.navigate("HandoverNotes", { patientId: params.patientId, patientName: params.patientName })}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
+              <ElevatedCard style={styles.notesEntryRow} padding={Spacing.md}>
+                <View style={[styles.notesEntryIcon, { backgroundColor: "#00E676" + "22" }]}>
+                  <Feather name="book-open" size={20} color="#00E676" />
                 </View>
-              ))
-            ) : (
-              <ThemedText type="caption" style={{ opacity: 0.4 }}>No handover notes yet.</ThemedText>
-            )}
+                <View style={{ flex: 1 }}>
+                  <ThemedText type="small" style={{ fontWeight: "600" }}>Open Handover Log</ThemedText>
+                  <ThemedText type="caption" style={{ opacity: 0.5, marginTop: 1 }}>
+                    Read entries and add notes day by day
+                  </ThemedText>
+                </View>
+                <Feather name="chevron-right" size={18} color={theme.textSecondary} style={{ opacity: 0.5 }} />
+              </ElevatedCard>
+            </Pressable>
           </View>
 
           {/* ── CARE TOOLS (role-filtered) ── */}
@@ -343,8 +259,7 @@ export default function PatientDetailScreen() {
               ))}
             </View>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </ThemedView>
   );
 }
@@ -387,32 +302,15 @@ const styles = StyleSheet.create({
   infoChip: { flexDirection: "row", alignItems: "center" },
   divider: { height: 1, marginVertical: Spacing.md },
   routineHeader: { flexDirection: "row", alignItems: "center" },
-  noteInputRow: {
+  notesEntryRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    borderRadius: BorderRadius.medium,
-    paddingLeft: Spacing.md,
-    paddingVertical: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  noteSubmitBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.small,
     alignItems: "center",
-    justifyContent: "center",
-    margin: 4,
+    gap: Spacing.md,
   },
-  noteCard: {
-    borderRadius: BorderRadius.medium,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  noteHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
-  noteAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+  notesEntryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },

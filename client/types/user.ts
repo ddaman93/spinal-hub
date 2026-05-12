@@ -28,6 +28,9 @@ export type UserProfile = {
   careCompanies: string;
   caregiverNotes: string;
   careNotes?: string;
+  // care intro (shown to support workers)
+  aboutMe?: string;
+  routineHighlights?: string;
 
   // medical card
   medications?: string;

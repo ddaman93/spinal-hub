@@ -82,11 +82,16 @@ export type MainStackParamList = {
     injuryId: string;
     site: string;
   };
+  CareHub: undefined;
   CareNetwork: undefined;
   PatientDetail: {
     patientId: string;
     patientName: string;
     role: string;
+  };
+  HandoverNotes: {
+    patientId: string;
+    patientName: string;
   };
 
   AutonomicDysreflexia: undefined;

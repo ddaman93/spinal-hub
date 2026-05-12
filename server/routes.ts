@@ -7,7 +7,7 @@ import { getChatMessages, postChatMessage, reportMessage, getAdminReports, delet
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
-import { createInvite, joinWithCode, getRelationships, revokeRelationship } from "./routes/care";
+import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getCareNotes, addCareNote, getPatientProfile } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { authStorage } from "./storage";
 import { db } from "./db";
@@ -81,6 +81,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/care/join", joinWithCode);
   app.get("/api/care/relationships", getRelationships);
   app.delete("/api/care/relationships/:id", revokeRelationship);
+  app.get("/api/care/patients", getMyPatients);
+  app.get("/api/care/notes/:patientId", getCareNotes);
+  app.post("/api/care/notes/:patientId", addCareNote);
+  app.get("/api/care/profile/:patientId", getPatientProfile);
 
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);
@@ -149,6 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           emergencyContactPhone: body.emergencyContactPhone,
           careCompanies: body.careCompanies,
           caregiverNotes: body.caregiverNotes ?? body.careNotes,
+          aboutMe: body.aboutMe,
+          routineHighlights: body.routineHighlights,
           medications: body.medications,
           allergies: body.allergies,
           medicalNotes: body.medicalNotes,
@@ -170,6 +176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             emergencyContactPhone: body.emergencyContactPhone,
             careCompanies: body.careCompanies,
             caregiverNotes: body.caregiverNotes ?? body.careNotes,
+            aboutMe: body.aboutMe,
+            routineHighlights: body.routineHighlights,
             medications: body.medications,
             allergies: body.allergies,
             medicalNotes: body.medicalNotes,

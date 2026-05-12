@@ -23,8 +23,8 @@ export function GlassCard({ children, style, padding = Spacing.md }: GlassCardPr
           style={[
             styles.inner,
             {
-              backgroundColor: theme.glassBackground,
-              borderColor: theme.glassBorder,
+              backgroundColor: theme.backgroundSecondary,
+              borderColor: theme.border,
               padding,
             },
           ]}

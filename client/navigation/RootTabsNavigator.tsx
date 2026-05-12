@@ -44,6 +44,8 @@ import PressureInjuryDetailScreen from "@/screens/tools/PressureInjuryDetailScre
 import AddPressureCheckScreen from "@/screens/tools/AddPressureCheckScreen";
 import CareNetworkScreen from "@/screens/tools/CareNetworkScreen";
 import PatientDetailScreen from "@/screens/tools/PatientDetailScreen";
+import HandoverNotesScreen from "@/screens/tools/HandoverNotesScreen";
+import CareHubScreen from "@/screens/CareHubScreen";
 import CarePreferencesScreen from "@/screens/tools/CarePreferencesScreen";
 import AutonomicDysreflexiaScreen from "@/screens/tools/AutonomicDysreflexiaScreen";
 import SkinCareScreen from "@/screens/SkinCareScreen";
@@ -97,6 +99,7 @@ const HomeStack = createNativeStackNavigator<MainStackParamList>();
 const ToolsStack = createNativeStackNavigator<MainStackParamList>();
 const SettingsStack = createNativeStackNavigator<MainStackParamList>();
 const ProfileStack = createNativeStackNavigator<MainStackParamList>();
+const CareStack = createNativeStackNavigator<MainStackParamList>();
 const Tab = createBottomTabNavigator();
 
 /* ───────────────── header button ───────────────── */
@@ -599,6 +602,14 @@ function ToolsStackNavigator() {
           headerTitle: route.params.patientName,
         })}
       />
+      <ToolsStack.Screen
+        name="HandoverNotes"
+        component={HandoverNotesScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${route.params.patientName} — Handover Notes`,
+        })}
+      />
 
       {/* CARE PREFERENCES */}
       <ToolsStack.Screen
@@ -785,6 +796,56 @@ function ProfileStackNavigator() {
   );
 }
 
+/* ───────────────── care stack ───────────────── */
+
+function CareStackNavigator() {
+  const screenOptions = useScreenOptions();
+  const opaqueScreenOptions = useScreenOptions({ transparent: false });
+
+  return (
+    <CareStack.Navigator screenOptions={screenOptions}>
+      <CareStack.Screen
+        name="CareHub"
+        component={CareHubScreen}
+        options={{
+          headerTitle: () => <HeaderTitle title="Care" />,
+        }}
+      />
+      <CareStack.Screen
+        name="PatientDetail"
+        component={PatientDetailScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: (route.params as any)?.patientName ?? "Patient",
+        })}
+      />
+      <CareStack.Screen
+        name="PressureInjuryTracker"
+        component={PressureInjuryTrackerScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Pressure Injury Tracker" }}
+      />
+      <CareStack.Screen
+        name="PressureInjuryDetail"
+        component={PressureInjuryDetailScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Wound Detail" }}
+      />
+      <CareStack.Screen
+        name="AddPressureCheck"
+        component={AddPressureCheckScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Add Assessment" }}
+      />
+      <CareStack.Screen
+        name="HandoverNotes"
+        component={HandoverNotesScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${route.params.patientName} — Handover Notes`,
+        })}
+      />
+    </CareStack.Navigator>
+  );
+}
+
 /* ───────────────── tabs navigator ───────────────── */
 
 export default function RootTabsNavigator() {
@@ -841,6 +902,24 @@ export default function RootTabsNavigator() {
             }
           },
         })}
+      />
+
+      <Tab.Screen
+        name="CareTab"
+        component={CareStackNavigator}
+        options={{
+          title: "Care",
+          tabBarLabel: "Care",
+          tabBarIcon: ({ color }) => (
+            <Feather
+              name="users"
+              size={19}
+              color={color}
+              accessible={true}
+              accessibilityLabel="Care Tab"
+            />
+          ),
+        }}
       />
 
       <Tab.Screen
