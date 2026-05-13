@@ -842,6 +842,30 @@ function CareStackNavigator() {
           headerTitle: `${route.params.patientName} — Handover Notes`,
         })}
       />
+      <CareStack.Screen
+        name="VitalsLog"
+        component={VitalsLogScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Vitals`,
+        })}
+      />
+      <CareStack.Screen
+        name="MedicationTracker"
+        component={MedicationTrackerScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Medications`,
+        })}
+      />
+      <CareStack.Screen
+        name="AppointmentScheduler"
+        component={AppointmentSchedulerScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Appointments`,
+        })}
+      />
     </CareStack.Navigator>
   );
 }
