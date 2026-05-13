@@ -18,36 +18,12 @@ import { Spacing, BorderRadius } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
+import { CARE_TILES, CareTile } from "@/data/careTiles";
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, "PatientDetail">;
 
-// ---------------------------------------------------------------------------
-// Tile config — role-based filtering applied at render time
-// ---------------------------------------------------------------------------
-type Tile = {
-  id: string;
-  icon: string;
-  label: string;
-  sublabel: string;
-  color: string;
-  screen?: keyof MainStackParamList;
-  roles: string[]; // which roles see this tile
-};
-
-const TILES: Tile[] = [
-  { id: "wounds",       icon: "shield",   label: "Pressure Injuries", sublabel: "Wounds, staging, checks", color: "#FF6B6B", screen: "PressureInjuryTracker", roles: ["carer", "clinician"] },
-  { id: "vitals",       icon: "activity", label: "Vital Signs",       sublabel: "BP, HR, O₂, temp",        color: "#4A90D9", screen: "VitalsLog",             roles: ["carer", "clinician"] },
-  { id: "bladder",      icon: "droplet",  label: "Bladder Log",       sublabel: "Output, catheter",        color: "#00BCD4", screen: "BladderLog",            roles: ["carer", "clinician"] },
-  { id: "pain",         icon: "zap",      label: "Pain Journal",      sublabel: "Score, location",         color: "#FF7043", screen: "PainJournal",           roles: ["carer", "clinician"] },
-  { id: "medications",  icon: "package",  label: "Medications",       sublabel: "Doses, times, PRN",       color: "#9C27B0", screen: "MedicationTracker",     roles: ["carer", "clinician"] },
-  { id: "hydration",    icon: "droplet",  label: "Hydration",         sublabel: "Fluid intake",            color: "#29B6F6", screen: "HydrationTracker",      roles: ["carer", "clinician"] },
-  { id: "skin",         icon: "eye",      label: "Skin Check",        sublabel: "Skin check log",          color: "#26A69A", screen: undefined,               roles: ["carer", "clinician"] },
-  { id: "routine",      icon: "sun",      label: "Morning Routine",   sublabel: "ADLs, positioning",       color: "#FFC107", screen: "MorningRoutine",        roles: ["carer", "clinician", "family"] },
-  { id: "evening",      icon: "moon",     label: "Evening Routine",   sublabel: "Skin, positioning",       color: "#5C6BC0", screen: "EveningRoutine",        roles: ["carer", "clinician", "family"] },
-  { id: "appointments", icon: "calendar", label: "Appointments",      sublabel: "Upcoming, history",       color: "#FF9800", screen: "AppointmentScheduler",  roles: ["carer", "clinician", "family"] },
-  { id: "care_prefs",   icon: "heart",    label: "Care Preferences",  sublabel: "Likes, dislikes, needs",  color: "#E91E63", screen: undefined,               roles: ["carer", "clinician", "family"] },
-];
+type Tile = CareTile;
 
 type Profile = {
   aboutMe?: string | null;
@@ -96,7 +72,7 @@ export default function PatientDetailScreen() {
   }
 
   const hasIntro = profile?.aboutMe || profile?.injuryLevel || profile?.routineHighlights;
-  const visibleTiles = TILES.filter((t) => t.roles.includes(params.role));
+  const visibleTiles = CARE_TILES.filter((t) => t.roles.includes(params.role));
 
   const roleColor = params.role === "clinician" ? "#AF52DE" : params.role === "family" ? "#5B8DEF" : "#00E676";
 
