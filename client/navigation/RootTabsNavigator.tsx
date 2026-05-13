@@ -866,6 +866,62 @@ function CareStackNavigator() {
           headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Appointments`,
         })}
       />
+      <CareStack.Screen
+        name="BladderLog"
+        component={BladderLogScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Bladder Log`,
+        })}
+      />
+      <CareStack.Screen
+        name="PainJournal"
+        component={PainJournalScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Pain Journal`,
+        })}
+      />
+      <CareStack.Screen
+        name="HydrationTracker"
+        component={HydrationTrackerScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Hydration`,
+        })}
+      />
+      <CareStack.Screen
+        name="MorningRoutine"
+        component={MorningRoutineScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Morning Routine`,
+        })}
+      />
+      <CareStack.Screen
+        name="EveningRoutine"
+        component={EveningRoutineScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Evening Routine`,
+        })}
+      />
+      <CareStack.Screen
+        name="SkinCheckLog"
+        component={SkinCheckLogScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Skin Check`,
+        })}
+      />
+      <CareStack.Screen
+        name="CarePreferences"
+        component={CarePreferencesScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Care Preferences`,
+        })}
+      />
     </CareStack.Navigator>
   );
 }

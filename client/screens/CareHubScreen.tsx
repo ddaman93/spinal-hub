@@ -494,7 +494,7 @@ export default function CareHubScreen() {
                       key={tile.id}
                       onPress={() => {
                         if (!tile.screen) { Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`); return; }
-                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler"];
+                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
                         if (patientScreens.includes(tile.screen) && myProfile?.userId) {
                           navigation.navigate(tile.screen as any, { patientId: myProfile.userId, patientName: myProfile.name ?? "Me" });
                         } else {

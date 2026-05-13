@@ -288,6 +288,132 @@ export const careNotes = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// bladder_logs
+// ---------------------------------------------------------------------------
+
+export const bladderLogs = pgTable(
+  "bladder_logs",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    // catheterization | spontaneous | leak | accident
+    type: text("type").notNull(),
+    volumeMl: integer("volume_ml"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({ idx: index("bladder_logs_patient_created_idx").on(t.patientId, t.createdAt.desc()) }),
+);
+
+// ---------------------------------------------------------------------------
+// pain_entries
+// ---------------------------------------------------------------------------
+
+export const painEntries = pgTable(
+  "pain_entries",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    level: integer("level").notNull(), // 1-10
+    location: text("location").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({ idx: index("pain_entries_patient_created_idx").on(t.patientId, t.createdAt.desc()) }),
+);
+
+// ---------------------------------------------------------------------------
+// hydration_logs
+// ---------------------------------------------------------------------------
+
+export const hydrationLogs = pgTable(
+  "hydration_logs",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    unit: text("unit").notNull().default("ml"),
+    date: text("date").notNull(), // YYYY-MM-DD
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({ idx: index("hydration_logs_patient_date_idx").on(t.patientId, t.date) }),
+);
+
+// ---------------------------------------------------------------------------
+// routine_tasks  (checklist items per patient)
+// ---------------------------------------------------------------------------
+
+export const routineTasks = pgTable("routine_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  // morning | evening | anytime
+  category: text("category").notNull().default("morning"),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// routine_completions  (daily task check-offs)
+// ---------------------------------------------------------------------------
+
+export const routineCompletions = pgTable(
+  "routine_completions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    taskId: varchar("task_id").notNull().references(() => routineTasks.id, { onDelete: "cascade" }),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    date: text("date").notNull(), // YYYY-MM-DD
+    completedAt: text("completed_at").notNull(), // ISO timestamp
+  },
+  (t) => ({ idx: index("routine_completions_patient_date_idx").on(t.patientId, t.date) }),
+);
+
+// ---------------------------------------------------------------------------
+// skin_check_entries
+// ---------------------------------------------------------------------------
+
+export const skinCheckEntries = pgTable(
+  "skin_check_entries",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    location: text("location").notNull(),
+    // clear | redness | broken
+    severity: text("severity").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({ idx: index("skin_check_entries_patient_created_idx").on(t.patientId, t.createdAt.desc()) }),
+);
+
+// ---------------------------------------------------------------------------
+// care_preferences  (single doc per patient)
+// ---------------------------------------------------------------------------
+
+export const carePreferences = pgTable("care_preferences", {
+  patientId: varchar("patient_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull().default(""),
+  injuryLevel: text("injury_level").notNull().default(""),
+  injuryType: text("injury_type").notNull().default(""),
+  equipment: text("equipment").notNull().default(""),
+  allergies: text("allergies").notNull().default(""),
+  medicationsSummary: text("medications_summary").notNull().default(""),
+  morningCareNotes: text("morning_care_notes").notNull().default(""),
+  eveningCareNotes: text("evening_care_notes").notNull().default(""),
+  otherNotes: text("other_notes").notNull().default(""),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // vitals  (shared vital sign readings)
 // ---------------------------------------------------------------------------
 
@@ -418,3 +544,10 @@ export type Vital = typeof vitals.$inferSelect;
 export type Medication = typeof medications.$inferSelect;
 export type MedicationLog = typeof medicationLogs.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
+export type BladderLog = typeof bladderLogs.$inferSelect;
+export type PainEntry = typeof painEntries.$inferSelect;
+export type HydrationLog = typeof hydrationLogs.$inferSelect;
+export type RoutineTask = typeof routineTasks.$inferSelect;
+export type RoutineCompletion = typeof routineCompletions.$inferSelect;
+export type SkinCheckEntry = typeof skinCheckEntries.$inferSelect;
+export type CarePreference = typeof carePreferences.$inferSelect;

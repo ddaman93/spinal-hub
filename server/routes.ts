@@ -9,7 +9,18 @@ import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getCareNotes, addCareNote, getPatientProfile } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
-import { getVitals, addVital, deleteVital, getMedications, addMedication, updateMedication, deleteMedication, getMedicationLogs, upsertMedicationLog, getAppointments, addAppointment, updateAppointment, deleteAppointment } from "./routes/health";
+import {
+  getVitals, addVital, deleteVital,
+  getMedications, addMedication, updateMedication, deleteMedication,
+  getMedicationLogs, upsertMedicationLog,
+  getAppointments, addAppointment, updateAppointment, deleteAppointment,
+  getBladderLogs, addBladderLog, deleteBladderLog,
+  getPainEntries, addPainEntry, deletePainEntry,
+  getHydrationLogs, addHydrationLog, deleteHydrationLog,
+  getRoutineTasks, addRoutineTask, deleteRoutineTask, getRoutineCompletions, toggleRoutineCompletion,
+  getSkinCheckEntries, addSkinCheckEntry, deleteSkinCheckEntry,
+  getCarePreferences, upsertCarePreferences,
+} from "./routes/health";
 import { authStorage } from "./storage";
 import { db } from "./db";
 import { userProfiles } from "@shared/schema";
@@ -104,6 +115,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/health/appointments", addAppointment);
   app.put("/api/health/appointments/:id", updateAppointment);
   app.delete("/api/health/appointments/:id", deleteAppointment);
+
+  app.get("/api/health/bladder-logs", getBladderLogs);
+  app.post("/api/health/bladder-logs", addBladderLog);
+  app.delete("/api/health/bladder-logs/:id", deleteBladderLog);
+
+  app.get("/api/health/pain-entries", getPainEntries);
+  app.post("/api/health/pain-entries", addPainEntry);
+  app.delete("/api/health/pain-entries/:id", deletePainEntry);
+
+  app.get("/api/health/hydration-logs", getHydrationLogs);
+  app.post("/api/health/hydration-logs", addHydrationLog);
+  app.delete("/api/health/hydration-logs/:id", deleteHydrationLog);
+
+  app.get("/api/health/routine-tasks", getRoutineTasks);
+  app.post("/api/health/routine-tasks", addRoutineTask);
+  app.delete("/api/health/routine-tasks/:id", deleteRoutineTask);
+  app.get("/api/health/routine-completions", getRoutineCompletions);
+  app.post("/api/health/routine-completions/toggle", toggleRoutineCompletion);
+
+  app.get("/api/health/skin-check-entries", getSkinCheckEntries);
+  app.post("/api/health/skin-check-entries", addSkinCheckEntry);
+  app.delete("/api/health/skin-check-entries/:id", deleteSkinCheckEntry);
+
+  app.get("/api/health/care-preferences", getCarePreferences);
+  app.put("/api/health/care-preferences", upsertCarePreferences);
 
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);
