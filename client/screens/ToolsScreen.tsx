@@ -21,12 +21,6 @@ import { useTour } from "@/context/TourContext";
 
 /* ── accent colours per category ── */
 const ACCENT: Record<string, string> = {
-  "daily-routine":            "#FF9500",
-  "health-tracking":          "#00BCD4",
-  "care-support":             "#34C759",
-  "appointments":             "#AF52DE",
-  "medications":              "#FF3B30",
-  "skin-care":                "#FF6B6B",
   "nz-spinal-trust":          "#FFA800",
   "sci-medications":          "#00BCD4",
   "ccs-disability-action":    "#00875A",
@@ -42,10 +36,6 @@ const ACCENT: Record<string, string> = {
 
 /* ── section groupings ── */
 const SECTIONS = [
-  {
-    title: "Health & Wellness",
-    ids: ["daily-routine", "health-tracking", "skin-care", "medications", "care-support", "appointments"],
-  },
   {
     title: "Support & Resources",
     ids: [
