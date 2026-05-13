@@ -288,6 +288,114 @@ export const careNotes = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// vitals  (shared vital sign readings)
+// ---------------------------------------------------------------------------
+
+export const vitals = pgTable(
+  "vitals",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    // blood_pressure | heart_rate | temperature | oxygen | weight
+    type: text("type").notNull(),
+    value: text("value").notNull(),
+    systolic: integer("systolic"),
+    diastolic: integer("diastolic"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    vitalsPatientIdx: index("vitals_patient_created_idx").on(t.patientId, t.createdAt.desc()),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// medications  (shared medication list per patient)
+// ---------------------------------------------------------------------------
+
+export const medications = pgTable("medications", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  patientId: varchar("patient_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  dosage: text("dosage").notNull().default(""),
+  frequency: text("frequency").notNull().default("Daily"),
+  times: text("times").notNull().default("8:00 AM"), // comma-separated
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// medication_logs  (daily dose records)
+// ---------------------------------------------------------------------------
+
+export const medicationLogs = pgTable(
+  "medication_logs",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    medicationId: varchar("medication_id")
+      .notNull()
+      .references(() => medications.id, { onDelete: "cascade" }),
+    patientId: varchar("patient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    date: text("date").notNull(), // YYYY-MM-DD
+    scheduledTime: text("scheduled_time").notNull(),
+    taken: boolean("taken").notNull().default(false),
+    actualTime: text("actual_time"), // ISO string when actually taken
+  },
+  (t) => ({
+    medLogPatientDateIdx: index("medication_logs_patient_date_idx").on(t.patientId, t.date),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// appointments  (shared appointments per patient)
+// ---------------------------------------------------------------------------
+
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdById: varchar("created_by_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // doctor | therapy | equipment | other
+    type: text("type").notNull().default("other"),
+    title: text("title").notNull(),
+    date: text("date").notNull(), // YYYY-MM-DD
+    time: text("time").notNull().default(""),
+    location: text("location"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    apptPatientDateIdx: index("appointments_patient_date_idx").on(t.patientId, t.date),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Zod schemas + types
 // ---------------------------------------------------------------------------
 
@@ -306,3 +414,7 @@ export type InviteCode = typeof inviteCodes.$inferSelect;
 export type PressureInjury = typeof pressureInjuries.$inferSelect;
 export type PressureInjuryCheck = typeof pressureInjuryChecks.$inferSelect;
 export type CareNote = typeof careNotes.$inferSelect;
+export type Vital = typeof vitals.$inferSelect;
+export type Medication = typeof medications.$inferSelect;
+export type MedicationLog = typeof medicationLogs.$inferSelect;
+export type Appointment = typeof appointments.$inferSelect;

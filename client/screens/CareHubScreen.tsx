@@ -493,8 +493,13 @@ export default function CareHubScreen() {
                     <Pressable
                       key={tile.id}
                       onPress={() => {
-                        if (tile.screen) navigation.navigate(tile.screen as any);
-                        else Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`);
+                        if (!tile.screen) { Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`); return; }
+                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler"];
+                        if (patientScreens.includes(tile.screen) && myProfile?.userId) {
+                          navigation.navigate(tile.screen as any, { patientId: myProfile.userId, patientName: myProfile.name ?? "Me" });
+                        } else {
+                          navigation.navigate(tile.screen as any);
+                        }
                       }}
                       style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, width: TILE_WIDTH }]}
                     >

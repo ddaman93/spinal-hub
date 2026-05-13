@@ -9,6 +9,7 @@ import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getCareNotes, addCareNote, getPatientProfile } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
+import { getVitals, addVital, deleteVital, getMedications, addMedication, updateMedication, deleteMedication, getMedicationLogs, upsertMedicationLog, getAppointments, addAppointment, updateAppointment, deleteAppointment } from "./routes/health";
 import { authStorage } from "./storage";
 import { db } from "./db";
 import { userProfiles } from "@shared/schema";
@@ -85,6 +86,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/care/notes/:patientId", getCareNotes);
   app.post("/api/care/notes/:patientId", addCareNote);
   app.get("/api/care/profile/:patientId", getPatientProfile);
+
+  // Health records (vitals, medications, appointments)
+  app.get("/api/health/vitals", getVitals);
+  app.post("/api/health/vitals", addVital);
+  app.delete("/api/health/vitals/:id", deleteVital);
+
+  app.get("/api/health/medications", getMedications);
+  app.post("/api/health/medications", addMedication);
+  app.put("/api/health/medications/:id", updateMedication);
+  app.delete("/api/health/medications/:id", deleteMedication);
+
+  app.get("/api/health/medication-logs", getMedicationLogs);
+  app.post("/api/health/medication-logs", upsertMedicationLog);
+
+  app.get("/api/health/appointments", getAppointments);
+  app.post("/api/health/appointments", addAppointment);
+  app.put("/api/health/appointments/:id", updateAppointment);
+  app.delete("/api/health/appointments/:id", deleteAppointment);
 
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);

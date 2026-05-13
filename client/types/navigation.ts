@@ -60,13 +60,13 @@ export type MainStackParamList = {
   DisplaySettings: undefined;
   Feedback: undefined;
   FeatureTour: undefined;
-  VitalsLog: undefined;
+  VitalsLog: { patientId: string; patientName: string };
   PainJournal: undefined;
-  MedicationTracker: undefined;
+  MedicationTracker: { patientId: string; patientName: string };
   MorningRoutine: undefined;
   EveningRoutine: undefined;
   HydrationTracker: undefined;
-  AppointmentScheduler: undefined;
+  AppointmentScheduler: { patientId: string; patientName: string };
   EmergencyContacts: undefined;
   PressureReliefTimer: undefined;
   NZSpinalTrust: undefined;

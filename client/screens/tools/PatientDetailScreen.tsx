@@ -63,11 +63,17 @@ export default function PatientDetailScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
+  const PATIENT_SCREENS = ["VitalsLog", "MedicationTracker", "AppointmentScheduler"];
+
   function handleTilePress(tile: Tile) {
-    if (tile.screen) {
-      navigation.navigate(tile.screen as any);
-    } else {
+    if (!tile.screen) {
       Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`);
+      return;
+    }
+    if (PATIENT_SCREENS.includes(tile.screen)) {
+      navigation.navigate(tile.screen as any, { patientId: params.patientId, patientName: params.patientName });
+    } else {
+      navigation.navigate(tile.screen as any);
     }
   }
 
