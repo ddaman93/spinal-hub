@@ -233,9 +233,11 @@ export default function PatientDetailScreen() {
                     >
                       {tile.sublabel}
                     </ThemedText>
-                    <View style={styles.comingSoonBadge}>
-                      <ThemedText style={{ fontSize: 8, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
-                    </View>
+                    {!tile.screen && (
+                      <View style={styles.comingSoonBadge}>
+                        <ThemedText style={{ fontSize: 8, color: theme.textSecondary, opacity: 0.6 }}>SOON</ThemedText>
+                      </View>
+                    )}
                   </ElevatedCard>
                 </Pressable>
               ))}
