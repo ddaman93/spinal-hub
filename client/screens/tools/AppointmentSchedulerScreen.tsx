@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import {
   View, ScrollView, StyleSheet, Pressable, TextInput,
-  Modal, ActivityIndicator, Alert, Platform,
+  Modal, ActivityIndicator, Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
@@ -423,28 +423,47 @@ export default function AppointmentSchedulerScreen() {
             {/* date picker row */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>DATE</ThemedText>
             <Pressable
-              onPress={() => setPickerMode("date")}
-              style={[styles.pickerRow, { backgroundColor: theme.backgroundDefault }]}
+              onPress={() => setPickerMode(pickerMode === "date" ? null : "date")}
+              style={[styles.pickerRow, { backgroundColor: theme.backgroundDefault, borderWidth: pickerMode === "date" ? 1.5 : 0, borderColor: theme.primary }]}
             >
               <Feather name="calendar" size={18} color={theme.primary} />
               <ThemedText style={[styles.pickerRowText, { color: theme.text }]}>
                 {formatDateDisplay(pickerDate)}
               </ThemedText>
-              <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+              <Feather name={pickerMode === "date" ? "chevron-up" : "chevron-down"} size={16} color={theme.textSecondary} />
             </Pressable>
+            {pickerMode === "date" && (
+              <DateTimePicker
+                value={pickerDate}
+                mode="date"
+                display="spinner"
+                minimumDate={startOfToday()}
+                onChange={(_, selected) => { if (selected) setPickerDate(selected); }}
+                style={styles.inlinePicker}
+              />
+            )}
 
             {/* time picker row */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>TIME</ThemedText>
             <Pressable
-              onPress={() => setPickerMode("time")}
-              style={[styles.pickerRow, { backgroundColor: theme.backgroundDefault }]}
+              onPress={() => setPickerMode(pickerMode === "time" ? null : "time")}
+              style={[styles.pickerRow, { backgroundColor: theme.backgroundDefault, borderWidth: pickerMode === "time" ? 1.5 : 0, borderColor: theme.primary }]}
             >
               <Feather name="clock" size={18} color={theme.primary} />
               <ThemedText style={[styles.pickerRowText, { color: theme.text }]}>
                 {formatTimeDisplay(pickerTime)}
               </ThemedText>
-              <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+              <Feather name={pickerMode === "time" ? "chevron-up" : "chevron-down"} size={16} color={theme.textSecondary} />
             </Pressable>
+            {pickerMode === "time" && (
+              <DateTimePicker
+                value={pickerTime}
+                mode="time"
+                display="spinner"
+                onChange={(_, selected) => { if (selected) setPickerTime(selected); }}
+                style={styles.inlinePicker}
+              />
+            )}
 
             {/* location */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>LOCATION (OPTIONAL)</ThemedText>
@@ -474,53 +493,6 @@ export default function AppointmentSchedulerScreen() {
         </View>
       </Modal>
 
-      {/* ── NATIVE DATE/TIME PICKER ── */}
-
-      {/* Android: renders as a dialog, no wrapper needed */}
-      {Platform.OS === "android" && pickerMode !== null && (
-        <DateTimePicker
-          value={pickerMode === "date" ? pickerDate : pickerTime}
-          mode={pickerMode}
-          display="default"
-          minimumDate={pickerMode === "date" ? startOfToday() : undefined}
-          onChange={(_, selected) => {
-            setPickerMode(null);
-            if (!selected) return;
-            if (pickerMode === "date") setPickerDate(selected);
-            else setPickerTime(selected);
-          }}
-        />
-      )}
-
-      {/* iOS: spinner in a bottom sheet modal with Done button */}
-      {Platform.OS === "ios" && pickerMode !== null && (
-        <Modal transparent animationType="fade" visible onRequestClose={() => setPickerMode(null)}>
-          <Pressable style={styles.pickerOverlay} onPress={() => setPickerMode(null)}>
-            <Pressable style={[styles.pickerSheet, { backgroundColor: theme.backgroundDefault }]}>
-              <View style={styles.pickerSheetHeader}>
-                <ThemedText style={[styles.pickerSheetTitle, { color: theme.text }]}>
-                  {pickerMode === "date" ? "Select Date" : "Select Time"}
-                </ThemedText>
-                <Pressable onPress={() => setPickerMode(null)} style={[styles.pickerDoneBtn, { backgroundColor: theme.primary }]}>
-                  <ThemedText style={styles.pickerDoneText}>Done</ThemedText>
-                </Pressable>
-              </View>
-              <DateTimePicker
-                value={pickerMode === "date" ? pickerDate : pickerTime}
-                mode={pickerMode}
-                display="spinner"
-                minimumDate={pickerMode === "date" ? startOfToday() : undefined}
-                onChange={(_, selected) => {
-                  if (!selected) return;
-                  if (pickerMode === "date") setPickerDate(selected);
-                  else setPickerTime(selected);
-                }}
-                style={styles.nativePicker}
-              />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
     </ThemedView>
   );
 }
@@ -596,13 +568,5 @@ const styles = StyleSheet.create({
     height: 52, borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md,
   },
   pickerRowText: { flex: 1, fontSize: 16 },
-
-  /* iOS picker sheet */
-  pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 34 },
-  pickerSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
-  pickerSheetTitle: { fontSize: 17, fontWeight: "700" },
-  pickerDoneBtn: { paddingHorizontal: Spacing.md, paddingVertical: 8, borderRadius: 10 },
-  pickerDoneText: { color: "#FFFFFF", fontWeight: "700", fontSize: 15 },
-  nativePicker: { width: "100%" },
+  inlinePicker: { width: "100%", marginTop: 4 },
 });
