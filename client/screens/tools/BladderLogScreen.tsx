@@ -107,7 +107,7 @@ export default function BladderLogScreen() {
     setSaving(true);
     try {
       const token = await getToken();
-      await fetch(`${getApiUrl()}/api/health/bladder-logs`, {
+      const res = await fetch(`${getApiUrl()}/api/health/bladder-logs`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -117,11 +117,19 @@ export default function BladderLogScreen() {
           notes: notes || undefined,
         }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        Alert.alert("Save failed", err.message ?? `Server error ${res.status}. Please try again.`);
+        return;
+      }
       setModalVisible(false);
       resetForm();
       await load();
-    } catch { /* silent */ }
-    finally { setSaving(false); }
+    } catch (e: any) {
+      Alert.alert("Network error", e?.message ?? "Could not reach the server. Check your connection.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
