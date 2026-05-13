@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useMemo } from "react";
 import {
   View, ScrollView, StyleSheet, Pressable, TextInput,
-  Modal, ActivityIndicator, Alert,
+  Modal, ActivityIndicator, Alert, Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -52,29 +53,40 @@ const APPT_TYPES: ApptType[] = [
   { key: "therapy",    label: "Physio / OT",     icon: "activity",     color: "#22c55e" },
 ];
 
-const QUICK_TIMES = [
-  "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM",
-  "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM",
-];
-
 // ---------------------------------------------------------------------------
-// Date helpers
+// Date/time helpers
 // ---------------------------------------------------------------------------
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function addDays(n: number): string {
+function startOfToday(): Date {
   const d = new Date();
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
-function formatShortDate(dateStr: string): string {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-NZ", {
-    weekday: "short", day: "numeric", month: "short",
-  });
+function defaultTime(): Date {
+  const d = new Date();
+  d.setHours(9, 0, 0, 0);
+  return d;
+}
+
+function dateToApiStr(d: Date): string {
+  // Use local year/month/day — avoids UTC offset shifting the date
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function timeToApiStr(d: Date): string {
+  return d.toLocaleTimeString("en-NZ", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function formatDateDisplay(d: Date): string {
+  return d.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatTimeDisplay(d: Date): string {
+  return d.toLocaleTimeString("en-NZ", { hour: "numeric", minute: "2-digit", hour12: true });
 }
 
 function getDayNum(dateStr: string): string {
@@ -119,18 +131,6 @@ function getTypeInfo(key: string): ApptType {
   return APPT_TYPES.find((t) => t.key === key) ?? APPT_TYPES[APPT_TYPES.length - 1];
 }
 
-// Quick-pick date options shown in modal
-function buildDateOptions(): { label: string; sub: string; value: string }[] {
-  return [
-    { label: "Today",    sub: formatShortDate(todayStr()),    value: todayStr() },
-    { label: "Tomorrow", sub: formatShortDate(addDays(1)),   value: addDays(1) },
-    { label: "+3 days",  sub: formatShortDate(addDays(3)),   value: addDays(3) },
-    { label: "+1 week",  sub: formatShortDate(addDays(7)),   value: addDays(7) },
-    { label: "+2 weeks", sub: formatShortDate(addDays(14)),  value: addDays(14) },
-    { label: "+1 month", sub: formatShortDate(addDays(30)),  value: addDays(30) },
-  ];
-}
-
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
@@ -149,12 +149,13 @@ export default function AppointmentSchedulerScreen() {
   // form state
   const [title, setTitle] = useState("");
   const [selectedType, setSelectedType] = useState("gp");
-  const [date, setDate] = useState(todayStr());
-  const [customDate, setCustomDate] = useState("");
-  const [time, setTime] = useState("9:00 AM");
-  const [customTime, setCustomTime] = useState("");
+  const [pickerDate, setPickerDate] = useState<Date>(startOfToday);
+  const [pickerTime, setPickerTime] = useState<Date>(defaultTime);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+
+  // which native picker is open: null | "date" | "time"
+  const [pickerMode, setPickerMode] = useState<null | "date" | "time">(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -173,8 +174,6 @@ export default function AppointmentSchedulerScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) { Alert.alert("Missing title", "Please add an appointment title."); return; }
-    const finalDate = customDate.trim() || date;
-    const finalTime = customTime.trim() || time;
     setSaving(true);
     try {
       const token = await getToken();
@@ -185,8 +184,8 @@ export default function AppointmentSchedulerScreen() {
           patientId,
           title: title.trim(),
           type: selectedType,
-          date: finalDate,
-          time: finalTime,
+          date: dateToApiStr(pickerDate),
+          time: timeToApiStr(pickerTime),
           location: location.trim() || null,
           notes: notes.trim() || null,
         }),
@@ -224,9 +223,13 @@ export default function AppointmentSchedulerScreen() {
   };
 
   const resetForm = () => {
-    setTitle(""); setSelectedType("gp"); setDate(todayStr());
-    setCustomDate(""); setTime("9:00 AM"); setCustomTime("");
-    setLocation(""); setNotes("");
+    setTitle("");
+    setSelectedType("gp");
+    setPickerDate(startOfToday());
+    setPickerTime(defaultTime());
+    setLocation("");
+    setNotes("");
+    setPickerMode(null);
   };
 
   // Group appointments
@@ -237,7 +240,6 @@ export default function AppointmentSchedulerScreen() {
       if (!map.has(label)) map.set(label, []);
       map.get(label)!.push(a);
     }
-    // Sort groups: predefined order first, then chronological months
     const sorted: { label: string; items: Appointment[] }[] = [];
     for (const key of GROUP_ORDER) {
       if (map.has(key)) sorted.push({ label: key, items: map.get(key)! });
@@ -248,9 +250,7 @@ export default function AppointmentSchedulerScreen() {
     return sorted;
   }, [appointments]);
 
-  // Nearest upcoming appointment for "next up" banner
-  const nextUp = appointments[0]; // server already returns sorted ASC
-  const dateOptions = buildDateOptions();
+  const nextUp = appointments[0];
 
   return (
     <ThemedView style={styles.container}>
@@ -312,17 +312,12 @@ export default function AppointmentSchedulerScreen() {
                       urgent && { borderWidth: 1.5, borderColor: info.color + "60" },
                     ]}
                   >
-                    {/* colored left strip */}
                     <View style={[styles.apptStrip, { backgroundColor: info.color }]} />
-
-                    {/* date column */}
                     <View style={[styles.apptDateCol, { backgroundColor: info.color + "14" }]}>
                       <ThemedText style={[styles.apptWeekday, { color: info.color }]}>{getWeekday(appt.date)}</ThemedText>
                       <ThemedText style={[styles.apptDayNum, { color: info.color }]}>{getDayNum(appt.date)}</ThemedText>
                       <ThemedText style={[styles.apptMonth, { color: info.color }]}>{getMonthAbbr(appt.date)}</ThemedText>
                     </View>
-
-                    {/* content */}
                     <View style={styles.apptContent}>
                       <View style={styles.apptTopRow}>
                         <View style={[styles.typePill, { backgroundColor: info.color + "18" }]}>
@@ -335,9 +330,7 @@ export default function AppointmentSchedulerScreen() {
                           </View>
                         )}
                       </View>
-
                       <ThemedText style={styles.apptTitle} numberOfLines={2}>{appt.title}</ThemedText>
-
                       <View style={styles.apptMeta}>
                         <Feather name="clock" size={12} color={theme.textSecondary} />
                         <ThemedText style={[styles.apptMetaText, { color: theme.textSecondary }]}>{appt.time}</ThemedText>
@@ -349,15 +342,12 @@ export default function AppointmentSchedulerScreen() {
                           </>
                         ) : null}
                       </View>
-
                       {appt.notes ? (
                         <ThemedText style={[styles.apptNotes, { color: theme.textSecondary }]} numberOfLines={2}>
                           {appt.notes}
                         </ThemedText>
                       ) : null}
                     </View>
-
-                    {/* delete */}
                     <Pressable
                       onPress={() => handleDelete(appt.id, appt.title)}
                       style={[styles.deleteBtn, { backgroundColor: theme.error + "18" }]}
@@ -430,64 +420,31 @@ export default function AppointmentSchedulerScreen() {
               ))}
             </View>
 
-            {/* date */}
+            {/* date picker row */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>DATE</ThemedText>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickScroll} contentContainerStyle={styles.quickScrollContent}>
-              {dateOptions.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => { setDate(opt.value); setCustomDate(""); }}
-                  style={[
-                    styles.dateChip,
-                    date === opt.value && !customDate
-                      ? { backgroundColor: theme.primary }
-                      : { backgroundColor: theme.backgroundDefault },
-                  ]}
-                >
-                  <ThemedText style={[styles.dateChipLabel, { color: date === opt.value && !customDate ? "#FFFFFF" : theme.text }]}>
-                    {opt.label}
-                  </ThemedText>
-                  <ThemedText style={[styles.dateChipSub, { color: date === opt.value && !customDate ? "rgba(255,255,255,0.8)" : theme.textSecondary }]}>
-                    {opt.sub}
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </ScrollView>
-            <TextInput
-              value={customDate}
-              onChangeText={setCustomDate}
-              placeholder="Or type custom date: YYYY-MM-DD"
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.formInputSm, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
-            />
+            <Pressable
+              onPress={() => setPickerMode("date")}
+              style={[styles.pickerRow, { backgroundColor: theme.backgroundDefault }]}
+            >
+              <Feather name="calendar" size={18} color={theme.primary} />
+              <ThemedText style={[styles.pickerRowText, { color: theme.text }]}>
+                {formatDateDisplay(pickerDate)}
+              </ThemedText>
+              <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+            </Pressable>
 
-            {/* time */}
+            {/* time picker row */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>TIME</ThemedText>
-            <View style={styles.timeGrid}>
-              {QUICK_TIMES.map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => { setTime(t); setCustomTime(""); }}
-                  style={[
-                    styles.timeChip,
-                    time === t && !customTime
-                      ? { backgroundColor: theme.primary }
-                      : { backgroundColor: theme.backgroundDefault },
-                  ]}
-                >
-                  <ThemedText style={[styles.timeChipText, { color: time === t && !customTime ? "#FFFFFF" : theme.text }]}>
-                    {t}
-                  </ThemedText>
-                </Pressable>
-              ))}
-            </View>
-            <TextInput
-              value={customTime}
-              onChangeText={setCustomTime}
-              placeholder="Or type custom time"
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.formInputSm, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
-            />
+            <Pressable
+              onPress={() => setPickerMode("time")}
+              style={[styles.pickerRow, { backgroundColor: theme.backgroundDefault }]}
+            >
+              <Feather name="clock" size={18} color={theme.primary} />
+              <ThemedText style={[styles.pickerRowText, { color: theme.text }]}>
+                {formatTimeDisplay(pickerTime)}
+              </ThemedText>
+              <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+            </Pressable>
 
             {/* location */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>LOCATION (OPTIONAL)</ThemedText>
@@ -516,6 +473,54 @@ export default function AppointmentSchedulerScreen() {
           </KeyboardAwareScrollViewCompat>
         </View>
       </Modal>
+
+      {/* ── NATIVE DATE/TIME PICKER ── */}
+
+      {/* Android: renders as a dialog, no wrapper needed */}
+      {Platform.OS === "android" && pickerMode !== null && (
+        <DateTimePicker
+          value={pickerMode === "date" ? pickerDate : pickerTime}
+          mode={pickerMode}
+          display="default"
+          minimumDate={pickerMode === "date" ? startOfToday() : undefined}
+          onChange={(_, selected) => {
+            setPickerMode(null);
+            if (!selected) return;
+            if (pickerMode === "date") setPickerDate(selected);
+            else setPickerTime(selected);
+          }}
+        />
+      )}
+
+      {/* iOS: spinner in a bottom sheet modal with Done button */}
+      {Platform.OS === "ios" && pickerMode !== null && (
+        <Modal transparent animationType="fade" visible onRequestClose={() => setPickerMode(null)}>
+          <Pressable style={styles.pickerOverlay} onPress={() => setPickerMode(null)}>
+            <Pressable style={[styles.pickerSheet, { backgroundColor: theme.backgroundDefault }]}>
+              <View style={styles.pickerSheetHeader}>
+                <ThemedText style={[styles.pickerSheetTitle, { color: theme.text }]}>
+                  {pickerMode === "date" ? "Select Date" : "Select Time"}
+                </ThemedText>
+                <Pressable onPress={() => setPickerMode(null)} style={[styles.pickerDoneBtn, { backgroundColor: theme.primary }]}>
+                  <ThemedText style={styles.pickerDoneText}>Done</ThemedText>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={pickerMode === "date" ? pickerDate : pickerTime}
+                mode={pickerMode}
+                display="spinner"
+                minimumDate={pickerMode === "date" ? startOfToday() : undefined}
+                onChange={(_, selected) => {
+                  if (!selected) return;
+                  if (pickerMode === "date") setPickerDate(selected);
+                  else setPickerTime(selected);
+                }}
+                style={styles.nativePicker}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </ThemedView>
   );
 }
@@ -527,7 +532,6 @@ export default function AppointmentSchedulerScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  /* next up banner */
   nextUpCard: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
     margin: Spacing.lg, borderRadius: BorderRadius.large, padding: Spacing.lg, gap: Spacing.md,
@@ -541,13 +545,11 @@ const styles = StyleSheet.create({
   nextUpDay: { fontSize: 32, fontWeight: "900", color: "#FFFFFF", lineHeight: 34 },
   nextUpMonth: { fontSize: 12, fontWeight: "700", color: "rgba(255,255,255,0.85)" },
 
-  /* section */
   section: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginBottom: Spacing.sm, marginTop: Spacing.sm },
   sectionDot: { width: 6, height: 6, borderRadius: 3 },
   sectionTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
 
-  /* appointment card */
   apptCard: {
     flexDirection: "row", borderRadius: BorderRadius.medium, overflow: "hidden",
     marginBottom: Spacing.sm, alignItems: "stretch",
@@ -569,34 +571,38 @@ const styles = StyleSheet.create({
   apptNotes: { fontSize: 12, fontStyle: "italic", opacity: 0.7 },
   deleteBtn: { width: 44, alignItems: "center", justifyContent: "center" },
 
-  /* empty */
   emptyContainer: { alignItems: "center", paddingVertical: Spacing.xxl, paddingHorizontal: Spacing.xl },
 
-  /* add bar */
   addBarContainer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(0,0,0,0.08)" },
   addBar: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Spacing.sm, height: 52, borderRadius: 14 },
   addBarText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
 
-  /* modal */
   modalContainer: { flex: 1, paddingTop: Spacing.xxl },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.xl, marginBottom: Spacing.md },
   modalScroll: { flex: 1 },
   modalScrollContent: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl },
   formLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: Spacing.sm },
   formInput: { height: 52, borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md, fontSize: 16, marginBottom: 2 },
-  formInputSm: { height: 44, borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md, fontSize: 14, marginTop: Spacing.sm },
   typeGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
   typeOption: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: Spacing.sm, borderRadius: BorderRadius.medium, borderWidth: 1.5, width: "48%" },
   typeOptionIcon: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
   typeOptionText: { fontSize: 13, fontWeight: "600", flex: 1 },
-  quickScroll: { marginHorizontal: -Spacing.xl },
-  quickScrollContent: { paddingHorizontal: Spacing.xl, gap: Spacing.sm, paddingBottom: Spacing.sm },
-  dateChip: { alignItems: "center", paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, gap: 2, minWidth: 90 },
-  dateChipLabel: { fontSize: 13, fontWeight: "700" },
-  dateChipSub: { fontSize: 11 },
-  timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginBottom: 2 },
-  timeChip: { paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10 },
-  timeChipText: { fontSize: 13, fontWeight: "600" },
   notesInput: { height: 90, borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md, paddingTop: Spacing.md, fontSize: 15, textAlignVertical: "top", marginBottom: Spacing.md },
   saveButton: { marginTop: Spacing.sm },
+
+  /* picker rows */
+  pickerRow: {
+    flexDirection: "row", alignItems: "center", gap: Spacing.sm,
+    height: 52, borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md,
+  },
+  pickerRowText: { flex: 1, fontSize: 16 },
+
+  /* iOS picker sheet */
+  pickerOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  pickerSheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 34 },
+  pickerSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm },
+  pickerSheetTitle: { fontSize: 17, fontWeight: "700" },
+  pickerDoneBtn: { paddingHorizontal: Spacing.md, paddingVertical: 8, borderRadius: 10 },
+  pickerDoneText: { color: "#FFFFFF", fontWeight: "700", fontSize: 15 },
+  nativePicker: { width: "100%" },
 });
