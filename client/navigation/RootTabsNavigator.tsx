@@ -959,6 +959,16 @@ export default function RootTabsNavigator() {
             />
           ),
         }}
+        listeners={() => ({
+          tabPress: () => {
+            const rootState = navigationRef.getState() as any;
+            const homeRoute = rootState?.routes?.find((r: any) => r.name === "HomeTab");
+            const homeStackKey = homeRoute?.state?.key;
+            if (homeStackKey) {
+              navigationRef.dispatch({ ...StackActions.popToTop(), target: homeStackKey });
+            }
+          },
+        })}
       />
 
       <Tab.Screen
