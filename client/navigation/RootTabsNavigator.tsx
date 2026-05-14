@@ -325,6 +325,12 @@ function HomeStackNavigator() {
         component={SciNewsListScreen}
         options={{ title: "SCI News" }}
       />
+
+      {/* HEALTH TOOL SCREENS — navigated from Dashboard Your Day tiles */}
+      <HomeStack.Screen name="VitalsLog" component={VitalsLogScreen} options={{ ...opaqueScreenOptions, headerTitle: "Vital Signs Log" }} />
+      <HomeStack.Screen name="MedicationTracker" component={MedicationTrackerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Medications" }} />
+      <HomeStack.Screen name="HydrationTracker" component={HydrationTrackerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Hydration Tracker" }} />
+      <HomeStack.Screen name="PressureReliefTimer" component={PressureReliefTimerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Pressure Relief" }} />
     </HomeStack.Navigator>
   );
 }
@@ -972,15 +978,13 @@ export default function RootTabsNavigator() {
           ),
         }}
         listeners={({ navigation }) => ({
-          tabPress: (e) => {
+          tabPress: () => {
             const rootState = navigationRef.getState() as any;
             const toolsRoute = rootState?.routes?.find((r: any) => r.name === "ToolsTab");
             const toolsStackKey = toolsRoute?.state?.key;
             if (toolsStackKey) {
               navigationRef.dispatch({ ...StackActions.popToTop(), target: toolsStackKey });
             }
-            // Ensure tab actually switches to ToolsTab regardless of current state
-            navigation.navigate("ToolsTab" as never);
           },
         })}
       />
