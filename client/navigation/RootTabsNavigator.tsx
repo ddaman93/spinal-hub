@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HeaderButton } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation, StackActions } from "@react-navigation/native";
+import { useNavigation, CommonActions } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
@@ -961,12 +961,7 @@ export default function RootTabsNavigator() {
         }}
         listeners={() => ({
           tabPress: () => {
-            const rootState = navigationRef.getState() as any;
-            const homeRoute = rootState?.routes?.find((r: any) => r.name === "HomeTab");
-            const homeStackKey = homeRoute?.state?.key;
-            if (homeStackKey) {
-              navigationRef.dispatch({ ...StackActions.popToTop(), target: homeStackKey });
-            }
+            navigationRef.dispatch(CommonActions.navigate({ name: "Dashboard" }));
           },
         })}
       />
@@ -987,14 +982,9 @@ export default function RootTabsNavigator() {
             />
           ),
         }}
-        listeners={({ navigation }) => ({
+        listeners={() => ({
           tabPress: () => {
-            const rootState = navigationRef.getState() as any;
-            const toolsRoute = rootState?.routes?.find((r: any) => r.name === "ToolsTab");
-            const toolsStackKey = toolsRoute?.state?.key;
-            if (toolsStackKey) {
-              navigationRef.dispatch({ ...StackActions.popToTop(), target: toolsStackKey });
-            }
+            navigationRef.dispatch(CommonActions.navigate({ name: "Tools" }));
           },
         })}
       />
