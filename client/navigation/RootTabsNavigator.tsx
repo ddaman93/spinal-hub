@@ -1,4 +1,5 @@
 import React from "react";
+import { navigationRef } from "@/lib/navigationRef";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HeaderButton } from "@react-navigation/elements";
@@ -972,9 +973,14 @@ export default function RootTabsNavigator() {
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            if (!navigation.isFocused()) return;
-            e.preventDefault();
-            navigation.dispatch(StackActions.popToTop());
+            const rootState = navigationRef.getState() as any;
+            const toolsRoute = rootState?.routes?.find((r: any) => r.name === "ToolsTab");
+            const toolsStackKey = toolsRoute?.state?.key;
+            if (toolsStackKey) {
+              navigationRef.dispatch({ ...StackActions.popToTop(), target: toolsStackKey });
+            }
+            // Ensure tab actually switches to ToolsTab regardless of current state
+            navigation.navigate("ToolsTab" as never);
           },
         })}
       />
