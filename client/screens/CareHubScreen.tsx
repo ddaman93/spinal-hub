@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import {
   View, ScrollView, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator,
-  Share, KeyboardAvoidingView, Platform, Dimensions,
+  Share, KeyboardAvoidingView, Platform, Dimensions, Modal,
 } from "react-native";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -10,6 +10,7 @@ import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
 
 import { ThemedView } from "@/components/ThemedView";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { ThemedText } from "@/components/ThemedText";
 import { ElevatedCard } from "@/components/ElevatedCard";
 import { useTheme } from "@/hooks/useTheme";
@@ -67,7 +68,13 @@ type MyProfile = {
   name: string;
   aboutMe?: string | null;
   injuryLevel?: string | null;
+  injuryType?: string | null;
   routineHighlights?: string | null;
+  caregiverNotes?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  medications?: string | null;
+  allergies?: string | null;
 };
 
 type CareNote = {
@@ -113,6 +120,19 @@ export default function CareHubScreen() {
   const [jwtUserId, setJwtUserId] = useState<string | null>(null);
   const [recentNotes, setRecentNotes] = useState<CareNote[]>([]);
   const [showInviteForm, setShowInviteForm] = useState(false);
+
+  // Care intro modal
+  const [introModalVisible, setIntroModalVisible] = useState(false);
+  const [introSaving, setIntroSaving] = useState(false);
+  const [introAboutMe, setIntroAboutMe] = useState("");
+  const [introInjuryLevel, setIntroInjuryLevel] = useState("");
+  const [introInjuryType, setIntroInjuryType] = useState("");
+  const [introRoutine, setIntroRoutine] = useState("");
+  const [introCareNotes, setIntroCareNotes] = useState("");
+  const [introEmergencyName, setIntroEmergencyName] = useState("");
+  const [introEmergencyPhone, setIntroEmergencyPhone] = useState("");
+  const [introMedications, setIntroMedications] = useState("");
+  const [introAllergies, setIntroAllergies] = useState("");
 
   // Invite state
   const [selectedRole, setSelectedRole] = useState<Role>("carer");
@@ -169,6 +189,45 @@ export default function CareHubScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  function openIntroModal() {
+    setIntroAboutMe(myProfile?.aboutMe ?? "");
+    setIntroInjuryLevel(myProfile?.injuryLevel ?? "");
+    setIntroInjuryType(myProfile?.injuryType ?? "");
+    setIntroRoutine(myProfile?.routineHighlights ?? "");
+    setIntroCareNotes(myProfile?.caregiverNotes ?? "");
+    setIntroEmergencyName(myProfile?.emergencyContactName ?? "");
+    setIntroEmergencyPhone(myProfile?.emergencyContactPhone ?? "");
+    setIntroMedications(myProfile?.medications ?? "");
+    setIntroAllergies(myProfile?.allergies ?? "");
+    setIntroModalVisible(true);
+  }
+
+  async function saveIntro() {
+    setIntroSaving(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${getApiUrl()}/api/profile`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aboutMe: introAboutMe.trim() || null,
+          injuryLevel: introInjuryLevel.trim() || null,
+          injuryType: introInjuryType.trim() || null,
+          routineHighlights: introRoutine.trim() || null,
+          caregiverNotes: introCareNotes.trim() || null,
+          emergencyContactName: introEmergencyName.trim() || null,
+          emergencyContactPhone: introEmergencyPhone.trim() || null,
+          medications: introMedications.trim() || null,
+          allergies: introAllergies.trim() || null,
+        }),
+      });
+      if (!res.ok) { Alert.alert("Save failed", "Could not save your care intro. Please try again."); return; }
+      setIntroModalVisible(false);
+      await load();
+    } catch { Alert.alert("Network error", "Could not reach the server."); }
+    finally { setIntroSaving(false); }
+  }
 
   async function generateInvite() {
     setGenerating(true);
@@ -290,7 +349,7 @@ export default function CareHubScreen() {
                 </View>
                 <ElevatedCard padding={Spacing.md}>
                   {myProfile?.aboutMe ? (
-                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }} numberOfLines={3}>
+                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }} numberOfLines={4}>
                       {myProfile.aboutMe}
                     </ThemedText>
                   ) : (
@@ -298,11 +357,27 @@ export default function CareHubScreen() {
                       Add a short bio so new support workers know who you are.
                     </ThemedText>
                   )}
-                  {myProfile?.injuryLevel ? (
+                  {(myProfile?.injuryLevel || myProfile?.injuryType) ? (
                     <View style={[styles.infoChip, { marginTop: Spacing.sm }]}>
                       <Feather name="activity" size={12} color={theme.textSecondary} />
                       <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
-                        {myProfile.injuryLevel}
+                        {[myProfile.injuryLevel, myProfile.injuryType].filter(Boolean).join(" · ")}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  {myProfile?.caregiverNotes ? (
+                    <View style={[styles.infoChip, { marginTop: Spacing.xs, alignItems: "flex-start" }]}>
+                      <Feather name="alert-circle" size={12} color="#f97316" style={{ marginTop: 2 }} />
+                      <ThemedText type="caption" style={{ opacity: 0.75, marginLeft: 4, flex: 1 }} numberOfLines={3}>
+                        {myProfile.caregiverNotes}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+                  {myProfile?.emergencyContactName ? (
+                    <View style={[styles.infoChip, { marginTop: Spacing.xs }]}>
+                      <Feather name="phone" size={12} color={theme.textSecondary} />
+                      <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
+                        {myProfile.emergencyContactName}{myProfile.emergencyContactPhone ? `  ·  ${myProfile.emergencyContactPhone}` : ""}
                       </ThemedText>
                     </View>
                   ) : null}
@@ -312,7 +387,7 @@ export default function CareHubScreen() {
                     </ThemedText>
                   ) : null}
                   <Pressable
-                    onPress={() => navigation.navigate("EditProfile" as any)}
+                    onPress={openIntroModal}
                     style={({ pressed }) => [styles.editIntroBtn, { borderColor: theme.border, opacity: pressed ? 0.6 : 1 }]}
                   >
                     <Feather name="edit-2" size={13} color={theme.textSecondary} />
@@ -681,9 +756,133 @@ export default function CareHubScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── CARE INTRO EDIT MODAL ── */}
+      <Modal visible={introModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setIntroModalVisible(false)}>
+        <View style={[introStyles.container, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={introStyles.header}>
+            <Pressable onPress={() => setIntroModalVisible(false)}>
+              <ThemedText style={{ color: theme.primary }}>Cancel</ThemedText>
+            </Pressable>
+            <ThemedText style={introStyles.headerTitle}>My Care Intro</ThemedText>
+            <Pressable onPress={saveIntro} disabled={introSaving}>
+              <ThemedText style={{ color: introSaving ? theme.textSecondary : theme.primary, fontWeight: "700" }}>
+                {introSaving ? "Saving…" : "Save"}
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          <KeyboardAwareScrollViewCompat contentContainerStyle={introStyles.scrollContent}>
+
+            <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>ABOUT ME</ThemedText>
+            <ThemedText style={[introStyles.hint, { color: theme.textSecondary }]}>Who you are, your personality, how long you've been injured</ThemedText>
+            <TextInput
+              value={introAboutMe}
+              onChangeText={setIntroAboutMe}
+              placeholder="e.g. I'm Dylan, T4 paraplegic since 2019. I'm independent with most tasks and like to do things my own way where possible..."
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              style={[introStyles.textArea, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            />
+
+            <View style={introStyles.row}>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>INJURY LEVEL</ThemedText>
+                <TextInput
+                  value={introInjuryLevel}
+                  onChangeText={setIntroInjuryLevel}
+                  placeholder="e.g. T4"
+                  placeholderTextColor={theme.textSecondary}
+                  style={[introStyles.input, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>COMPLETE / INCOMPLETE</ThemedText>
+                <TextInput
+                  value={introInjuryType}
+                  onChangeText={setIntroInjuryType}
+                  placeholder="e.g. Complete"
+                  placeholderTextColor={theme.textSecondary}
+                  style={[introStyles.input, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+                />
+              </View>
+            </View>
+
+            <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>WHAT CARERS NEED TO KNOW</ThemedText>
+            <ThemedText style={[introStyles.hint, { color: theme.textSecondary }]}>AD triggers, positioning needs, bowel/bladder routine summary, communication preferences, anything critical</ThemedText>
+            <TextInput
+              value={introCareNotes}
+              onChangeText={setIntroCareNotes}
+              placeholder="e.g. I get AD if my bladder is full — watch for flushing and headache. IC every 4 hours. Always offer me the call button before leaving the room..."
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              style={[introStyles.textArea, { backgroundColor: theme.backgroundDefault, color: theme.text, minHeight: 110 }]}
+            />
+
+            <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>DAILY ROUTINE SUMMARY</ThemedText>
+            <ThemedText style={[introStyles.hint, { color: theme.textSecondary }]}>Key points of your morning/evening routine for new workers</ThemedText>
+            <TextInput
+              value={introRoutine}
+              onChangeText={setIntroRoutine}
+              placeholder="e.g. Morning: shower first, then dress. I direct my own care. Evening: skin check before bed, turn at 2am..."
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              style={[introStyles.textArea, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            />
+
+            <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>KEY MEDICATIONS &amp; ALLERGIES</ThemedText>
+            <ThemedText style={[introStyles.hint, { color: theme.textSecondary }]}>Summary only — use the Medications tile for the full list</ThemedText>
+            <TextInput
+              value={introMedications}
+              onChangeText={setIntroMedications}
+              placeholder="e.g. Baclofen 20mg TDS, Oxybutynin 5mg BD, Vitamin D daily"
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              style={[introStyles.textArea, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            />
+            <TextInput
+              value={introAllergies}
+              onChangeText={setIntroAllergies}
+              placeholder="Allergies: e.g. Penicillin — anaphylaxis"
+              placeholderTextColor={theme.textSecondary}
+              style={[introStyles.input, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            />
+
+            <ThemedText style={[introStyles.label, { color: theme.textSecondary }]}>EMERGENCY CONTACT</ThemedText>
+            <TextInput
+              value={introEmergencyName}
+              onChangeText={setIntroEmergencyName}
+              placeholder="Contact name & relationship"
+              placeholderTextColor={theme.textSecondary}
+              style={[introStyles.input, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
+            />
+            <TextInput
+              value={introEmergencyPhone}
+              onChangeText={setIntroEmergencyPhone}
+              placeholder="Phone number"
+              placeholderTextColor={theme.textSecondary}
+              keyboardType="phone-pad"
+              style={[introStyles.input, { backgroundColor: theme.backgroundDefault, color: theme.text, marginTop: Spacing.sm }]}
+            />
+
+          </KeyboardAwareScrollViewCompat>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
+
+const introStyles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, paddingBottom: Spacing.md },
+  headerTitle: { fontSize: 17, fontWeight: "700" },
+  scrollContent: { paddingHorizontal: Spacing.xl, paddingBottom: 60 },
+  label: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4, marginTop: Spacing.lg },
+  hint: { fontSize: 12, opacity: 0.6, marginBottom: Spacing.sm, lineHeight: 17 },
+  input: { height: 48, borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md, fontSize: 15 },
+  textArea: { borderRadius: BorderRadius.medium, paddingHorizontal: Spacing.md, paddingTop: Spacing.md, fontSize: 15, minHeight: 90, textAlignVertical: "top" },
+  row: { flexDirection: "row", gap: Spacing.sm },
+});
 
 const styles = StyleSheet.create({
   toggleRow: {
