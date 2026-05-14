@@ -267,12 +267,12 @@ function RoutineScreen({ routineType, patientId }: { routineType: RoutineType; p
 
 export function MorningRoutineScreen() {
   const { params } = useRoute<MorningRoute>();
-  return <RoutineScreen routineType="morning" patientId={params.patientId} />;
+  return <RoutineScreen routineType="morning" patientId={params?.patientId ?? ""} />;
 }
 
 export function EveningRoutineScreen() {
   const { params } = useRoute<EveningRoute>();
-  return <RoutineScreen routineType="evening" patientId={params.patientId} />;
+  return <RoutineScreen routineType="evening" patientId={params?.patientId ?? ""} />;
 }
 
 const styles = StyleSheet.create({

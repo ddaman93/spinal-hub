@@ -139,7 +139,7 @@ export default function AppointmentSchedulerScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { params } = useRoute<Route>();
-  const { patientId } = params;
+  const patientId = params?.patientId ?? "";
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);

@@ -52,7 +52,8 @@ export default function MedicationTrackerScreen() {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { params } = useRoute<Route>();
-  const { patientId, patientName } = params;
+  const patientId = params?.patientId ?? "";
+  const patientName = params?.patientName ?? "";
 
   const [medications, setMedications] = useState<Medication[]>([]);
   const [todayLogs, setTodayLogs] = useState<MedLog[]>([]);

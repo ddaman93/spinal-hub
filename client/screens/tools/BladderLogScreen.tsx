@@ -78,6 +78,7 @@ function hoursSince(dateStr: string): number {
 
 export default function BladderLogScreen() {
   const { params } = useRoute<Route>();
+  const patientId = params?.patientId ?? "";
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [entries, setEntries] = useState<BladderEntry[]>([]);
@@ -93,13 +94,13 @@ export default function BladderLogScreen() {
     try {
       const token = await getToken();
       const res = await fetch(
-        `${getApiUrl()}/api/health/bladder-logs?patientId=${encodeURIComponent(params.patientId)}`,
+        `${getApiUrl()}/api/health/bladder-logs?patientId=${encodeURIComponent(patientId)}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.ok) setEntries(await res.json());
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [params.patientId]);
+  }, [patientId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -111,7 +112,7 @@ export default function BladderLogScreen() {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          patientId: params.patientId,
+          patientId: patientId,
           type: selectedType,
           volumeMl: volumeText ? Number(volumeText) : undefined,
           notes: notes || undefined,

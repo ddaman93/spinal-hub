@@ -41,6 +41,7 @@ function formatTime(dateStr: string): string {
 
 export default function HydrationTrackerScreen() {
   const { params } = useRoute<Route>();
+  const patientId = params?.patientId ?? "";
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [todayLogs, setTodayLogs] = useState<HydrationLog[]>([]);
@@ -53,13 +54,13 @@ export default function HydrationTrackerScreen() {
     try {
       const token = await getToken();
       const res = await fetch(
-        `${getApiUrl()}/api/health/hydration-logs?patientId=${encodeURIComponent(params.patientId)}&date=${today}`,
+        `${getApiUrl()}/api/health/hydration-logs?patientId=${encodeURIComponent(patientId)}&date=${today}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.ok) setTodayLogs(await res.json());
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [params.patientId, today]);
+  }, [patientId, today]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -68,7 +69,7 @@ export default function HydrationTrackerScreen() {
     await fetch(`${getApiUrl()}/api/health/hydration-logs`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ patientId: params.patientId, amount, unit: "ml", date: today }),
+      body: JSON.stringify({ patientId: patientId, amount, unit: "ml", date: today }),
     });
     await load();
   };

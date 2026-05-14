@@ -41,6 +41,7 @@ function timeAgo(dateStr: string): string {
 
 export default function PainJournalScreen() {
   const { params } = useRoute<Route>();
+  const patientId = params?.patientId ?? "";
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const [entries, setEntries] = useState<PainEntry[]>([]);
@@ -56,13 +57,13 @@ export default function PainJournalScreen() {
     try {
       const token = await getToken();
       const res = await fetch(
-        `${getApiUrl()}/api/health/pain-entries?patientId=${encodeURIComponent(params.patientId)}`,
+        `${getApiUrl()}/api/health/pain-entries?patientId=${encodeURIComponent(patientId)}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
       if (res.ok) setEntries(await res.json());
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [params.patientId]);
+  }, [patientId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -74,7 +75,7 @@ export default function PainJournalScreen() {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          patientId: params.patientId,
+          patientId: patientId,
           level: painLevel,
           location: selectedLocation,
           description: description || undefined,
