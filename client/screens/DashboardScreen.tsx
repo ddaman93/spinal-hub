@@ -484,46 +484,42 @@ export default function DashboardScreen() {
         )}
 
         {/* EXPLORE ROW — SCI News · Trials · Assistive Tech */}
+        <TourTarget stepId="sci-news" scrollRef={scrollRef}>
         <View style={styles.glassWrapper}>
           <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
             <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
               <ThemedText type="heading" style={{ marginBottom: Spacing.md }}>Explore</ThemedText>
               <View style={styles.tileRow}>
 
-                <TourTarget stepId="sci-news" scrollRef={scrollRef}>
-                  <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("SciNewsList")}>
-                    <Feather name="rss" size={22} color="#F59E0B" />
-                    <ThemedText style={styles.tileLabel}>SCI News</ThemedText>
-                    {featuredNews ? (
-                      <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredNews.title}</ThemedText>
-                    ) : null}
-                  </Pressable>
-                </TourTarget>
+                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("SciNewsList")}>
+                  <Feather name="rss" size={20} color="#F59E0B" />
+                  <ThemedText style={styles.tileLabel}>SCI News</ThemedText>
+                  {featuredNews ? (
+                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredNews.title}</ThemedText>
+                  ) : null}
+                </Pressable>
 
-                <TourTarget stepId="clinical-trials" scrollRef={scrollRef}>
-                  <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("ClinicalTrialsList", {})}>
-                    <Feather name="zap" size={22} color="#3B82F6" />
-                    <ThemedText style={styles.tileLabel}>Trials</ThemedText>
-                    {featuredTrial ? (
-                      <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredTrial.title}</ThemedText>
-                    ) : (
-                      <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" }]}>{liveLoading ? "Loading…" : "View all"}</ThemedText>
-                    )}
-                  </Pressable>
-                </TourTarget>
+                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("ClinicalTrialsList", {})}>
+                  <Feather name="zap" size={20} color="#3B82F6" />
+                  <ThemedText style={styles.tileLabel}>Trials</ThemedText>
+                  {featuredTrial ? (
+                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredTrial.title}</ThemedText>
+                  ) : (
+                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" }]}>{liveLoading ? "Loading…" : "View all"}</ThemedText>
+                  )}
+                </Pressable>
 
-                <TourTarget stepId="assistive-tech" scrollRef={scrollRef}>
-                  <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("AllAssistiveTech", { categoryId: "mobility" })}>
-                    <Feather name="cpu" size={22} color="#8B5CF6" />
-                    <ThemedText style={styles.tileLabel}>Tech</ThemedText>
-                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredTech.subtitle}</ThemedText>
-                  </Pressable>
-                </TourTarget>
+                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("AllAssistiveTech", { categoryId: "mobility" })}>
+                  <Feather name="cpu" size={20} color="#8B5CF6" />
+                  <ThemedText style={styles.tileLabel}>Tech</ThemedText>
+                  <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredTech.subtitle}</ThemedText>
+                </Pressable>
 
               </View>
             </View>
           </BlurView>
         </View>
+        </TourTarget>
 
         {/* QUICK ACCESS */}
         <View style={styles.glassWrapper}>
@@ -533,19 +529,19 @@ export default function DashboardScreen() {
               <View style={styles.tileRow}>
 
                 <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "CommunityChat" })}>
-                  <Feather name="message-square" size={22} color="#10B981" />
+                  <Feather name="message-square" size={20} color="#10B981" />
                   <ThemedText style={styles.tileLabel}>Community</ThemedText>
                   <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]}>Chat rooms</ThemedText>
                 </Pressable>
 
                 <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "MobilityTaxiList" })}>
-                  <Feather name="navigation" size={22} color="#F59E0B" />
+                  <Feather name="navigation" size={20} color="#F59E0B" />
                   <ThemedText style={styles.tileLabel}>Taxis</ThemedText>
                   <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]}>Accessible cabs</ThemedText>
                 </Pressable>
 
                 <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "AccessibleTransportMap" })}>
-                  <Feather name="map" size={22} color="#EF4444" />
+                  <Feather name="map" size={20} color="#EF4444" />
                   <ThemedText style={styles.tileLabel}>Transport</ThemedText>
                   <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]}>Accessible map</ThemedText>
                 </Pressable>
@@ -595,8 +591,8 @@ const styles = StyleSheet.create({
   tile: { flex: 1, borderRadius: 14, padding: Spacing.sm, alignItems: "center", gap: 4 },
   tileLabel: { fontSize: 11, opacity: 0.55, textAlign: "center" },
   tileValue: { fontSize: 13, fontWeight: "700", textAlign: "center" },
-  exploreTile: { flex: 1, borderRadius: 14, padding: Spacing.sm, alignItems: "center", gap: 4, minHeight: 90 },
-  exploreTilePreview: { fontSize: 10, textAlign: "center", lineHeight: 13 },
+  exploreTile: { flex: 1, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 4, alignItems: "center", gap: 3 },
+  exploreTilePreview: { fontSize: 9, textAlign: "center", lineHeight: 12 },
   creatorNoteBtnBlur: { borderRadius: 20, overflow: "hidden" },
   creatorNoteBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   creatorNoteBtnText: { fontWeight: "600" },
