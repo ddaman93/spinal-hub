@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -30,7 +30,8 @@ import { useTour } from "@/context/TourContext";
 import { Spacing } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
-import { getSciNews, type NewsArticle } from "@/services/newsService";
+import { getToken, getUserIdFromToken } from "@/lib/auth";
+import { getSciNews } from "@/services/newsService";
 import { TECH_CATEGORIES } from "@/data/techCategories";
 import { WHEELCHAIR_CATEGORIES } from "@/data/wheelchairCategories";
 import { CATEGORIES } from "@/config/catalog";
@@ -47,21 +48,35 @@ function getGreeting(date = new Date()) {
   return "Good evening";
 }
 
+function minsAgo(isoOrMs: string | number | null): string {
+  if (!isoOrMs) return "--";
+  const ms = typeof isoOrMs === "number" ? isoOrMs : new Date(isoOrMs).getTime();
+  const diff = Math.floor((Date.now() - ms) / 60000);
+  if (diff < 60) return `${diff}m ago`;
+  const h = Math.floor(diff / 60);
+  return `${h}h ago`;
+}
+
+function todayStr(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function formatApptDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" });
+}
+
 /* ───────────────── types ───────────────── */
 
-type WeatherData = {
-  temp: number;
-  icon: string;
-  city: string;
-};
+type WeatherData = { temp: number; icon: string; city: string };
+type LiveTrial = { id: string; title: string; status: string; phase?: string; summary?: string; country?: string };
+type Appointment = { id: string; date: string; time: string; clinicianName: string; location?: string };
 
-type LiveTrial = {
-  id: string;
-  title: string;
-  status: string;
-  phase?: string;
-  summary?: string;
-  country?: string;
+type PrTimerState = {
+  durationSeconds: number;
+  remainingSeconds: number;
+  isRunning: boolean;
+  lastUpdatedAt: number;
 };
 
 /* ───────────────── constants ───────────────── */
@@ -78,8 +93,8 @@ This app is my attempt to change that. Whether you're newly injured or years int
 
 const TRIALS_CACHE_KEY = "clinical_trials_cache";
 const CACHE_TTL = 1000 * 60 * 60 * 24;
-
-/* ───────────────── fetch functions ───────────────── */
+const PR_TIMER_KEY = "pressureReliefTimerState";
+const PR_WARN_MINS = 90;
 
 /* ───────────────── search index ───────────────── */
 
@@ -93,74 +108,23 @@ type SearchItem = {
 
 function buildSearchIndex(): SearchItem[] {
   const items: SearchItem[] = [];
-
-  // Tech categories
   for (const cat of TECH_CATEGORIES) {
-    items.push({
-      id: `tech-${cat.id}`,
-      title: cat.title,
-      subtitle: cat.subtitle,
-      section: "Assistive Technology",
-      action: (nav) => nav.navigate("AllAssistiveTech", { categoryId: cat.id }),
-    });
+    items.push({ id: `tech-${cat.id}`, title: cat.title, subtitle: cat.subtitle, section: "Assistive Technology", action: (nav) => nav.navigate("AllAssistiveTech", { categoryId: cat.id }) });
   }
-
-  // Wheelchair categories
   for (const cat of WHEELCHAIR_CATEGORIES) {
-    items.push({
-      id: `wc-${cat.id}`,
-      title: cat.title,
-      subtitle: cat.subtitle,
-      section: "Wheelchairs",
-      action: (nav) => nav.navigate("AllWheelchairs"),
-    });
+    items.push({ id: `wc-${cat.id}`, title: cat.title, subtitle: cat.subtitle, section: "Wheelchairs", action: (nav) => nav.navigate("AllWheelchairs") });
   }
-
-  // Tool categories and their tools (live in ToolsStack — requires cross-tab navigation)
   for (const cat of CATEGORIES) {
-    items.push({
-      id: `cat-${cat.id}`,
-      title: cat.title,
-      subtitle: cat.description ?? "",
-      section: "Tools",
-      action: (nav) => {
-        if (cat.route) {
-          (nav as any).navigate("ToolsTab", { screen: cat.route });
-        } else {
-          (nav as any).navigate("ToolsTab", { screen: "Tools" });
-        }
-      },
-    });
+    items.push({ id: `cat-${cat.id}`, title: cat.title, subtitle: cat.description ?? "", section: "Tools", action: (nav) => { if (cat.route) { (nav as any).navigate("ToolsTab", { screen: cat.route }); } else { (nav as any).navigate("ToolsTab", { screen: "Tools" }); } } });
     for (const tool of cat.tools) {
       if (tool.comingSoon || !tool.route) continue;
-      items.push({
-        id: `tool-${tool.id}`,
-        title: tool.name,
-        subtitle: tool.description,
-        section: cat.title,
-        action: (nav) => (nav as any).navigate("ToolsTab", { screen: tool.route }),
-      });
+      items.push({ id: `tool-${tool.id}`, title: tool.name, subtitle: tool.description, section: cat.title, action: (nav) => (nav as any).navigate("ToolsTab", { screen: tool.route }) });
     }
   }
-
-  // Top-level screens
   items.push(
-    {
-      id: "sci-news",
-      title: "SCI News",
-      subtitle: "Latest spinal cord injury research",
-      section: "Sections",
-      action: (nav) => nav.navigate("SciNewsList"),
-    },
-    {
-      id: "clinical-trials",
-      title: "Clinical Trials",
-      subtitle: "Live trials for SCI patients",
-      section: "Sections",
-      action: (nav) => nav.navigate("ClinicalTrialsList", {}),
-    },
+    { id: "sci-news", title: "SCI News", subtitle: "Latest spinal cord injury research", section: "Sections", action: (nav) => nav.navigate("SciNewsList") },
+    { id: "clinical-trials", title: "Clinical Trials", subtitle: "Live trials for SCI patients", section: "Sections", action: (nav) => nav.navigate("ClinicalTrialsList", {}) },
   );
-
   return items;
 }
 
@@ -168,37 +132,11 @@ const SEARCH_INDEX = buildSearchIndex();
 
 /* ───────────────── glass section component ───────────────── */
 
-function GlassSection({
-  title,
-  onViewAll,
-  children,
-  isDark,
-}: {
-  title: string;
-  onViewAll?: () => void;
-  children: React.ReactNode;
-  isDark: boolean;
-}) {
+function GlassSection({ title, onViewAll, children, isDark }: { title: string; onViewAll?: () => void; children: React.ReactNode; isDark: boolean }) {
   return (
     <View style={styles.glassWrapper}>
-      <BlurView
-        intensity={isDark ? 18 : 40}
-        tint={isDark ? "dark" : "light"}
-        style={styles.glassBlur}
-      >
-        <View
-          style={[
-            styles.glassInner,
-            {
-              borderColor: isDark
-                ? "rgba(0,230,100,0.13)"
-                : "rgba(0,0,0,0.08)",
-              backgroundColor: isDark
-                ? "rgba(12,26,14,0.55)"
-                : "rgba(255,255,255,0.6)",
-            },
-          ]}
-        >
+      <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
+        <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
           <View style={styles.sectionHeader}>
             <ThemedText type="heading">{title}</ThemedText>
             {onViewAll && (
@@ -217,9 +155,7 @@ function GlassSection({
 /* ───────────────── screen ───────────────── */
 
 export default function DashboardScreen() {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<MainStackParamList>>();
-
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { isDark } = useTheme();
@@ -227,50 +163,126 @@ export default function DashboardScreen() {
   const scrollRef = React.useRef<any>(null);
   const { registerScrollRef } = useTour();
 
-  React.useEffect(() => {
-    registerScrollRef("HomeTab", scrollRef);
-  }, [registerScrollRef]);
+  React.useEffect(() => { registerScrollRef("HomeTab", scrollRef); }, [registerScrollRef]);
 
   const [creatorNoteVisible, setCreatorNoteVisible] = useState(false);
   const [userName, setUserName] = useState("");
-  useFocusEffect(
-    React.useCallback(() => {
-      AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
-        if (raw) {
-          const profile = JSON.parse(raw);
-          setUserName(profile.name ?? "");
-        }
-      });
-    }, [])
-  );
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Health summary state — "--" = loading/unknown
+  const [medsTotal, setMedsTotal] = useState<number | null>(null);
+  const [medsTaken, setMedsTaken] = useState<number | null>(null);
+  const [latestVitalAt, setLatestVitalAt] = useState<string | null>(null);
+  const [hydrationMl, setHydrationMl] = useState<number | null>(null);
+  const [prLastRelief, setPrLastRelief] = useState<number | null>(null); // ms timestamp
+  const [nextAppt, setNextAppt] = useState<Appointment | null | false>(null); // null=loading, false=none
 
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return SEARCH_INDEX.filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.subtitle.toLowerCase().includes(q) ||
-        item.section.toLowerCase().includes(q),
-    ).slice(0, 12);
-  }, [searchQuery]);
+  /* ───────── username + userId ───────── */
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
+        if (raw) {
+          const profile = JSON.parse(raw);
+          setUserName(profile.name ?? "");
+        }
+      });
+      getToken().then((token) => {
+        if (token) {
+          const uid = getUserIdFromToken(token);
+          setUserId(uid);
+        }
+      });
+    }, [])
+  );
 
-  const { data: newsArticles = [] } = useQuery({
-    queryKey: ["sciNews"],
-    queryFn: getSciNews,
-    staleTime: 30 * 60 * 1000,
-  });
+  /* ───────── health summary ───────── */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      async function loadHealth() {
+        const token = await getToken();
+        const uid = token ? getUserIdFromToken(token) : null;
+        if (!uid || !token) return;
 
-  const previewNews = useMemo(() => {
-    const breakthroughs = newsArticles.filter((a) => a.category === "Breakthrough");
-    const rest = newsArticles.filter((a) => a.category !== "Breakthrough");
-    return [...breakthroughs, ...rest].slice(0, 5);
-  }, [newsArticles]);
+        const base = getApiUrl();
+        const today = todayStr();
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // PR timer from AsyncStorage (no network needed)
+        AsyncStorage.getItem(PR_TIMER_KEY).then((raw) => {
+          if (!active) return;
+          if (raw) {
+            const s: PrTimerState = JSON.parse(raw);
+            // If timer is running, compute effective last-relief time
+            if (s.isRunning) {
+              // last relief = when timer started, approximated by lastUpdatedAt - (duration - remaining)
+              const elapsed = s.durationSeconds - s.remainingSeconds;
+              const startedAt = s.lastUpdatedAt - elapsed * 1000;
+              setPrLastRelief(startedAt);
+            } else {
+              // timer done/stopped — last relief was when it last updated at 0
+              setPrLastRelief(s.lastUpdatedAt);
+            }
+          }
+        });
+
+        try {
+          const [medsRes, logsRes, vitalsRes, hydrationRes, apptRes] = await Promise.allSettled([
+            fetch(`${base}/api/health/medications?patientId=${uid}`, { headers }),
+            fetch(`${base}/api/health/medication-logs?patientId=${uid}&date=${today}`, { headers }),
+            fetch(`${base}/api/health/vitals?patientId=${uid}`, { headers }),
+            fetch(`${base}/api/health/hydration-logs?patientId=${uid}&date=${today}`, { headers }),
+            fetch(`${base}/api/health/appointments?patientId=${uid}`, { headers }),
+          ]);
+
+          if (!active) return;
+
+          if (medsRes.status === "fulfilled" && medsRes.value.ok) {
+            const meds = await medsRes.value.json();
+            setMedsTotal(Array.isArray(meds) ? meds.length : 0);
+          }
+          if (logsRes.status === "fulfilled" && logsRes.value.ok) {
+            const logs = await logsRes.value.json();
+            setMedsTaken(Array.isArray(logs) ? logs.length : 0);
+          }
+          if (vitalsRes.status === "fulfilled" && vitalsRes.value.ok) {
+            const vitals = await vitalsRes.value.json();
+            if (Array.isArray(vitals) && vitals.length > 0) {
+              setLatestVitalAt(vitals[0].recordedAt ?? vitals[0].createdAt ?? null);
+            } else {
+              setLatestVitalAt("");
+            }
+          }
+          if (hydrationRes.status === "fulfilled" && hydrationRes.value.ok) {
+            const logs = await hydrationRes.value.json();
+            const total = Array.isArray(logs) ? logs.reduce((sum: number, l: any) => sum + (l.amountMl ?? 0), 0) : 0;
+            setHydrationMl(total);
+          }
+          if (apptRes.status === "fulfilled" && apptRes.value.ok) {
+            const appts: Appointment[] = await apptRes.value.json();
+            const now = Date.now();
+            const upcoming = Array.isArray(appts)
+              ? appts
+                  .filter((a) => new Date(a.date).getTime() > now - 86400000)
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              : [];
+            setNextAppt(upcoming[0] ?? false);
+          } else {
+            setNextAppt(false);
+          }
+        } catch {
+          if (active) setNextAppt(false);
+        }
+      }
+      loadHealth();
+      return () => { active = false; };
+    }, [])
+  );
 
   /* ───────── weather ───────── */
   React.useEffect(() => {
@@ -281,9 +293,7 @@ export default function DashboardScreen() {
         if (status !== "granted") return;
         const location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
-        const res = await fetch(
-          `${getApiUrl()}/api/weather?latitude=${latitude}&longitude=${longitude}`,
-        );
+        const res = await fetch(`${getApiUrl()}/api/weather?latitude=${latitude}&longitude=${longitude}`);
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setWeather(data);
@@ -295,7 +305,7 @@ export default function DashboardScreen() {
 
   /* ───────── trials ───────── */
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       let active = true;
       async function loadTrials() {
         try {
@@ -306,26 +316,14 @@ export default function DashboardScreen() {
             if (Date.now() - parsed.timestamp < CACHE_TTL) return;
           }
           setLiveLoading(true);
-          const res = await fetch(
-            "https://clinicaltrials.gov/api/v2/studies?query.term=spinal%20cord%20injury&pageSize=20&sort=LastUpdatePostDate:desc",
-          );
+          const res = await fetch("https://clinicaltrials.gov/api/v2/studies?query.term=spinal%20cord%20injury&pageSize=20&sort=LastUpdatePostDate:desc");
           const data = await res.json();
           const trials: LiveTrial[] = data.studies?.map((study: any) => {
             const protocol = study.protocolSection;
-            return {
-              id: protocol.identificationModule.nctId,
-              title: protocol.identificationModule.briefTitle ?? "Untitled study",
-              status: protocol.statusModule.overallStatus ?? "Unknown",
-              phase: protocol.designModule?.phases?.[0],
-              summary: protocol.descriptionModule?.briefSummary,
-              country: protocol.contactsLocationsModule?.locations?.[0]?.country,
-            };
+            return { id: protocol.identificationModule.nctId, title: protocol.identificationModule.briefTitle ?? "Untitled study", status: protocol.statusModule.overallStatus ?? "Unknown", phase: protocol.designModule?.phases?.[0], summary: protocol.descriptionModule?.briefSummary, country: protocol.contactsLocationsModule?.locations?.[0]?.country };
           }) ?? [];
           if (active) setLiveTrials(trials);
-          await AsyncStorage.setItem(
-            TRIALS_CACHE_KEY,
-            JSON.stringify({ timestamp: Date.now(), trials }),
-          );
+          await AsyncStorage.setItem(TRIALS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), trials }));
         } catch {
         } finally {
           if (active) setLiveLoading(false);
@@ -336,6 +334,33 @@ export default function DashboardScreen() {
     }, []),
   );
 
+  const { data: newsArticles = [] } = useQuery({ queryKey: ["sciNews"], queryFn: getSciNews, staleTime: 30 * 60 * 1000 });
+  const featuredNews = useMemo(() => {
+    const breakthroughs = newsArticles.filter((a) => a.category === "Breakthrough");
+    const rest = newsArticles.filter((a) => a.category !== "Breakthrough");
+    return [...breakthroughs, ...rest][0] ?? null;
+  }, [newsArticles]);
+  const featuredTrial = liveTrials[0] ?? null;
+  const featuredTech = TECH_CATEGORIES[0];
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return SEARCH_INDEX.filter((item) => item.title.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q) || item.section.toLowerCase().includes(q)).slice(0, 12);
+  }, [searchQuery]);
+
+  /* ───────── tile helpers ───────── */
+  const prMinsAgo = prLastRelief ? Math.floor((Date.now() - prLastRelief) / 60000) : null;
+  const prLabel = prMinsAgo !== null ? (prMinsAgo < 60 ? `${prMinsAgo}m ago` : `${Math.floor(prMinsAgo / 60)}h ago`) : "--";
+  const prOverdue = prMinsAgo !== null && prMinsAgo >= PR_WARN_MINS;
+
+  const accentGreen = isDark ? "#00E676" : "#16A34A";
+
+  function navigateTile(screen: keyof MainStackParamList) {
+    const pid = userId ?? "";
+    (navigation as any).navigate(screen, { patientId: pid, patientName: userName || "Me" });
+  }
+
   /* ───────────────── render ───────────────── */
 
   return (
@@ -344,34 +369,14 @@ export default function DashboardScreen() {
         ref={scrollRef}
         {...scrollProps}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingTop: headerHeight + Spacing.sm,
-          paddingBottom: insets.bottom + Spacing.xl,
-          paddingHorizontal: Spacing.lg,
-          gap: Spacing.md,
-        }}
+        contentContainerStyle={{ paddingTop: headerHeight + Spacing.sm, paddingBottom: insets.bottom + Spacing.xl, paddingHorizontal: Spacing.lg, gap: Spacing.md }}
       >
         {/* CREATOR NOTE BUTTON */}
-        <Pressable
-          onPress={() => setCreatorNoteVisible(true)}
-          style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, alignSelf: "flex-start", marginBottom: Spacing.sm }]}
-        >
-          <BlurView
-            intensity={isDark ? 22 : 50}
-            tint={isDark ? "dark" : "light"}
-            style={styles.creatorNoteBtnBlur}
-          >
-            <View style={[
-              styles.creatorNoteBtn,
-              {
-                borderColor: isDark ? "rgba(0,230,100,0.45)" : "rgba(18,53,36,0.25)",
-                backgroundColor: isDark ? "rgba(0,230,100,0.08)" : "rgba(18,53,36,0.06)",
-              },
-            ]}>
+        <Pressable onPress={() => setCreatorNoteVisible(true)} style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, alignSelf: "flex-start", marginBottom: Spacing.sm }]}>
+          <BlurView intensity={isDark ? 22 : 50} tint={isDark ? "dark" : "light"} style={styles.creatorNoteBtnBlur}>
+            <View style={[styles.creatorNoteBtn, { borderColor: isDark ? "rgba(0,230,100,0.45)" : "rgba(18,53,36,0.25)", backgroundColor: isDark ? "rgba(0,230,100,0.08)" : "rgba(18,53,36,0.06)" }]}>
               <Feather name="message-circle" size={12} color={isDark ? "#00E676" : "#123524"} />
-              <ThemedText type="caption" style={[styles.creatorNoteBtnText, { color: isDark ? "#00E676" : "#123524" }]}>
-                Note from the creator
-              </ThemedText>
+              <ThemedText type="caption" style={[styles.creatorNoteBtnText, { color: isDark ? "#00E676" : "#123524" }]}>Note from the creator</ThemedText>
             </View>
           </BlurView>
         </Pressable>
@@ -379,231 +384,146 @@ export default function DashboardScreen() {
         {/* GREETING */}
         <View style={styles.topRow}>
           <View>
-            <ThemedText type="heading">
-              {getGreeting()}{userName ? `, ${userName}` : ""}
-            </ThemedText>
-            <ThemedText type="small" style={styles.subtitle}>
-              Welcome back to Spinal Hub
-            </ThemedText>
+            <ThemedText type="heading">{getGreeting()}{userName ? `, ${userName}` : ""}</ThemedText>
+            <ThemedText type="small" style={styles.subtitle}>Welcome back to Spinal Hub</ThemedText>
           </View>
-
           {weather && (
             <View style={styles.weather}>
-              <Image
-                source={{ uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png` }}
-                style={styles.weatherIcon}
-              />
+              <Image source={{ uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png` }} style={styles.weatherIcon} />
               <View>
                 <ThemedText type="small">{weather.temp}°C</ThemedText>
-                <ThemedText type="caption" style={{ opacity: 0.7 }}>
-                  {weather.city}
-                </ThemedText>
+                <ThemedText type="caption" style={{ opacity: 0.7 }}>{weather.city}</ThemedText>
               </View>
             </View>
           )}
         </View>
 
         {/* SEARCH */}
-        <View
-          style={[
-            styles.searchContainer,
-            {
-              backgroundColor: isDark
-                ? "rgba(255,255,255,0.07)"
-                : "rgba(0,0,0,0.06)",
-              borderColor: isDark
-                ? "rgba(0,230,100,0.15)"
-                : "rgba(0,0,0,0.08)",
-            },
-          ]}
-        >
-          <Feather
-            name="search"
-            size={16}
-            color={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"}
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search Spinal Hub..."
-            placeholderTextColor={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)"}
-            style={[styles.searchInput, { color: isDark ? "#fff" : "#000" }]}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-          />
+        <View style={[styles.searchContainer, { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)" }]}>
+          <Feather name="search" size={16} color={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"} style={{ marginRight: 8 }} />
+          <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search Spinal Hub..." placeholderTextColor={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)"} style={[styles.searchInput, { color: isDark ? "#fff" : "#000" }]} returnKeyType="search" clearButtonMode="while-editing" />
         </View>
 
         {/* SEARCH RESULTS */}
         {searchResults.length > 0 && (
-          <View
-            style={[
-              styles.resultsContainer,
-              {
-                backgroundColor: isDark ? "#0C1A0E" : "#fff",
-                borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)",
-              },
-            ]}
-          >
+          <View style={[styles.resultsContainer, { backgroundColor: isDark ? "#0C1A0E" : "#fff", borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)" }]}>
             {searchResults.map((item, index) => (
-              <Pressable
-                key={item.id}
-                onPress={() => {
-                  item.action(navigation);
-                  setSearchQuery("");
-                }}
-                style={({ pressed }) => [
-                  styles.resultRow,
-                  index < searchResults.length - 1 && {
-                    borderBottomWidth: StyleSheet.hairlineWidth,
-                    borderBottomColor: isDark
-                      ? "rgba(255,255,255,0.07)"
-                      : "rgba(0,0,0,0.06)",
-                  },
-                  pressed && { opacity: 0.6 },
-                ]}
-              >
+              <Pressable key={item.id} onPress={() => { item.action(navigation); setSearchQuery(""); }} style={({ pressed }) => [styles.resultRow, index < searchResults.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }, pressed && { opacity: 0.6 }]}>
                 <View style={{ flex: 1 }}>
-                  <ThemedText type="small" style={{ fontWeight: "600" }}>
-                    {item.title}
-                  </ThemedText>
-                  <ThemedText type="caption" style={{ opacity: 0.55 }} numberOfLines={1}>
-                    {item.subtitle}
-                  </ThemedText>
+                  <ThemedText type="small" style={{ fontWeight: "600" }}>{item.title}</ThemedText>
+                  <ThemedText type="caption" style={{ opacity: 0.55 }} numberOfLines={1}>{item.subtitle}</ThemedText>
                 </View>
-                <ThemedText
-                  type="caption"
-                  style={[styles.resultSection, { color: isDark ? "#00E676" : "#123524" }]}
-                >
-                  {item.section}
-                </ThemedText>
+                <ThemedText type="caption" style={[styles.resultSection, { color: isDark ? "#00E676" : "#123524" }]}>{item.section}</ThemedText>
               </Pressable>
             ))}
           </View>
         )}
 
-        {/* ASSISTIVE TECHNOLOGY */}
-        <TourTarget stepId="assistive-tech" scrollRef={scrollRef}>
-        <GlassSection
-          title="Assistive Technology"
-          isDark={isDark}
-          onViewAll={() => navigation.navigate("AllAssistiveTech", { categoryId: "mobility" })}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: Spacing.md, paddingTop: Spacing.xs }}
-          >
-            {TECH_CATEGORIES.map((category) => (
-              <TechNavCard
-                key={category.id}
-                title={category.title}
-                subtitle={category.subtitle}
-                image={category.image}
-                onPress={() =>
-                  navigation.navigate("AllAssistiveTech", { categoryId: category.id })
-                }
-              />
-            ))}
-          </ScrollView>
-        </GlassSection>
-        </TourTarget>
+        {/* YOUR DAY TODAY */}
+        <View style={styles.glassWrapper}>
+          <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
+            <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
+              <ThemedText type="heading" style={{ marginBottom: Spacing.md }}>Your Day</ThemedText>
+              <View style={styles.tileRow}>
 
-        {/* WHEELCHAIRS */}
-        <TourTarget stepId="wheelchairs" scrollRef={scrollRef}>
-        <GlassSection
-          title="Wheelchairs"
-          isDark={isDark}
-          onViewAll={() => navigation.navigate("AllWheelchairs")}
-        >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: Spacing.md, paddingTop: Spacing.xs }}
-          >
-            {WHEELCHAIR_CATEGORIES.map((category) => (
-              <TechNavCard
-                key={category.id}
-                title={category.title}
-                subtitle={category.subtitle}
-                image={category.image}
-                onPress={() => navigation.navigate("AllWheelchairs")}
-              />
-            ))}
-          </ScrollView>
-        </GlassSection>
-        </TourTarget>
+                {/* Vitals */}
+                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("VitalsLog")}>
+                  <Feather name="heart" size={22} color="#EF4444" />
+                  <ThemedText style={styles.tileLabel}>Vitals</ThemedText>
+                  <ThemedText style={[styles.tileValue, { color: isDark ? "#fff" : "#111" }]} numberOfLines={1}>
+                    {latestVitalAt === null ? "--" : latestVitalAt === "" ? "No data" : minsAgo(latestVitalAt)}
+                  </ThemedText>
+                </Pressable>
+
+                {/* Meds */}
+                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("MedicationTracker")}>
+                  <Feather name="activity" size={22} color="#8B5CF6" />
+                  <ThemedText style={styles.tileLabel}>Meds</ThemedText>
+                  <ThemedText style={[styles.tileValue, { color: medsTaken !== null && medsTotal !== null && medsTaken >= medsTotal && medsTotal > 0 ? "#16A34A" : isDark ? "#fff" : "#111" }]} numberOfLines={1}>
+                    {medsTaken === null || medsTotal === null ? "--" : `${medsTaken} / ${medsTotal}`}
+                  </ThemedText>
+                </Pressable>
+
+                {/* Pressure Relief */}
+                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("PressureReliefTimer")}>
+                  <Feather name="clock" size={22} color={prOverdue ? "#F59E0B" : accentGreen} />
+                  <ThemedText style={styles.tileLabel}>Relief</ThemedText>
+                  <ThemedText style={[styles.tileValue, { color: prOverdue ? "#F59E0B" : isDark ? "#fff" : "#111" }]} numberOfLines={1}>
+                    {prLabel}
+                  </ThemedText>
+                </Pressable>
+
+                {/* Hydration */}
+                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("HydrationTracker")}>
+                  <Feather name="droplet" size={22} color="#3B82F6" />
+                  <ThemedText style={styles.tileLabel}>Hydration</ThemedText>
+                  <ThemedText style={[styles.tileValue, { color: isDark ? "#fff" : "#111" }]} numberOfLines={1}>
+                    {hydrationMl === null ? "--" : `${hydrationMl}ml`}
+                  </ThemedText>
+                </Pressable>
+
+              </View>
+            </View>
+          </BlurView>
+        </View>
+
+        {/* NEXT APPOINTMENT */}
+        {nextAppt && (
+          <View style={[styles.glassWrapper]}>
+            <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
+              <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm, marginBottom: Spacing.xs }}>
+                  <Feather name="calendar" size={16} color={accentGreen} />
+                  <ThemedText type="heading" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: 0.6, color: accentGreen }}>Next Appointment</ThemedText>
+                </View>
+                <ThemedText style={{ fontSize: 16, fontWeight: "600", marginBottom: 2 }}>{nextAppt.clinicianName}</ThemedText>
+                <ThemedText style={{ opacity: 0.7, fontSize: 14 }}>
+                  {formatApptDate(nextAppt.date)}{nextAppt.time ? `, ${nextAppt.time}` : ""}
+                  {nextAppt.location ? `  ·  ${nextAppt.location}` : ""}
+                </ThemedText>
+              </View>
+            </BlurView>
+          </View>
+        )}
 
         {/* SCI NEWS */}
         <TourTarget stepId="sci-news" scrollRef={scrollRef}>
-        <GlassSection
-          title="SCI News"
-          isDark={isDark}
-          onViewAll={() => navigation.navigate("SciNewsList")}
-        >
-          {previewNews.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: Spacing.md, paddingTop: Spacing.xs }}
-            >
-              {previewNews.map((article) => (
-                <SciNewsCard key={article.id} {...article} variant="carousel" />
-              ))}
-            </ScrollView>
-          ) : (
-            <ThemedText style={styles.placeholder}>
-              Latest research and breakthroughs in spinal cord injury treatment.
-            </ThemedText>
-          )}
-        </GlassSection>
+          <GlassSection title="SCI News" isDark={isDark} onViewAll={() => navigation.navigate("SciNewsList")}>
+            {featuredNews ? (
+              <SciNewsCard {...featuredNews} variant="carousel" />
+            ) : (
+              <ThemedText style={styles.placeholder}>Latest research and breakthroughs.</ThemedText>
+            )}
+          </GlassSection>
         </TourTarget>
 
         {/* LIVE CLINICAL TRIALS */}
         <TourTarget stepId="clinical-trials" scrollRef={scrollRef}>
-        <GlassSection
-          title="Live Clinical Trials"
-          isDark={isDark}
-          onViewAll={() => navigation.navigate("ClinicalTrialsList", {})}
-        >
-          {!liveLoading && liveTrials.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: Spacing.md, paddingTop: Spacing.xs }}
-            >
-              {liveTrials.map((trial) => (
-                <LiveClinicalTrialCard
-                  key={trial.id}
-                  {...trial}
-                  variant="carousel"
-                />
-              ))}
-            </ScrollView>
-          ) : !liveLoading ? (
-            <ThemedText style={styles.placeholder}>
-              Loading clinical trials...
-            </ThemedText>
-          ) : null}
-        </GlassSection>
+          <GlassSection title="Live Clinical Trials" isDark={isDark} onViewAll={() => navigation.navigate("ClinicalTrialsList", {})}>
+            {featuredTrial ? (
+              <LiveClinicalTrialCard {...featuredTrial} variant="carousel" />
+            ) : (
+              <ThemedText style={styles.placeholder}>
+                {liveLoading ? "Loading trials..." : "No active trials found."}
+              </ThemedText>
+            )}
+          </GlassSection>
         </TourTarget>
+
+        {/* ASSISTIVE TECHNOLOGY */}
+        <TourTarget stepId="assistive-tech" scrollRef={scrollRef}>
+          <GlassSection title="Assistive Technology" isDark={isDark} onViewAll={() => navigation.navigate("AllAssistiveTech", { categoryId: "mobility" })}>
+            <TechNavCard title={featuredTech.title} subtitle={featuredTech.subtitle} image={featuredTech.image} onPress={() => navigation.navigate("AllAssistiveTech", { categoryId: featuredTech.id })} />
+          </GlassSection>
+        </TourTarget>
+
       </Animated.ScrollView>
 
-      <Modal
-        visible={creatorNoteVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setCreatorNoteVisible(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setCreatorNoteVisible(false)}
-        >
+      <Modal visible={creatorNoteVisible} transparent animationType="fade" onRequestClose={() => setCreatorNoteVisible(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setCreatorNoteVisible(false)}>
           <Pressable style={[styles.modalCard, { backgroundColor: isDark ? "#0f1f12" : "#fff" }]} onPress={() => {}}>
             <ThemedText type="h3" style={{ marginBottom: Spacing.md }}>A note from me</ThemedText>
-            <ThemedText type="body" style={styles.modalBody}>
-              {NOTE_TEXT}
-            </ThemedText>
+            <ThemedText type="body" style={styles.modalBody}>{NOTE_TEXT}</ThemedText>
             <Pressable onPress={() => setCreatorNoteVisible(false)} style={styles.modalClose}>
               <ThemedText type="small" style={{ opacity: 0.6 }}>Close</ThemedText>
             </Pressable>
@@ -618,140 +538,30 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-
-  subtitle: {
-    opacity: 0.7,
-    marginTop: Spacing.xs,
-  },
-
-  weather: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-
-  weatherIcon: {
-    width: 36,
-    height: 36,
-  },
-
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-  },
-
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    padding: 0,
-  },
-
-  resultsContainer: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-
-  resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    gap: Spacing.sm,
-  },
-
-  resultSection: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-
-  glassWrapper: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-
-  glassBlur: {
-    borderRadius: 20,
-  },
-
-  glassInner: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: Spacing.md,
-  },
-
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: Spacing.sm,
-  },
-
-  viewAll: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#3AA6FF",
-  },
-
-  placeholder: {
-    fontSize: 14,
-    opacity: 0.6,
-  },
-
-  creatorNoteBtnBlur: {
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-
-  creatorNoteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-
-  creatorNoteBtnText: {
-    fontWeight: "600",
-  },
-
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: Spacing.lg,
-  },
-
-  modalCard: {
-    borderRadius: 16,
-    padding: Spacing.xl,
-    width: "100%",
-    maxWidth: 380,
-  },
-
-  modalBody: {
-    lineHeight: 24,
-    opacity: 0.85,
-    marginBottom: Spacing.lg,
-  },
-
-  modalClose: {
-    alignSelf: "flex-end",
-  },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Spacing.sm },
+  subtitle: { opacity: 0.7, marginTop: Spacing.xs },
+  weather: { flexDirection: "row", alignItems: "center", gap: 4 },
+  weatherIcon: { width: 36, height: 36 },
+  searchContainer: { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: 10 },
+  searchInput: { flex: 1, fontSize: 15, padding: 0 },
+  resultsContainer: { borderRadius: 14, borderWidth: 1, overflow: "hidden" },
+  resultRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.md, paddingVertical: 12, gap: Spacing.sm },
+  resultSection: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
+  glassWrapper: { borderRadius: 20, overflow: "hidden" },
+  glassBlur: { borderRadius: 20 },
+  glassInner: { borderRadius: 20, borderWidth: 1, padding: Spacing.md },
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: Spacing.sm },
+  viewAll: { fontSize: 14, fontWeight: "500", color: "#3AA6FF" },
+  placeholder: { fontSize: 14, opacity: 0.6 },
+  tileRow: { flexDirection: "row", gap: Spacing.sm },
+  tile: { flex: 1, borderRadius: 14, padding: Spacing.sm, alignItems: "center", gap: 4 },
+  tileLabel: { fontSize: 11, opacity: 0.55, textAlign: "center" },
+  tileValue: { fontSize: 13, fontWeight: "700", textAlign: "center" },
+  creatorNoteBtnBlur: { borderRadius: 20, overflow: "hidden" },
+  creatorNoteBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
+  creatorNoteBtnText: { fontWeight: "600" },
+  modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", paddingHorizontal: Spacing.lg },
+  modalCard: { borderRadius: 16, padding: Spacing.xl, width: "100%", maxWidth: 380 },
+  modalBody: { lineHeight: 24, opacity: 0.85, marginBottom: Spacing.lg },
+  modalClose: { alignSelf: "flex-end" },
 });
