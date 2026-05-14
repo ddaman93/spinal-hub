@@ -1,10 +1,9 @@
 import React from "react";
-import { navigationRef } from "@/lib/navigationRef";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HeaderButton } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation, CommonActions } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
@@ -959,9 +958,9 @@ export default function RootTabsNavigator() {
             />
           ),
         }}
-        listeners={() => ({
+        listeners={({ navigation }) => ({
           tabPress: () => {
-            navigationRef.dispatch(CommonActions.navigate({ name: "Dashboard" }));
+            navigation.navigate("HomeTab" as never, { screen: "Dashboard" } as never);
           },
         })}
       />
@@ -982,9 +981,9 @@ export default function RootTabsNavigator() {
             />
           ),
         }}
-        listeners={() => ({
+        listeners={({ navigation }) => ({
           tabPress: () => {
-            navigationRef.dispatch(CommonActions.navigate({ name: "Tools" }));
+            navigation.navigate("ToolsTab" as never, { screen: "Tools" } as never);
           },
         })}
       />
