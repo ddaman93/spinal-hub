@@ -353,9 +353,12 @@ export default function DashboardScreen() {
 
   const accentGreen = isDark ? "#00E676" : "#16A34A";
 
-  function navigateTile(screen: keyof MainStackParamList) {
+  function navigateTile(screen: string, withParams = true) {
     const pid = userId ?? "";
-    (navigation as any).navigate(screen, { patientId: pid, patientName: userName || "Me" });
+    (navigation as any).navigate("ToolsTab", {
+      screen,
+      params: withParams ? { patientId: pid, patientName: userName || "Me" } : undefined,
+    });
   }
 
   /* ───────────────── render ───────────────── */
@@ -442,7 +445,7 @@ export default function DashboardScreen() {
                 </Pressable>
 
                 {/* Pressure Relief */}
-                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("PressureReliefTimer")}>
+                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("PressureReliefTimer", false)}>
                   <Feather name="clock" size={22} color={prOverdue ? "#F59E0B" : accentGreen} />
                   <ThemedText style={styles.tileLabel}>Relief</ThemedText>
                   <ThemedText style={[styles.tileValue, { color: prOverdue ? "#F59E0B" : isDark ? "#fff" : "#111" }]} numberOfLines={1}>
