@@ -973,13 +973,12 @@ export default function RootTabsNavigator() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             const state = navigation.getState();
-            const toolsTab = state.routes[state.index];
-            if (toolsTab?.name !== "ToolsTab") return;
-            const stackIndex = toolsTab.state?.index ?? 0;
-            if (stackIndex > 0) {
-              e.preventDefault();
-              navigation.navigate("ToolsTab" as never, { screen: "Tools" } as never);
-            }
+            const currentTab = state.routes[state.index];
+            if (currentTab?.name !== "ToolsTab") return;
+            // Always pop to root when tapping Tools tab while already on it.
+            // state?.index is unreliable after cross-tab navigation so don't check it.
+            e.preventDefault();
+            navigation.navigate("ToolsTab" as never, { screen: "Tools" } as never);
           },
         })}
       />
