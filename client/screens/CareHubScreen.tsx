@@ -16,6 +16,13 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
+
+function decodeTokenUserId(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload?.id ?? payload?.sub ?? null;
+  } catch { return null; }
+}
 import { MainStackParamList } from "@/types/navigation";
 import { CARE_TILES } from "@/data/careTiles";
 
@@ -103,6 +110,7 @@ export default function CareHubScreen() {
 
   // Patient dashboard state
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
+  const [jwtUserId, setJwtUserId] = useState<string | null>(null);
   const [recentNotes, setRecentNotes] = useState<CareNote[]>([]);
   const [showInviteForm, setShowInviteForm] = useState(false);
 
@@ -120,6 +128,7 @@ export default function CareHubScreen() {
     setLoading(true);
     try {
       const token = await getToken();
+      if (token) { const uid = decodeTokenUserId(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
       const [relsRes, patientsRes, profileRes] = await Promise.all([
@@ -496,8 +505,9 @@ export default function CareHubScreen() {
                         if (!tile.screen) { Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`); return; }
                         const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
                         if (patientScreens.includes(tile.screen)) {
-                          if (!myProfile?.userId) { Alert.alert("Still loading", "Your profile is loading. Please wait a moment and try again."); return; }
-                          navigation.navigate(tile.screen as any, { patientId: myProfile.userId, patientName: myProfile.name ?? "Me" });
+                          const pid = myProfile?.userId ?? jwtUserId;
+                          if (!pid) { Alert.alert("Still loading", "Please wait a moment and try again."); return; }
+                          navigation.navigate(tile.screen as any, { patientId: pid, patientName: myProfile?.name ?? "Me" });
                         } else {
                           navigation.navigate(tile.screen as any);
                         }
