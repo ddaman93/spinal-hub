@@ -1,3 +1,12 @@
+CREATE TABLE IF NOT EXISTS "care_relationships" (
+  "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+  "patient_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "caregiver_id" varchar NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+  "role" text NOT NULL DEFAULT 'carer',
+  "status" text NOT NULL DEFAULT 'active',
+  "created_at" timestamp NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS "invite_codes" (
   "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
   "code" text NOT NULL UNIQUE,
