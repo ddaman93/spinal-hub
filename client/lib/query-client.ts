@@ -25,8 +25,8 @@ export function getApiUrl(): string {
     return origin;
   }
 
-  // Fallback for native development
-  return "http://localhost:3000";
+  // Fallback for native — use production server
+  return "https://spinal-hub.onrender.com";
 }
 
 async function throwIfResNotOk(res: Response) {
