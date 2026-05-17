@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -21,6 +22,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
+import { LiveClinicalTrialCard } from "@/components/LiveClinicalTrialCard";
+import { TechNavCard } from "@/components/TechNavCard";
+import { SciNewsCard } from "@/components/SciNewsCard";
 import { TourTarget } from "@/components/TourTarget";
 import { useTour } from "@/context/TourContext";
 
@@ -30,6 +34,7 @@ import { getApiUrl } from "@/lib/query-client";
 import { getToken, getUserIdFromToken } from "@/lib/auth";
 import { getSciNews } from "@/services/newsService";
 import { TECH_CATEGORIES } from "@/data/techCategories";
+import { getTodaysTip, SCI_TIPS } from "@/data/sciTips";
 import { WHEELCHAIR_CATEGORIES } from "@/data/wheelchairCategories";
 import { CATEGORIES } from "@/config/catalog";
 import { useTheme } from "@/hooks/useTheme";
@@ -340,6 +345,14 @@ export default function DashboardScreen() {
   const featuredTrial = liveTrials[0] ?? null;
   const featuredTech = TECH_CATEGORIES[0];
 
+  const [currentTip, setCurrentTip] = useState(() => getTodaysTip());
+
+  function refreshTip() {
+    let next;
+    do { next = SCI_TIPS[Math.floor(Math.random() * SCI_TIPS.length)]; } while (next.text === currentTip.text);
+    setCurrentTip(next);
+  }
+
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
@@ -358,197 +371,302 @@ export default function DashboardScreen() {
     (navigation as any).navigate(screen, withParams ? { patientId: pid, patientName: userName || "Me" } : undefined);
   }
 
+  /* ───────────────── helpers ───────────────── */
+
+  function IconCircle({ color, name, size = 22 }: { color: string; name: any; size?: number }) {
+    return (
+      <View style={[styles.iconCircle, { backgroundColor: color + (isDark ? "30" : "20"), borderColor: color + (isDark ? "50" : "35"), borderWidth: 1 }]}>
+        <Feather name={name} size={size} color={color} />
+      </View>
+    );
+  }
+
+  function SectionCard({ title, accentColor, children, rightAction }: { title: string; accentColor: string; children: React.ReactNode; rightAction?: React.ReactNode }) {
+    return (
+      <View style={[styles.sectionCardOuter, {
+        shadowColor: accentColor,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: isDark ? 0.18 : 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+      }]}>
+        <LinearGradient
+          colors={isDark
+            ? ["#161a16", "#131613"]
+            : ["#ffffff", "#f9fcf9"]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={[styles.sectionCardInner, { borderColor: isDark ? `${accentColor}22` : `${accentColor}18` }]}
+        >
+          <View style={[styles.sectionHeaderRow, { justifyContent: "space-between" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+              <View style={[styles.sectionDot, { backgroundColor: accentColor, shadowColor: accentColor, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6 }]} />
+              <ThemedText style={[styles.sectionTitle, { color: accentColor }]}>{title}</ThemedText>
+            </View>
+            {rightAction}
+          </View>
+          {children}
+        </LinearGradient>
+      </View>
+    );
+  }
+
   /* ───────────────── render ───────────────── */
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={styles.container}>
+      {/* Full-screen background gradient */}
+      <LinearGradient
+        colors={isDark ? ["#0a0a0a", "#0c0e0c", "#0a0a0a"] : ["#f4f7f4", "#f8faf8", "#f4f7f4"]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
       <Animated.ScrollView
         ref={scrollRef}
         {...scrollProps}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: headerHeight + Spacing.sm, paddingBottom: insets.bottom + Spacing.xl, paddingHorizontal: Spacing.lg, gap: Spacing.md }}
+        contentContainerStyle={{ paddingTop: headerHeight + Spacing.sm, paddingBottom: insets.bottom + Spacing.xl, gap: Spacing.md }}
       >
-        {/* CREATOR NOTE BUTTON */}
-        <Pressable onPress={() => setCreatorNoteVisible(true)} style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1, alignSelf: "flex-start", marginBottom: Spacing.sm }]}>
-          <BlurView intensity={isDark ? 22 : 50} tint={isDark ? "dark" : "light"} style={styles.creatorNoteBtnBlur}>
-            <View style={[styles.creatorNoteBtn, { borderColor: isDark ? "rgba(0,230,100,0.45)" : "rgba(18,53,36,0.25)", backgroundColor: isDark ? "rgba(0,230,100,0.08)" : "rgba(18,53,36,0.06)" }]}>
-              <Feather name="message-circle" size={12} color={isDark ? "#00E676" : "#123524"} />
-              <ThemedText type="caption" style={[styles.creatorNoteBtnText, { color: isDark ? "#00E676" : "#123524" }]}>Note from the creator</ThemedText>
-            </View>
-          </BlurView>
-        </Pressable>
+        {/* ── HERO GREETING ── */}
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <View style={{ borderRadius: 24, shadowColor: accentGreen, shadowOffset: { width: 0, height: 2 }, shadowOpacity: isDark ? 0.35 : 0.18, shadowRadius: 10, elevation: 5 }}>
+          <LinearGradient
+            colors={isDark ? ["#0a2414", "#0f2d1a", "#071810"] : ["#e8f5ec", "#f0faf2", "#f5fdf6"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            {/* Glow orbs */}
+            <View style={[styles.heroOrb1, { backgroundColor: accentGreen }]} />
+            <View style={[styles.heroOrb2, { backgroundColor: isDark ? "#00C853" : "#16A34A" }]} />
 
-        {/* GREETING */}
-        <View style={styles.topRow}>
-          <View>
-            <ThemedText type="heading">{getGreeting()}{userName ? `, ${userName}` : ""}</ThemedText>
-            <ThemedText type="small" style={styles.subtitle}>Welcome back to Spinal Hub</ThemedText>
-          </View>
-          {weather && (
-            <View style={styles.weather}>
-              <Image source={{ uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png` }} style={styles.weatherIcon} />
-              <View>
-                <ThemedText type="small">{weather.temp}°C</ThemedText>
-                <ThemedText type="caption" style={{ opacity: 0.7 }}>{weather.city}</ThemedText>
+            {/* Top row: greeting left, weather right */}
+            <View style={styles.heroTop}>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={[styles.heroGreeting, { color: isDark ? "rgba(0,230,100,0.65)" : "rgba(22,163,74,0.65)" }]}>{getGreeting()}</ThemedText>
+                <ThemedText style={[styles.heroName, { color: isDark ? "#fff" : "#0a1a0c" }]}>{userName || "Welcome"}</ThemedText>
+                <ThemedText style={[styles.heroDate, { color: isDark ? "rgba(255,255,255,0.38)" : "rgba(0,0,0,0.4)" }]}>{new Date().toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" })}</ThemedText>
               </View>
+
+              {/* Weather — right side, no box */}
+              {weather ? (
+                <View style={styles.weatherInline}>
+                  <Image source={{ uri: `https://openweathermap.org/img/wn/${weather.icon}@2x.png` }} style={styles.weatherIcon} />
+                  <ThemedText style={[styles.weatherTemp, { color: isDark ? "#fff" : "#0a1a0c" }]}>{weather.temp}°C</ThemedText>
+                  <ThemedText style={[styles.weatherCity, { color: isDark ? "rgba(0,230,100,0.65)" : "rgba(22,163,74,0.7)" }]}>{weather.city}</ThemedText>
+                </View>
+              ) : null}
             </View>
-          )}
+
+            {/* Creator note */}
+            <Pressable onPress={() => setCreatorNoteVisible(true)} style={({ pressed }) => [styles.creatorNoteInline, { opacity: pressed ? 0.7 : 1, borderColor: isDark ? "rgba(0,230,100,0.3)" : "rgba(18,53,36,0.2)" }]}>
+              <Feather name="message-circle" size={11} color={accentGreen} />
+              <ThemedText style={[styles.creatorNoteInlineText, { color: accentGreen }]}>Note from the creator</ThemedText>
+            </Pressable>
+          </LinearGradient>
+          </View>
         </View>
 
         {/* SEARCH */}
-        <View style={[styles.searchContainer, { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)" }]}>
-          <Feather name="search" size={16} color={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"} style={{ marginRight: 8 }} />
-          <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search Spinal Hub..." placeholderTextColor={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)"} style={[styles.searchInput, { color: isDark ? "#fff" : "#000" }]} returnKeyType="search" clearButtonMode="while-editing" />
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <View style={[styles.searchContainer, { backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)", borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)" }]}>
+            <Feather name="search" size={16} color={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"} style={{ marginRight: 8 }} />
+            <TextInput value={searchQuery} onChangeText={setSearchQuery} placeholder="Search Spinal Hub..." placeholderTextColor={isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)"} style={[styles.searchInput, { color: isDark ? "#fff" : "#000" }]} returnKeyType="search" clearButtonMode="while-editing" />
+          </View>
         </View>
 
         {/* SEARCH RESULTS */}
         {searchResults.length > 0 && (
-          <View style={[styles.resultsContainer, { backgroundColor: isDark ? "#0C1A0E" : "#fff", borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)" }]}>
-            {searchResults.map((item, index) => (
-              <Pressable key={item.id} onPress={() => { item.action(navigation); setSearchQuery(""); }} style={({ pressed }) => [styles.resultRow, index < searchResults.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }, pressed && { opacity: 0.6 }]}>
-                <View style={{ flex: 1 }}>
-                  <ThemedText type="small" style={{ fontWeight: "600" }}>{item.title}</ThemedText>
-                  <ThemedText type="caption" style={{ opacity: 0.55 }} numberOfLines={1}>{item.subtitle}</ThemedText>
-                </View>
-                <ThemedText type="caption" style={[styles.resultSection, { color: isDark ? "#00E676" : "#123524" }]}>{item.section}</ThemedText>
-              </Pressable>
-            ))}
+          <View style={{ paddingHorizontal: Spacing.lg }}>
+            <View style={[styles.resultsContainer, { backgroundColor: isDark ? "#0C1A0E" : "#fff", borderColor: isDark ? "rgba(0,230,100,0.15)" : "rgba(0,0,0,0.08)" }]}>
+              {searchResults.map((item, index) => (
+                <Pressable key={item.id} onPress={() => { item.action(navigation); setSearchQuery(""); }} style={({ pressed }) => [styles.resultRow, index < searchResults.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)" }, pressed && { opacity: 0.6 }]}>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>{item.title}</ThemedText>
+                    <ThemedText type="caption" style={{ opacity: 0.55 }} numberOfLines={1}>{item.subtitle}</ThemedText>
+                  </View>
+                  <ThemedText type="caption" style={[styles.resultSection, { color: isDark ? "#00E676" : "#123524" }]}>{item.section}</ThemedText>
+                </Pressable>
+              ))}
+            </View>
           </View>
         )}
 
-        {/* YOUR DAY TODAY */}
-        <View style={styles.glassWrapper}>
-          <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
-            <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
-              <ThemedText type="heading" style={{ marginBottom: Spacing.md }}>Your Day</ThemedText>
-              <View style={styles.tileRow}>
+        {/* ── YOUR DAY ── */}
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <SectionCard title="Your Day" accentColor={accentGreen}>
+            <View style={styles.tileRow}>
 
-                {/* Vitals */}
-                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("VitalsLog")}>
-                  <Feather name="heart" size={22} color="#EF4444" />
+              {/* Vitals */}
+              <Pressable style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigateTile("VitalsLog")}>
+                <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.tileGradient, { borderColor: isDark ? "#EF444430" : "#EF444420" }]}>
+                  <IconCircle color="#EF4444" name="heart" size={20} />
                   <ThemedText style={styles.tileLabel}>Vitals</ThemedText>
-                  <ThemedText style={[styles.tileValue, { color: isDark ? "#fff" : "#111" }]} numberOfLines={1}>
-                    {latestVitalAt === null ? "--" : latestVitalAt === "" ? "No data" : minsAgo(latestVitalAt)}
+                  <ThemedText style={[styles.tileValue, { color: "#EF4444" }]} numberOfLines={1}>
+                    {latestVitalAt === null ? "--" : latestVitalAt === "" ? "None" : minsAgo(latestVitalAt)}
                   </ThemedText>
-                </Pressable>
+                </LinearGradient>
+              </Pressable>
 
-                {/* Meds */}
-                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("MedicationTracker")}>
-                  <Feather name="activity" size={22} color="#8B5CF6" />
+              {/* Meds */}
+              <Pressable style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigateTile("MedicationTracker")}>
+                <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.tileGradient, { borderColor: isDark ? "#8B5CF630" : "#8B5CF620" }]}>
+                  <IconCircle color="#8B5CF6" name="activity" size={20} />
                   <ThemedText style={styles.tileLabel}>Meds</ThemedText>
-                  <ThemedText style={[styles.tileValue, { color: medsTaken !== null && medsTotal !== null && medsTaken >= medsTotal && medsTotal > 0 ? "#16A34A" : isDark ? "#fff" : "#111" }]} numberOfLines={1}>
-                    {medsTaken === null || medsTotal === null ? "--" : `${medsTaken} / ${medsTotal}`}
+                  <ThemedText style={[styles.tileValue, { color: medsTaken !== null && medsTotal !== null && medsTaken >= medsTotal && medsTotal > 0 ? accentGreen : "#8B5CF6" }]} numberOfLines={1}>
+                    {medsTaken === null || medsTotal === null ? "--" : `${medsTaken}/${medsTotal}`}
                   </ThemedText>
-                </Pressable>
+                </LinearGradient>
+              </Pressable>
 
-                {/* Pressure Relief */}
-                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("PressureReliefTimer", false) }>
-                  <Feather name="clock" size={22} color={prOverdue ? "#F59E0B" : accentGreen} />
+              {/* Pressure Relief */}
+              <Pressable style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigateTile("PressureReliefTimer", false)}>
+                <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.tileGradient, { borderColor: prOverdue ? (isDark ? "#F59E0B30" : "#F59E0B20") : (isDark ? "#00E67630" : "#16A34A20") }]}>
+                  <IconCircle color={prOverdue ? "#F59E0B" : accentGreen} name="clock" size={20} />
                   <ThemedText style={styles.tileLabel}>Relief</ThemedText>
-                  <ThemedText style={[styles.tileValue, { color: prOverdue ? "#F59E0B" : isDark ? "#fff" : "#111" }]} numberOfLines={1}>
+                  <ThemedText style={[styles.tileValue, { color: prOverdue ? "#F59E0B" : accentGreen }]} numberOfLines={1}>
                     {prLabel}
                   </ThemedText>
-                </Pressable>
+                </LinearGradient>
+              </Pressable>
 
-                {/* Hydration */}
-                <Pressable style={({ pressed }) => [styles.tile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigateTile("HydrationTracker")}>
-                  <Feather name="droplet" size={22} color="#3B82F6" />
-                  <ThemedText style={styles.tileLabel}>Hydration</ThemedText>
-                  <ThemedText style={[styles.tileValue, { color: isDark ? "#fff" : "#111" }]} numberOfLines={1}>
+              {/* Hydration */}
+              <Pressable style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigateTile("HydrationTracker")}>
+                <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.tileGradient, { borderColor: isDark ? "#3B82F630" : "#3B82F620" }]}>
+                  <IconCircle color="#3B82F6" name="droplet" size={20} />
+                  <ThemedText style={styles.tileLabel}>Water</ThemedText>
+                  <ThemedText style={[styles.tileValue, { color: "#3B82F6" }]} numberOfLines={1}>
                     {hydrationMl === null ? "--" : `${hydrationMl}ml`}
                   </ThemedText>
-                </Pressable>
+                </LinearGradient>
+              </Pressable>
 
-              </View>
             </View>
-          </BlurView>
+          </SectionCard>
         </View>
 
         {/* NEXT APPOINTMENT */}
         {nextAppt && (
-          <View style={[styles.glassWrapper]}>
-            <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
-              <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: Spacing.sm, marginBottom: Spacing.xs }}>
-                  <Feather name="calendar" size={16} color={accentGreen} />
-                  <ThemedText type="heading" style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: 0.6, color: accentGreen }}>Next Appointment</ThemedText>
-                </View>
-                <ThemedText style={{ fontSize: 16, fontWeight: "600", marginBottom: 2 }}>{nextAppt.clinicianName}</ThemedText>
-                <ThemedText style={{ opacity: 0.7, fontSize: 14 }}>
-                  {formatApptDate(nextAppt.date)}{nextAppt.time ? `, ${nextAppt.time}` : ""}
+          <View style={{ paddingHorizontal: Spacing.lg }}>
+            <LinearGradient
+              colors={isDark ? ["#0d1f2d", "#0a1620"] : ["#eff6ff", "#dbeafe"]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.apptCard}
+            >
+              <View style={[styles.apptIconBox, { backgroundColor: "rgba(59,130,246,0.2)" }]}>
+                <Feather name="calendar" size={20} color="#3B82F6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={[styles.apptLabel, { color: "#3B82F6" }]}>Next Appointment</ThemedText>
+                <ThemedText style={[styles.apptName, { color: isDark ? "#fff" : "#0a1a0c" }]}>{nextAppt.clinicianName}</ThemedText>
+                <ThemedText style={[styles.apptDate, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }]}>
+                  {formatApptDate(nextAppt.date)}{nextAppt.time ? ` · ${nextAppt.time}` : ""}
                   {nextAppt.location ? `  ·  ${nextAppt.location}` : ""}
                 </ThemedText>
               </View>
-            </BlurView>
+            </LinearGradient>
           </View>
         )}
 
-        {/* EXPLORE ROW — SCI News · Trials · Assistive Tech */}
-        <TourTarget stepId="sci-news" scrollRef={scrollRef}>
-        <View style={styles.glassWrapper}>
-          <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
-            <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
-              <ThemedText type="heading" style={{ marginBottom: Spacing.md }}>Explore</ThemedText>
+        {/* ── DISCOVER ── */}
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <TourTarget stepId="sci-news" scrollRef={scrollRef}>
+            <SectionCard title="Discover" accentColor="#F59E0B">
               <View style={styles.tileRow}>
 
-                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("SciNewsList")}>
-                  <Feather name="rss" size={20} color="#F59E0B" />
-                  <ThemedText style={styles.tileLabel}>SCI News</ThemedText>
-                  {featuredNews ? (
-                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredNews.title}</ThemedText>
-                  ) : null}
+                {/* SCI News */}
+                <Pressable style={({ pressed }) => [styles.discoverTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigation.navigate("SciNewsList")}>
+                  <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.discoverTileGradient, { borderColor: isDark ? "#F59E0B30" : "#F59E0B20" }]}>
+                    <IconCircle color="#F59E0B" name="rss" size={20} />
+                    <ThemedText style={styles.tileLabel}>SCI News</ThemedText>
+                    <ThemedText style={[styles.discoverTileValue, { color: "#F59E0B" }]} numberOfLines={2}>
+                      {featuredNews ? featuredNews.title : "Latest breakthroughs"}
+                    </ThemedText>
+                  </LinearGradient>
                 </Pressable>
 
-                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("ClinicalTrialsList", {})}>
-                  <Feather name="zap" size={20} color="#3B82F6" />
-                  <ThemedText style={styles.tileLabel}>Trials</ThemedText>
-                  {featuredTrial ? (
-                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredTrial.title}</ThemedText>
-                  ) : (
-                    <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)" }]}>{liveLoading ? "Loading…" : "View all"}</ThemedText>
-                  )}
-                </Pressable>
-
-                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => navigation.navigate("AllAssistiveTech", { categoryId: "mobility" })}>
-                  <Feather name="cpu" size={20} color="#8B5CF6" />
-                  <ThemedText style={styles.tileLabel}>Tech</ThemedText>
-                  <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]} numberOfLines={2}>{featuredTech.subtitle}</ThemedText>
+                {/* Clinical Trials */}
+                <Pressable style={({ pressed }) => [styles.discoverTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigation.navigate("ClinicalTrialsList", {})}>
+                  <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.discoverTileGradient, { borderColor: isDark ? "#3B82F630" : "#3B82F620" }]}>
+                    <IconCircle color="#3B82F6" name="zap" size={20} />
+                    <ThemedText style={styles.tileLabel}>Clinical Trials</ThemedText>
+                    <ThemedText style={[styles.discoverTileValue, { color: "#3B82F6" }]} numberOfLines={2}>
+                      {featuredTrial ? featuredTrial.title : (liveLoading ? "Loading…" : "View live trials")}
+                    </ThemedText>
+                  </LinearGradient>
                 </Pressable>
 
               </View>
-            </View>
-          </BlurView>
+            </SectionCard>
+          </TourTarget>
         </View>
-        </TourTarget>
 
-        {/* QUICK ACCESS */}
-        <View style={styles.glassWrapper}>
-          <BlurView intensity={isDark ? 18 : 40} tint={isDark ? "dark" : "light"} style={styles.glassBlur}>
-            <View style={[styles.glassInner, { borderColor: isDark ? "rgba(0,230,100,0.13)" : "rgba(0,0,0,0.08)", backgroundColor: isDark ? "rgba(12,26,14,0.55)" : "rgba(255,255,255,0.6)" }]}>
-              <ThemedText type="heading" style={{ marginBottom: Spacing.md }}>Quick Access</ThemedText>
-              <View style={styles.tileRow}>
-
-                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "CommunityChat" })}>
-                  <Feather name="message-square" size={20} color="#10B981" />
-                  <ThemedText style={styles.tileLabel}>Community</ThemedText>
-                  <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]}>Chat rooms</ThemedText>
-                </Pressable>
-
-                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "MobilityTaxiList" })}>
-                  <Feather name="navigation" size={20} color="#F59E0B" />
-                  <ThemedText style={styles.tileLabel}>Taxis</ThemedText>
-                  <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]}>Accessible cabs</ThemedText>
-                </Pressable>
-
-                <Pressable style={({ pressed }) => [styles.exploreTile, { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", opacity: pressed ? 0.7 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "AccessibleTransportMap" })}>
-                  <Feather name="map" size={20} color="#EF4444" />
-                  <ThemedText style={styles.tileLabel}>Transport</ThemedText>
-                  <ThemedText style={[styles.exploreTilePreview, { color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }]}>Accessible map</ThemedText>
-                </Pressable>
-
+        {/* ── TIP OF THE DAY ── */}
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <SectionCard
+            title="Tip of the Day"
+            accentColor="#EC4899"
+            rightAction={
+              <Pressable onPress={refreshTip} hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+                <Feather name="refresh-cw" size={14} color="#EC4899" />
+              </Pressable>
+            }
+          >
+            <View style={[styles.tipCard, { backgroundColor: isDark ? "rgba(236,72,153,0.06)" : "rgba(236,72,153,0.04)", borderColor: isDark ? "rgba(236,72,153,0.18)" : "rgba(236,72,153,0.12)" }]}>
+              <View style={styles.tipHeader}>
+                <IconCircle color="#EC4899" name="sun" size={18} />
+                <ThemedText style={[styles.tipCategory, { color: "#EC4899" }]}>{currentTip.category}</ThemedText>
               </View>
+              <ThemedText style={[styles.tipText, { color: isDark ? "rgba(255,255,255,0.82)" : "rgba(0,0,0,0.75)" }]}>{currentTip.text}</ThemedText>
             </View>
-          </BlurView>
+          </SectionCard>
+        </View>
+
+        {/* ── ASSISTIVE TECHNOLOGY ── */}
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <TourTarget stepId="assistive-tech" scrollRef={scrollRef}>
+            <SectionCard title="Assistive Technology" accentColor="#06B6D4">
+              <View style={styles.tileRow}>
+                {TECH_CATEGORIES.map((cat) => (
+                  <Pressable key={cat.id} style={({ pressed }) => [styles.techTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigation.navigate("AllAssistiveTech", { categoryId: cat.id })}>
+                    <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.techTileGradient, { borderColor: isDark ? "#06B6D430" : "#06B6D420" }]}>
+                      <Image source={cat.image as any} style={styles.techTileImage} resizeMode="cover" />
+                      <ThemedText style={[styles.techTileLabel, { color: isDark ? "#fff" : "#0a1a0c" }]} numberOfLines={2}>{cat.title}</ThemedText>
+                    </LinearGradient>
+                  </Pressable>
+                ))}
+              </View>
+            </SectionCard>
+          </TourTarget>
+        </View>
+
+        {/* ── QUICK ACCESS ── */}
+        <View style={{ paddingHorizontal: Spacing.lg }}>
+          <SectionCard title="Quick Access" accentColor="#10B981">
+            <View style={styles.tileRow}>
+              <Pressable style={({ pressed }) => [styles.exploreTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "CommunityChat" })}>
+                <LinearGradient colors={isDark ? ["#10B98110", "#10B98105"] : ["#10B9810a", "#10B98103"]} style={[styles.exploreTileGradient, { borderColor: isDark ? "#10B98128" : "#10B9811a" }]}>
+                  <IconCircle color="#10B981" name="message-square" size={18} />
+                  <ThemedText style={[styles.tileLabel, { color: "#10B981" }]}>Community</ThemedText>
+                  <ThemedText style={styles.exploreTilePreview}>Chat rooms</ThemedText>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable style={({ pressed }) => [styles.exploreTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "MobilityTaxiList" })}>
+                <LinearGradient colors={isDark ? ["#F59E0B10", "#F59E0B05"] : ["#F59E0B0a", "#F59E0B03"]} style={[styles.exploreTileGradient, { borderColor: isDark ? "#F59E0B28" : "#F59E0B1a" }]}>
+                  <IconCircle color="#F59E0B" name="navigation" size={18} />
+                  <ThemedText style={[styles.tileLabel, { color: "#F59E0B" }]}>Taxis</ThemedText>
+                  <ThemedText style={styles.exploreTilePreview}>Accessible cabs</ThemedText>
+                </LinearGradient>
+              </Pressable>
+
+              <Pressable style={({ pressed }) => [styles.exploreTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "AccessibleTransportMap" })}>
+                <LinearGradient colors={isDark ? ["#EF444410", "#EF444405"] : ["#EF44440a", "#EF444403"]} style={[styles.exploreTileGradient, { borderColor: isDark ? "#EF444428" : "#EF44441a" }]}>
+                  <IconCircle color="#EF4444" name="map" size={18} />
+                  <ThemedText style={[styles.tileLabel, { color: "#EF4444" }]}>Transport</ThemedText>
+                  <ThemedText style={styles.exploreTilePreview}>Accessible map</ThemedText>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </SectionCard>
         </View>
 
       </Animated.ScrollView>
@@ -564,7 +682,7 @@ export default function DashboardScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -576,6 +694,39 @@ const styles = StyleSheet.create({
   subtitle: { opacity: 0.7, marginTop: Spacing.xs },
   weather: { flexDirection: "row", alignItems: "center", gap: 4 },
   weatherIcon: { width: 36, height: 36 },
+
+  // Hero card
+  heroCard: { borderRadius: 24, padding: Spacing.md, overflow: "hidden", borderWidth: 1, borderColor: "rgba(0,200,80,0.18)" },
+  heroOrb1: { position: "absolute", width: 200, height: 200, borderRadius: 100, top: -80, right: -50, opacity: 0.15 },
+  heroOrb2: { position: "absolute", width: 120, height: 120, borderRadius: 60, bottom: -40, left: 20, opacity: 0.1 },
+  heroTop: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.md },
+  heroGreeting: { fontSize: 12, fontWeight: "600", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2 },
+  heroName: { fontSize: 26, fontWeight: "800", letterSpacing: -0.5, lineHeight: 30 },
+  heroDate: { fontSize: 12, marginTop: 2 },
+  weatherBadge: { borderRadius: 16, paddingHorizontal: 10, paddingVertical: 8, alignItems: "center", gap: 2, minWidth: 70 },
+  weatherInline: { alignItems: "center", gap: 0, paddingLeft: 4 },
+  weatherTemp: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+  weatherCity: { fontSize: 11, fontWeight: "500", letterSpacing: 0.3 },
+  creatorNoteInline: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: Spacing.sm, alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1 },
+  creatorNoteInlineText: { fontSize: 11, fontWeight: "600" },
+
+  // Icon circle
+  iconCircle: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+
+  // Section card
+  sectionCardOuter: { borderRadius: 22 },
+  sectionCardInner: { borderRadius: 22, borderWidth: 1, padding: Spacing.md },
+  sectionHeaderRow: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: Spacing.sm },
+  sectionDot: { width: 8, height: 8, borderRadius: 4 },
+  sectionAccentBar: { height: 3, borderRadius: 2, marginBottom: Spacing.sm, width: 28 },
+  sectionTitle: { fontSize: 11, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1.2 },
+
+  // Appointment card
+  apptCard: { borderRadius: 18, padding: Spacing.md, flexDirection: "row", alignItems: "center", gap: Spacing.md, borderWidth: 1, borderColor: "rgba(59,130,246,0.3)" },
+  apptIconBox: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  apptLabel: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  apptName: { fontSize: 16, fontWeight: "700", marginTop: 2 },
+  apptDate: { fontSize: 12, marginTop: 2 },
   searchContainer: { flexDirection: "row", alignItems: "center", borderRadius: 14, borderWidth: 1, paddingHorizontal: Spacing.md, paddingVertical: 10 },
   searchInput: { flex: 1, fontSize: 15, padding: 0 },
   resultsContainer: { borderRadius: 14, borderWidth: 1, overflow: "hidden" },
@@ -588,11 +739,24 @@ const styles = StyleSheet.create({
   viewAll: { fontSize: 14, fontWeight: "500", color: "#3AA6FF" },
   placeholder: { fontSize: 14, opacity: 0.6 },
   tileRow: { flexDirection: "row", gap: Spacing.sm },
-  tile: { flex: 1, flexBasis: 0, borderRadius: 14, padding: Spacing.sm, alignItems: "center", gap: 4 },
-  tileLabel: { fontSize: 11, opacity: 0.55, textAlign: "center" },
-  tileValue: { fontSize: 13, fontWeight: "700", textAlign: "center" },
-  exploreTile: { flex: 1, flexBasis: 0, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 4, alignItems: "center", gap: 3 },
-  exploreTilePreview: { fontSize: 9, textAlign: "center", lineHeight: 12 },
+  tile: { flex: 1, flexBasis: 0, borderRadius: 16 },
+  tileGradient: { borderRadius: 16, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 6, alignItems: "center", gap: 6 },
+  tileLabel: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, opacity: 0.75, textAlign: "center" },
+  tileValue: { fontSize: 14, fontWeight: "800", textAlign: "center" },
+  exploreTile: { flex: 1, flexBasis: 0, borderRadius: 16 },
+  exploreTileGradient: { borderRadius: 16, borderWidth: 1, paddingVertical: 12, paddingHorizontal: 4, alignItems: "center", gap: 5, flex: 1 },
+  exploreTilePreview: { fontSize: 9, textAlign: "center", lineHeight: 12, opacity: 0.55 },
+  discoverTile: { flex: 1, flexBasis: 0, borderRadius: 16 },
+  discoverTileGradient: { borderRadius: 16, borderWidth: 1, paddingVertical: 16, paddingHorizontal: 10, alignItems: "center", gap: 8, flex: 1 },
+  discoverTileValue: { fontSize: 11, fontWeight: "600", textAlign: "center", lineHeight: 15 },
+  tipCard: { borderRadius: 14, borderWidth: 1, padding: Spacing.md, gap: Spacing.sm },
+  tipHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
+  tipCategory: { fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  tipText: { fontSize: 14, lineHeight: 21, fontWeight: "400" },
+  techTile: { flex: 1, flexBasis: 0, borderRadius: 14 },
+  techTileGradient: { borderRadius: 14, borderWidth: 1, overflow: "hidden" },
+  techTileImage: { width: "100%", height: 60 },
+  techTileLabel: { fontSize: 10, fontWeight: "700", textAlign: "center", lineHeight: 13, padding: 6 },
   creatorNoteBtnBlur: { borderRadius: 20, overflow: "hidden" },
   creatorNoteBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 1 },
   creatorNoteBtnText: { fontWeight: "600" },

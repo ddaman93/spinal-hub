@@ -20,9 +20,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -n "$URL" | pbcopy
 echo "  ✅ Expo URL copied to clipboard"
-echo "  Open Messages on your Mac, paste it, send to yourself"
 echo ""
-open -a Messages
 
 # Write .env.local to override production EXPO_PUBLIC_DOMAIN
 # (.env.local has higher priority than .env in Expo's loading order)
