@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { HeaderButton } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
-import { useNavigation, StackActions } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useScreenOptions } from "@/constants/hooks/useScreenOptions";
 import { useTheme } from "@/constants/hooks/useTheme";
@@ -324,6 +324,12 @@ function HomeStackNavigator() {
         component={SciNewsListScreen}
         options={{ title: "SCI News" }}
       />
+
+      {/* HEALTH TOOL SCREENS — navigated from Dashboard Your Day tiles */}
+      <HomeStack.Screen name="VitalsLog" component={VitalsLogScreen} options={{ ...opaqueScreenOptions, headerTitle: "Vital Signs Log" }} />
+      <HomeStack.Screen name="MedicationTracker" component={MedicationTrackerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Medications" }} />
+      <HomeStack.Screen name="HydrationTracker" component={HydrationTrackerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Hydration Tracker" }} />
+      <HomeStack.Screen name="PressureReliefTimer" component={PressureReliefTimerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Pressure Relief" }} />
     </HomeStack.Navigator>
   );
 }
@@ -952,6 +958,11 @@ export default function RootTabsNavigator() {
             />
           ),
         }}
+        listeners={({ navigation }) => ({
+          tabPress: () => {
+            navigation.navigate("HomeTab" as never, { screen: "Dashboard" } as never);
+          },
+        })}
       />
 
       <Tab.Screen
@@ -971,15 +982,8 @@ export default function RootTabsNavigator() {
           ),
         }}
         listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            const state = navigation.getState();
-            const toolsTab = state.routes[state.index];
-            if (toolsTab?.name !== "ToolsTab") return;
-            const stackIndex = toolsTab.state?.index ?? 0;
-            if (stackIndex > 0) {
-              e.preventDefault();
-              navigation.navigate("ToolsTab" as never, { screen: "Tools" } as never);
-            }
+          tabPress: () => {
+            navigation.navigate("ToolsTab" as never, { screen: "Tools" } as never);
           },
         })}
       />
