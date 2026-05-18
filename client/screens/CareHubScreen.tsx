@@ -703,6 +703,22 @@ export default function CareHubScreen() {
                 </View>
               </View>
 
+              {/* Org Report button */}
+              {patients.length > 0 && (
+                <View style={[styles.section, { paddingTop: 0 }]}>
+                  <Pressable
+                    onPress={() => navigation.navigate("OrgReport")}
+                    style={({ pressed }) => [styles.orgReportBtn, { borderColor: theme.primary, opacity: pressed ? 0.7 : 1 }]}
+                  >
+                    <Feather name="bar-chart-2" size={15} color={theme.primary} />
+                    <ThemedText type="small" style={{ color: theme.primary, fontWeight: "700", marginLeft: 6 }}>
+                      Organisation Report
+                    </ThemedText>
+                    <Feather name="chevron-right" size={15} color={theme.primary} style={{ marginLeft: "auto" }} />
+                  </Pressable>
+                </View>
+              )}
+
               {/* Patient cards */}
               {loading ? (
                 <ActivityIndicator style={{ marginTop: Spacing.xl }} color={theme.primary} />
@@ -1017,6 +1033,11 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderRadius: BorderRadius.medium,
     paddingHorizontal: Spacing.md, paddingVertical: 10,
+  },
+  orgReportBtn: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderRadius: BorderRadius.medium,
+    paddingHorizontal: Spacing.md, paddingVertical: 12,
   },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tile: { position: "relative" },

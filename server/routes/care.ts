@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads } from "@shared/schema";
-import { eq, and, count, desc, inArray, notInArray, sql } from "drizzle-orm";
+import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads, medicationLogs, rehabGoals, auditLogs } from "@shared/schema";
+import { eq, and, count, desc, inArray, notInArray, sql, gte } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 import { addAuditLog } from "./audit";
 
@@ -385,4 +385,108 @@ export async function getPatientProfile(req: Request, res: Response) {
     .limit(1);
 
   res.json(profile ?? null);
+}
+
+// GET /api/care/org-report — aggregate stats across all patients for a carer/org
+export async function getOrgReport(req: Request, res: Response) {
+  const caregiverId = requireAuth(req, res);
+  if (!caregiverId) return;
+
+  const rels = await db
+    .select({ patientId: careRelationships.patientId, patientName: users.name })
+    .from(careRelationships)
+    .innerJoin(users, eq(careRelationships.patientId, users.id))
+    .where(and(eq(careRelationships.caregiverId, caregiverId), eq(careRelationships.status, "active")));
+
+  if (rels.length === 0) {
+    return res.json({
+      patientCount: 0, activeWounds: 0, criticalWounds: 0,
+      medAdherence7d: null, rehabGoalsActive: 0, rehabGoalsAchieved: 0,
+      recentEvents: [], patientSummaries: [],
+    });
+  }
+
+  const patientIds = rels.map((r) => r.patientId);
+  const patientNames: Record<string, string> = {};
+  for (const r of rels) patientNames[r.patientId] = r.patientName;
+
+  // Active wounds
+  const [woundRow] = await db
+    .select({ cnt: count() })
+    .from(pressureInjuries)
+    .where(and(inArray(pressureInjuries.patientId, patientIds), eq(pressureInjuries.status, "active")));
+
+  // Critical wounds via LATERAL
+  const criticalResult = await db.execute(sql`
+    SELECT COUNT(*)::int AS cnt
+    FROM pressure_injuries pi
+    INNER JOIN LATERAL (
+      SELECT stage FROM pressure_injury_checks
+      WHERE injury_id = pi.id ORDER BY created_at DESC LIMIT 1
+    ) latest ON true
+    WHERE pi.patient_id = ANY(${patientIds}::varchar[])
+      AND pi.status = 'active'
+      AND latest.stage IN ('III', 'IV', 'Unstageable', 'DTI')
+  `);
+
+  // Medication adherence last 7 days
+  const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const since7dStr = since7d.toISOString().slice(0, 10); // YYYY-MM-DD
+  const medLogs = await db
+    .select({ taken: medicationLogs.taken })
+    .from(medicationLogs)
+    .where(and(inArray(medicationLogs.patientId, patientIds), gte(medicationLogs.date, since7dStr)));
+
+  const totalLogged = medLogs.length;
+  const takenCount = medLogs.filter((l) => l.taken).length;
+  const medAdherence7d = totalLogged > 0 ? Math.round((takenCount / totalLogged) * 100) : null;
+
+  // Rehab goals by status
+  const goalRows = await db
+    .select({ status: rehabGoals.status, cnt: count() })
+    .from(rehabGoals)
+    .where(inArray(rehabGoals.patientId, patientIds))
+    .groupBy(rehabGoals.status);
+
+  const rehabGoalsActive = Number(goalRows.find((g) => g.status === "active")?.cnt ?? 0);
+  const rehabGoalsAchieved = Number(goalRows.find((g) => g.status === "achieved")?.cnt ?? 0);
+
+  // Recent audit events across all patients (last 20)
+  const events = await db
+    .select()
+    .from(auditLogs)
+    .where(inArray(auditLogs.patientId, patientIds))
+    .orderBy(desc(auditLogs.createdAt))
+    .limit(20);
+
+  const recentEvents = events.map((e) => ({
+    ...e,
+    patientName: patientNames[e.patientId] ?? "Unknown",
+  }));
+
+  // Per-patient wound counts for summary table
+  const woundsByPatient = await db
+    .select({ patientId: pressureInjuries.patientId, cnt: count() })
+    .from(pressureInjuries)
+    .where(and(inArray(pressureInjuries.patientId, patientIds), eq(pressureInjuries.status, "active")))
+    .groupBy(pressureInjuries.patientId);
+  const woundMap: Record<string, number> = {};
+  for (const w of woundsByPatient) woundMap[w.patientId] = Number(w.cnt);
+
+  const patientSummaries = rels.map((r) => ({
+    patientId: r.patientId,
+    patientName: r.patientName,
+    activeWounds: woundMap[r.patientId] ?? 0,
+  }));
+
+  res.json({
+    patientCount: rels.length,
+    activeWounds: Number(woundRow?.cnt ?? 0),
+    criticalWounds: Number((criticalResult.rows[0] as any)?.cnt ?? 0),
+    medAdherence7d,
+    rehabGoalsActive,
+    rehabGoalsAchieved,
+    recentEvents,
+    patientSummaries,
+  });
 }

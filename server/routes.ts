@@ -7,7 +7,7 @@ import { getChatMessages, postChatMessage, reportMessage, getAdminReports, delet
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
-import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile } from "./routes/care";
+import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { getAuditLog } from "./routes/audit";
 import {
@@ -102,6 +102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/care/notes/:patientId", addCareNote);
   app.post("/api/care/notes/:noteId/read", markNoteRead);
   app.get("/api/care/profile/:patientId", getPatientProfile);
+  app.get("/api/care/org-report", getOrgReport);
 
   // Health records (vitals, medications, appointments)
   app.get("/api/health/vitals", getVitals);

@@ -42,6 +42,7 @@ import BladderLogScreen from "@/screens/tools/BladderLogScreen";
 import BowelLogScreen from "@/screens/tools/BowelLogScreen";
 import RehabGoalsScreen from "@/screens/tools/RehabGoalsScreen";
 import AuditTrailScreen from "@/screens/tools/AuditTrailScreen";
+import OrgReportScreen from "@/screens/tools/OrgReportScreen";
 import PressureInjuryTrackerScreen from "@/screens/tools/PressureInjuryTrackerScreen";
 import PressureInjuryDetailScreen from "@/screens/tools/PressureInjuryDetailScreen";
 import AddPressureCheckScreen from "@/screens/tools/AddPressureCheckScreen";
@@ -611,6 +612,13 @@ function ToolsStackNavigator() {
         }}
       />
 
+      {/* ORG REPORT */}
+      <ToolsStack.Screen
+        name="OrgReport"
+        component={OrgReportScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Org Report" }}
+      />
+
       {/* PRESSURE INJURY TRACKER */}
       <ToolsStack.Screen
         name="PressureInjuryTracker"
@@ -930,6 +938,11 @@ function CareStackNavigator() {
           ...opaqueScreenOptions,
           headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Audit Trail`,
         })}
+      />
+      <CareStack.Screen
+        name="OrgReport"
+        component={OrgReportScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "Org Report" }}
       />
       <CareStack.Screen
         name="PainJournal"
