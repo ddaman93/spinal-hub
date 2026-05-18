@@ -586,6 +586,36 @@ export const appointments = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// rehab_goals
+// ---------------------------------------------------------------------------
+
+export const rehabGoals = pgTable(
+  "rehab_goals",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    createdById: varchar("created_by_id").notNull().references(() => users.id),
+    createdByName: text("created_by_name").notNull().default(""),
+    // Goal details
+    category: text("category").notNull().default("mobility"), // mobility | self_care | communication | community | other
+    title: text("title").notNull(),
+    description: text("description"),
+    targetDate: text("target_date"), // YYYY-MM-DD
+    // Status: active | achieved | on_hold | discontinued
+    status: text("status").notNull().default("active"),
+    achievedAt: timestamp("achieved_at"),
+    // Progress notes (latest progress narrative)
+    progressNote: text("progress_note"),
+    progressUpdatedAt: timestamp("progress_updated_at"),
+    progressUpdatedBy: text("progress_updated_by"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    rehabGoalPatientIdx: index("rehab_goals_patient_idx").on(t.patientId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Zod schemas + types
 // ---------------------------------------------------------------------------
 
@@ -617,3 +647,4 @@ export type RoutineTask = typeof routineTasks.$inferSelect;
 export type RoutineCompletion = typeof routineCompletions.$inferSelect;
 export type SkinCheckEntry = typeof skinCheckEntries.$inferSelect;
 export type CarePreference = typeof carePreferences.$inferSelect;
+export type RehabGoal = typeof rehabGoals.$inferSelect;

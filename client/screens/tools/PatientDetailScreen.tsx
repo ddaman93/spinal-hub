@@ -164,7 +164,7 @@ export default function PatientDetailScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const PATIENT_SCREENS = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "BowelLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
+  const PATIENT_SCREENS = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "BowelLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences", "RehabGoals"];
 
   function handleTilePress(tile: Tile) {
     if (!tile.screen) {

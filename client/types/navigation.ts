@@ -74,6 +74,7 @@ export type MainStackParamList = {
   BowelLog: { patientId: string; patientName: string };
   SkinCheckLog: { patientId: string; patientName: string };
   CarePreferences: { patientId: string; patientName: string };
+  RehabGoals: { patientId: string; patientName: string };
 
   PressureInjuryTracker: undefined;
   PressureInjuryDetail: {

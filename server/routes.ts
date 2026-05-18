@@ -21,6 +21,7 @@ import {
   getRoutineTasks, addRoutineTask, deleteRoutineTask, getRoutineCompletions, toggleRoutineCompletion,
   getSkinCheckEntries, addSkinCheckEntry, deleteSkinCheckEntry,
   getCarePreferences, upsertCarePreferences,
+  getRehabGoals, addRehabGoal, updateRehabGoal, deleteRehabGoal,
 } from "./routes/health";
 import { authStorage } from "./storage";
 import { db } from "./db";
@@ -146,6 +147,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/health/care-preferences", getCarePreferences);
   app.put("/api/health/care-preferences", upsertCarePreferences);
+
+  app.get("/api/health/rehab-goals", getRehabGoals);
+  app.post("/api/health/rehab-goals", addRehabGoal);
+  app.patch("/api/health/rehab-goals/:id", updateRehabGoal);
+  app.delete("/api/health/rehab-goals/:id", deleteRehabGoal);
 
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);

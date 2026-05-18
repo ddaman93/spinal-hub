@@ -25,4 +25,5 @@ export const CARE_TILES: CareTile[] = [
   { id: "evening",      icon: "moon",     label: "Evening Routine",   sublabel: "Skin, positioning",       color: "#5C6BC0", screen: "EveningRoutine",        roles: ["patient", "carer", "clinician", "family"] },
   { id: "appointments", icon: "calendar", label: "Appointments",      sublabel: "Upcoming, history",       color: "#FF9800", screen: "AppointmentScheduler",  roles: ["patient", "carer", "clinician", "family"] },
   { id: "care_prefs",   icon: "heart",    label: "Care Preferences",  sublabel: "Likes, dislikes, needs",  color: "#E91E63", screen: "CarePreferences",       roles: ["patient", "carer", "clinician", "family"] },
+  { id: "rehab_goals",  icon: "target",   label: "Rehab Goals",       sublabel: "Goals, progress, milestones", color: "#22c55e", screen: "RehabGoals",           roles: ["patient", "carer", "clinician"] },
 ];

@@ -40,6 +40,7 @@ import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
 import BladderLogScreen from "@/screens/tools/BladderLogScreen";
 import BowelLogScreen from "@/screens/tools/BowelLogScreen";
+import RehabGoalsScreen from "@/screens/tools/RehabGoalsScreen";
 import PressureInjuryTrackerScreen from "@/screens/tools/PressureInjuryTrackerScreen";
 import PressureInjuryDetailScreen from "@/screens/tools/PressureInjuryDetailScreen";
 import AddPressureCheckScreen from "@/screens/tools/AddPressureCheckScreen";
@@ -589,6 +590,16 @@ function ToolsStackNavigator() {
         }}
       />
 
+      {/* REHAB GOALS */}
+      <ToolsStack.Screen
+        name="RehabGoals"
+        component={RehabGoalsScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Rehab Goals",
+        }}
+      />
+
       {/* PRESSURE INJURY TRACKER */}
       <ToolsStack.Screen
         name="PressureInjuryTracker"
@@ -891,6 +902,14 @@ function CareStackNavigator() {
         options={({ route }) => ({
           ...opaqueScreenOptions,
           headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Bowel Log`,
+        })}
+      />
+      <CareStack.Screen
+        name="RehabGoals"
+        component={RehabGoalsScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Rehab Goals`,
         })}
       />
       <CareStack.Screen

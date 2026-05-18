@@ -599,7 +599,7 @@ export default function CareHubScreen() {
                       key={tile.id}
                       onPress={() => {
                         if (!tile.screen) { Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`); return; }
-                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "BowelLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
+                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "BowelLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences", "RehabGoals"];
                         if (patientScreens.includes(tile.screen)) {
                           const pid = myProfile?.userId ?? jwtUserId;
                           if (!pid) { Alert.alert("Still loading", "Please wait a moment and try again."); return; }

@@ -5,6 +5,7 @@ import {
   bladderLogs, bowelLogs, painEntries, hydrationLogs,
   routineTasks, routineCompletions,
   skinCheckEntries, carePreferences,
+  rehabGoals,
   users,
 } from "@shared/schema";
 import { eq, and, desc, asc, gte } from "drizzle-orm";
@@ -455,4 +456,64 @@ export async function upsertCarePreferences(req: Request, res: Response) {
   const values = { patientId: targetPatient, name: name ?? "", injuryLevel: injuryLevel ?? "", injuryType: injuryType ?? "", equipment: equipment ?? "", allergies: allergies ?? "", medicationsSummary: medicationsSummary ?? "", morningCareNotes: morningCareNotes ?? "", eveningCareNotes: eveningCareNotes ?? "", otherNotes: otherNotes ?? "", updatedAt: new Date() };
   const [row] = await db.insert(carePreferences).values(values).onConflictDoUpdate({ target: carePreferences.patientId, set: { ...values } }).returning();
   res.json(row);
+}
+
+// ---------------------------------------------------------------------------
+// REHAB GOALS
+// ---------------------------------------------------------------------------
+
+export async function getRehabGoals(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const patientId = (req.query.patientId as string) || requesterId;
+  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  res.json(await db.select().from(rehabGoals).where(eq(rehabGoals.patientId, patientId)).orderBy(desc(rehabGoals.createdAt)));
+}
+
+export async function addRehabGoal(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const { patientId, category, title, description, targetDate } = req.body;
+  const targetPatient = patientId || requesterId;
+  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!title) return res.status(400).json({ message: "title is required." });
+  const authorName = await getAuthorName(requesterId);
+  const [row] = await db.insert(rehabGoals).values({
+    patientId: targetPatient,
+    createdById: requesterId,
+    createdByName: authorName,
+    category: category ?? "mobility",
+    title,
+    description: description ?? null,
+    targetDate: targetDate ?? null,
+  }).returning();
+  res.status(201).json(row);
+}
+
+export async function updateRehabGoal(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const [row] = await db.select().from(rehabGoals).where(eq(rehabGoals.id, req.params.id));
+  if (!row) return res.status(404).json({ message: "Not found." });
+  if (!await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  const { status, progressNote, achievedAt } = req.body;
+  const authorName = await getAuthorName(requesterId);
+  const [updated] = await db.update(rehabGoals).set({
+    status: status ?? row.status,
+    achievedAt: status === "achieved" ? new Date() : (achievedAt ?? row.achievedAt),
+    progressNote: progressNote !== undefined ? progressNote : row.progressNote,
+    progressUpdatedAt: progressNote !== undefined ? new Date() : row.progressUpdatedAt,
+    progressUpdatedBy: progressNote !== undefined ? authorName : row.progressUpdatedBy,
+  }).where(eq(rehabGoals.id, req.params.id)).returning();
+  res.json(updated);
+}
+
+export async function deleteRehabGoal(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const [row] = await db.select().from(rehabGoals).where(eq(rehabGoals.id, req.params.id));
+  if (!row) return res.status(404).json({ message: "Not found." });
+  if (!await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  await db.delete(rehabGoals).where(eq(rehabGoals.id, req.params.id));
+  res.json({ ok: true });
 }
