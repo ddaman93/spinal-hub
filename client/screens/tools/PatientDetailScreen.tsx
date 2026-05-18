@@ -34,6 +34,77 @@ type Profile = {
   routineHighlights?: string | null;
 };
 
+type EscalationAlert = {
+  severity: "critical" | "warning";
+  message: string;
+  icon: string;
+};
+
+function computeAlerts(vitals: any[], wounds: any[], meds: any[], logs: any[]): EscalationAlert[] {
+  const out: EscalationAlert[] = [];
+
+  // Vitals — use latest reading per type
+  const byType: Record<string, any> = {};
+  for (const v of vitals) { if (!byType[v.type]) byType[v.type] = v; }
+
+  const bp = byType["blood_pressure"];
+  if (bp?.systolic) {
+    const s = bp.systolic;
+    if (s < 90 || s > 180) out.push({ severity: "critical", message: `BP ${s}/${bp.diastolic} — outside safe range`, icon: "activity" });
+    else if (s < 110 || s > 150) out.push({ severity: "warning", message: `BP ${s}/${bp.diastolic} — borderline`, icon: "activity" });
+  }
+  const hr = byType["heart_rate"];
+  if (hr) {
+    const v = parseFloat(hr.value);
+    if (v < 40 || v > 130) out.push({ severity: "critical", message: `HR ${v} bpm — outside safe range`, icon: "activity" });
+    else if (v < 50 || v > 110) out.push({ severity: "warning", message: `HR ${v} bpm — borderline`, icon: "activity" });
+  }
+  const o2 = byType["oxygen"];
+  if (o2) {
+    const v = parseFloat(o2.value);
+    if (v < 90) out.push({ severity: "critical", message: `SpO₂ ${v}% — critically low`, icon: "activity" });
+    else if (v < 95) out.push({ severity: "warning", message: `SpO₂ ${v}% — below normal`, icon: "activity" });
+  }
+  const temp = byType["temperature"];
+  if (temp) {
+    const v = parseFloat(temp.value);
+    if (v < 35 || v > 39.5) out.push({ severity: "critical", message: `Temp ${v}°C — outside safe range`, icon: "thermometer" });
+    else if (v < 36 || v > 38.5) out.push({ severity: "warning", message: `Temp ${v}°C — borderline`, icon: "thermometer" });
+  }
+
+  // Wounds — active stage III+ trigger alert
+  for (const w of wounds) {
+    if (w.status !== "active") continue;
+    if (["III", "IV", "Unstageable", "DTI"].includes(w.stage)) {
+      out.push({ severity: "critical", message: `${w.location || "Wound"}: Stage ${w.stage} pressure injury`, icon: "shield" });
+    }
+  }
+
+  // Missed meds — scheduled dose past 2hr window with no taken=true log
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  for (const med of meds) {
+    if (med.scheduleType !== "scheduled") continue;
+    const slots: string[] = (med.times as string || "").split(",").map((t: string) => t.trim()).filter(Boolean);
+    for (const slot of slots) {
+      const match = slot.match(/^(\d+):(\d+)\s*(AM|PM)$/i);
+      if (!match) continue;
+      let h = parseInt(match[1]);
+      const m = parseInt(match[2]);
+      const ampm = match[3].toUpperCase();
+      if (ampm === "PM" && h !== 12) h += 12;
+      if (ampm === "AM" && h === 12) h = 0;
+      if (nowMins - (h * 60 + m) < 120) continue;
+      const log = logs.find((l: any) => l.medicationId === med.id && l.scheduledTime === slot);
+      if (!log || !log.taken) {
+        out.push({ severity: "warning", message: `${med.name} — ${slot} dose not recorded`, icon: "package" });
+      }
+    }
+  }
+
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
@@ -44,16 +115,37 @@ export default function PatientDetailScreen() {
   const { theme } = useTheme();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<EscalationAlert[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const token = await getToken();
-      const res = await fetch(
-        `${getApiUrl()}/api/care/profile/${encodeURIComponent(params.patientId)}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      if (res.ok) setProfile(await res.json());
+      const pid = encodeURIComponent(params.patientId);
+      const today = new Date().toISOString().slice(0, 10);
+      const headers = { Authorization: `Bearer ${token}` };
+      const api = getApiUrl();
+
+      const [profileRes, vitalsRes, woundsRes, medsRes] = await Promise.all([
+        fetch(`${api}/api/care/profile/${pid}`, { headers }),
+        fetch(`${api}/api/health/vitals?patientId=${pid}`, { headers }),
+        fetch(`${api}/api/pressure-injuries?patientId=${pid}`, { headers }),
+        fetch(`${api}/api/health/medications?patientId=${pid}`, { headers }),
+      ]);
+
+      if (profileRes.ok) setProfile(await profileRes.json());
+
+      const vitalsData = vitalsRes.ok ? await vitalsRes.json() : [];
+      const woundsData = woundsRes.ok ? await woundsRes.json() : [];
+      const medsData = medsRes.ok ? await medsRes.json() : [];
+
+      let logsData: any[] = [];
+      if (medsData.length > 0) {
+        const logsRes = await fetch(`${api}/api/health/medication-logs?patientId=${pid}&date=${today}`, { headers });
+        if (logsRes.ok) logsData = await logsRes.json();
+      }
+
+      setAlerts(computeAlerts(vitalsData, woundsData, medsData, logsData));
     } catch {
       // silent
     } finally {
@@ -109,6 +201,29 @@ export default function PatientDetailScreen() {
               </ThemedText>
             </View>
           </ElevatedCard>
+
+          {/* ── ESCALATION ALERTS ── */}
+          {alerts.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.sectionDot, { backgroundColor: "#FF6B6B" }]} />
+                <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                  ESCALATION ALERTS
+                </ThemedText>
+              </View>
+              {alerts.map((alert, i) => {
+                const color = alert.severity === "critical" ? "#FF6B6B" : "#FF9800";
+                return (
+                  <View key={i} style={[styles.alertRow, { backgroundColor: color + "18", borderLeftColor: color }]}>
+                    <Feather name={alert.icon as any} size={16} color={color} />
+                    <ThemedText type="small" style={{ flex: 1, marginLeft: 10, color, fontWeight: "600", fontSize: 13 }}>
+                      {alert.message}
+                    </ThemedText>
+                  </View>
+                );
+              })}
+            </View>
+          )}
 
           {/* ── PATIENT INTRO CARD ── */}
           <View style={styles.section}>
@@ -307,5 +422,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5, paddingVertical: 2,
     borderRadius: 4,
     backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderLeftWidth: 3,
   },
 });
