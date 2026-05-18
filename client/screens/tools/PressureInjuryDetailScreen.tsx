@@ -1,7 +1,9 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View, ScrollView, Pressable, StyleSheet, Alert, ActivityIndicator,
+  Image, Dimensions, Modal,
 } from "react-native";
+import { LineChart } from "react-native-gifted-charts";
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -42,8 +44,11 @@ const SKIN_LABELS: Record<string, string> = {
   induration: "Induration (hardened)",
 };
 
+const SCREEN_WIDTH = Dimensions.get("window").width;
+
 function CheckCard({ check }: { check: any }) {
   const { theme } = useTheme();
+  const [lightbox, setLightbox] = useState(false);
   const color = stageColor(check.stage);
   const label = STAGE_LABELS[check.stage] ?? check.stage;
   const date = new Date(check.createdAt).toLocaleDateString("en-NZ", {
@@ -127,6 +132,25 @@ function CheckCard({ check }: { check: any }) {
           {check.notes}
         </ThemedText>
       ) : null}
+
+      {check.photoUrl ? (
+        <>
+          <Pressable onPress={() => setLightbox(true)} style={styles.photoThumbWrapper}>
+            <Image source={{ uri: check.photoUrl }} style={styles.photoThumb} resizeMode="cover" />
+            <View style={styles.photoOverlay}>
+              <Feather name="zoom-in" size={16} color="#fff" />
+            </View>
+          </Pressable>
+          <Modal visible={lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(false)}>
+            <Pressable style={styles.lightbox} onPress={() => setLightbox(false)}>
+              <Image source={{ uri: check.photoUrl }} style={styles.lightboxImage} resizeMode="contain" />
+              <ThemedText style={styles.lightboxDate}>
+                {date} {time} · {check.assessedBy?.name ?? "Unknown"}
+              </ThemedText>
+            </Pressable>
+          </Modal>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -171,6 +195,18 @@ export default function PressureInjuryDetailScreen() {
 
   const latestCheck = checks[0];
   const currentStage = latestCheck?.stage ?? null;
+
+  const areaChartData = useMemo(() => {
+    const withArea = [...checks]
+      .reverse()
+      .filter((c) => c.lengthCm && c.widthCm)
+      .map((c) => ({
+        value: parseFloat((c.lengthCm * c.widthCm).toFixed(1)),
+        label: new Date(c.createdAt).toLocaleDateString("en-NZ", { day: "numeric", month: "short" }),
+        dataPointText: `${(c.lengthCm * c.widthCm).toFixed(1)}`,
+      }));
+    return withArea;
+  }, [checks]);
 
   async function markHealed() {
     Alert.alert(
@@ -256,6 +292,43 @@ export default function PressureInjuryDetailScreen() {
           </View>
         )}
 
+        {/* Wound area chart */}
+        {areaChartData.length >= 2 && (
+          <View style={styles.chartSection}>
+            <ThemedText type="caption" style={[styles.trendLabel, { color: theme.textSecondary }]}>
+              WOUND AREA (cm²) OVER TIME
+            </ThemedText>
+            <LineChart
+              data={areaChartData}
+              width={SCREEN_WIDTH - Spacing.lg * 4}
+              height={120}
+              color="#FF6B6B"
+              thickness={2}
+              curved
+              areaChart
+              startFillColor="#FF6B6B"
+              startOpacity={0.25}
+              endOpacity={0.0}
+              hideDataPoints={areaChartData.length > 8}
+              dataPointsColor="#FF6B6B"
+              dataPointsRadius={4}
+              xAxisLabelTextStyle={{ color: theme.textSecondary, fontSize: 9 }}
+              yAxisTextStyle={{ color: theme.textSecondary, fontSize: 9 }}
+              yAxisColor="transparent"
+              xAxisColor={theme.backgroundTertiary}
+              rulesColor={theme.backgroundTertiary}
+              rulesType="solid"
+              noOfSections={3}
+              showDataPointOnFocus
+              focusedDataPointColor="#FF6B6B"
+              textShiftY={-8}
+              textShiftX={-4}
+              textFontSize={10}
+              textColor={theme.text}
+            />
+          </View>
+        )}
+
         {/* Assessment history */}
         <View style={styles.section}>
           <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
@@ -326,6 +399,18 @@ const styles = StyleSheet.create({
   trendLine: { width: 24, height: 2 },
   section: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   sectionTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
+  chartSection: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
+  photoThumbWrapper: { marginTop: 4, borderRadius: BorderRadius.small, overflow: "hidden", position: "relative" },
+  photoThumb: { width: "100%", height: 140 },
+  photoOverlay: {
+    position: "absolute", bottom: 6, right: 6,
+    backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 12, padding: 5,
+  },
+  lightbox: {
+    flex: 1, backgroundColor: "rgba(0,0,0,0.92)", justifyContent: "center", alignItems: "center",
+  },
+  lightboxImage: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 0.75 },
+  lightboxDate: { color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 12 },
   checkCard: { borderRadius: BorderRadius.medium, padding: Spacing.md, gap: 6 },
   checkHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   checkRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
