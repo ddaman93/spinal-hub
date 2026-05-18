@@ -92,6 +92,13 @@ export const CATEGORIES: CategoryConfig[] = [
         route: "BladderLog",
       },
       {
+        id: "bowel",
+        name: "Bowel Log",
+        description: "Track bowel management with Bristol scale and method",
+        icon: "clipboard",
+        route: "BowelLog",
+      },
+      {
         id: "pressure-injury",
         name: "Pressure Injury Tracker",
         description: "Track, stage, and document wound sites with your care team",

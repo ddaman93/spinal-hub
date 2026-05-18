@@ -3,11 +3,12 @@ import {
   View, ScrollView, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator,
   Share, KeyboardAvoidingView, Platform, Dimensions, Modal,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
+import QRCode from "react-native-qrcode-svg";
 
 import { ThemedView } from "@/components/ThemedView";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
@@ -16,14 +17,7 @@ import { ElevatedCard } from "@/components/ElevatedCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { getApiUrl } from "@/lib/query-client";
-import { getToken } from "@/lib/auth";
-
-function decodeTokenUserId(token: string): string | null {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload?.id ?? payload?.sub ?? null;
-  } catch { return null; }
-}
+import { getToken, getUserIdFromToken } from "@/lib/auth";
 import { MainStackParamList } from "@/types/navigation";
 import { CARE_TILES } from "@/data/careTiles";
 
@@ -107,6 +101,13 @@ export default function CareHubScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
+  const route = useRoute<any>();
+
+  React.useEffect(() => {
+    if (route.params?.code) {
+      setJoinCode((route.params.code as string).toUpperCase());
+    }
+  }, [route.params?.code]);
 
   const [mode, setMode] = useState<Mode>("patient");
   const [loading, setLoading] = useState(true);
@@ -148,7 +149,7 @@ export default function CareHubScreen() {
     setLoading(true);
     try {
       const token = await getToken();
-      if (token) { const uid = decodeTokenUserId(token); if (uid) setJwtUserId(uid); }
+      if (token) { const uid = getUserIdFromToken(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
       const [relsRes, patientsRes, profileRes] = await Promise.all([
@@ -251,8 +252,10 @@ export default function CareHubScreen() {
 
   async function shareCode() {
     if (!generatedCode) return;
+    const deepLink = `spinalhub://join/${generatedCode}`;
     await Share.share({
-      message: `I'd like to add you to my care network on Spinal Hub.\n\nYour invite code: ${generatedCode}\n\n1. Download Spinal Hub\n2. Create an account\n3. Open the Care tab\n4. Tap "Join with Code" and enter: ${generatedCode}\n\nCode expires ${codeExpiry}.`,
+      message: `I'd like to add you to my care network on Spinal Hub.\n\nTap this link to join instantly:\n${deepLink}\n\nOr enter code manually: ${generatedCode}\n\nCode expires ${codeExpiry}.`,
+      url: deepLink,
     });
   }
 
@@ -543,19 +546,37 @@ export default function CareHubScreen() {
                       </Pressable>
                     ) : (
                       <View style={[styles.codeBox, { backgroundColor: theme.backgroundSecondary }]}>
-                        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 4 }}>
-                          Share this code — expires {codeExpiry}
+                        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: Spacing.md }}>
+                          Share this invite — expires {codeExpiry}
                         </ThemedText>
-                        <ThemedText style={{ fontSize: 32, fontWeight: "800", letterSpacing: 6, color: theme.primary }}>
-                          {generatedCode}
-                        </ThemedText>
-                        <View style={styles.codeActions}>
-                          <Pressable onPress={shareCode} style={[styles.codeBtn, { backgroundColor: theme.primary }]}>
+
+                        <View style={styles.qrRow}>
+                          <View style={[styles.qrWrapper, { backgroundColor: "#fff", borderColor: theme.primary + "33" }]}>
+                            <QRCode
+                              value={`spinalhub://join/${generatedCode}`}
+                              size={110}
+                              color="#000"
+                              backgroundColor="#fff"
+                            />
+                          </View>
+                          <View style={styles.qrTextCol}>
+                            <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 6 }}>Or enter manually</ThemedText>
+                            <ThemedText style={{ fontSize: 20, fontWeight: "800", letterSpacing: 3, color: theme.primary }}>
+                              {generatedCode}
+                            </ThemedText>
+                            <ThemedText type="caption" style={{ opacity: 0.4, marginTop: 4 }}>
+                              Scan QR or share the link
+                            </ThemedText>
+                          </View>
+                        </View>
+
+                        <View style={[styles.codeActions, { width: "100%" }]}>
+                          <Pressable onPress={shareCode} style={[styles.codeBtn, { backgroundColor: theme.primary, flex: 1 }]}>
                             <Feather name="share-2" size={14} color="#fff" />
-                            <ThemedText type="caption" style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Share</ThemedText>
+                            <ThemedText type="caption" style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Share Link</ThemedText>
                           </Pressable>
                           <Pressable onPress={() => setGeneratedCode(null)} style={[styles.codeBtn, { backgroundColor: theme.backgroundTertiary }]}>
-                            <ThemedText type="caption" style={{ fontWeight: "600" }}>New Code</ThemedText>
+                            <ThemedText type="caption" style={{ fontWeight: "600" }}>New</ThemedText>
                           </Pressable>
                         </View>
                       </View>
@@ -578,7 +599,7 @@ export default function CareHubScreen() {
                       key={tile.id}
                       onPress={() => {
                         if (!tile.screen) { Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`); return; }
-                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
+                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "BowelLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
                         if (patientScreens.includes(tile.screen)) {
                           const pid = myProfile?.userId ?? jwtUserId;
                           if (!pid) { Alert.alert("Still loading", "Please wait a moment and try again."); return; }
@@ -905,7 +926,10 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     padding: Spacing.md, borderRadius: BorderRadius.medium, gap: 6,
   },
-  codeBox: { borderRadius: BorderRadius.medium, padding: Spacing.lg, alignItems: "center", gap: 8 },
+  codeBox: { borderRadius: BorderRadius.medium, padding: Spacing.lg, alignItems: "center", gap: Spacing.sm, width: "100%" },
+  qrRow: { flexDirection: "row", alignItems: "center", gap: Spacing.lg, marginBottom: Spacing.sm, width: "100%" },
+  qrWrapper: { borderRadius: 12, padding: 10, borderWidth: 1 },
+  qrTextCol: { flex: 1 },
   codeActions: { flexDirection: "row", gap: Spacing.sm, marginTop: 4 },
   codeBtn: {
     flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.md,

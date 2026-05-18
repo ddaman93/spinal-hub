@@ -39,10 +39,10 @@ import AppointmentSchedulerScreen from "@/screens/tools/AppointmentSchedulerScre
 import EmergencyContactsScreen from "@/screens/tools/EmergencyContactsScreen";
 import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
 import BladderLogScreen from "@/screens/tools/BladderLogScreen";
+import BowelLogScreen from "@/screens/tools/BowelLogScreen";
 import PressureInjuryTrackerScreen from "@/screens/tools/PressureInjuryTrackerScreen";
 import PressureInjuryDetailScreen from "@/screens/tools/PressureInjuryDetailScreen";
 import AddPressureCheckScreen from "@/screens/tools/AddPressureCheckScreen";
-import CareNetworkScreen from "@/screens/tools/CareNetworkScreen";
 import PatientDetailScreen from "@/screens/tools/PatientDetailScreen";
 import HandoverNotesScreen from "@/screens/tools/HandoverNotesScreen";
 import CareHubScreen from "@/screens/CareHubScreen";
@@ -579,6 +579,16 @@ function ToolsStackNavigator() {
         }}
       />
 
+      {/* BOWEL LOG */}
+      <ToolsStack.Screen
+        name="BowelLog"
+        component={BowelLogScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "Bowel Log",
+        }}
+      />
+
       {/* PRESSURE INJURY TRACKER */}
       <ToolsStack.Screen
         name="PressureInjuryTracker"
@@ -594,11 +604,6 @@ function ToolsStackNavigator() {
         name="AddPressureCheck"
         component={AddPressureCheckScreen}
         options={{ ...opaqueScreenOptions, headerTitle: "Add Assessment" }}
-      />
-      <ToolsStack.Screen
-        name="CareNetwork"
-        component={CareNetworkScreen}
-        options={{ ...opaqueScreenOptions, headerTitle: "Care Network" }}
       />
       <ToolsStack.Screen
         name="PatientDetail"
@@ -878,6 +883,14 @@ function CareStackNavigator() {
         options={({ route }) => ({
           ...opaqueScreenOptions,
           headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Bladder Log`,
+        })}
+      />
+      <CareStack.Screen
+        name="BowelLog"
+        component={BowelLogScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Bowel Log`,
         })}
       />
       <CareStack.Screen

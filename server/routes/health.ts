@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { db } from "../db";
 import {
   vitals, medications, medicationLogs, appointments,
-  bladderLogs, painEntries, hydrationLogs,
+  bladderLogs, bowelLogs, painEntries, hydrationLogs,
   routineTasks, routineCompletions,
   skinCheckEntries, carePreferences,
   users,
@@ -210,6 +210,50 @@ export async function deleteBladderLog(req: Request, res: Response) {
   if (!row) return res.status(404).json({ message: "Not found." });
   if (row.recordedById !== requesterId && row.patientId !== requesterId && !await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
   await db.delete(bladderLogs).where(eq(bladderLogs.id, req.params.id));
+  res.json({ ok: true });
+}
+
+// ---------------------------------------------------------------------------
+// BOWEL LOG
+// ---------------------------------------------------------------------------
+
+export async function getBowelLogs(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const patientId = (req.query.patientId as string) || requesterId;
+  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  res.json(await db.select().from(bowelLogs).where(eq(bowelLogs.patientId, patientId)).orderBy(desc(bowelLogs.createdAt)));
+}
+
+export async function addBowelLog(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const { patientId, method, bristolType, amount, colour, durationMins, notes } = req.body;
+  const targetPatient = patientId || requesterId;
+  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!method) return res.status(400).json({ message: "method is required." });
+  const authorName = await getAuthorName(requesterId);
+  const [row] = await db.insert(bowelLogs).values({
+    patientId: targetPatient,
+    recordedById: requesterId,
+    authorName,
+    method,
+    bristolType: bristolType ?? null,
+    amount: amount ?? null,
+    colour: colour ?? null,
+    durationMins: durationMins ?? null,
+    notes: notes ?? null,
+  }).returning();
+  res.status(201).json(row);
+}
+
+export async function deleteBowelLog(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+  const [row] = await db.select().from(bowelLogs).where(eq(bowelLogs.id, req.params.id));
+  if (!row) return res.status(404).json({ message: "Not found." });
+  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  await db.delete(bowelLogs).where(eq(bowelLogs.id, req.params.id));
   res.json({ ok: true });
 }
 

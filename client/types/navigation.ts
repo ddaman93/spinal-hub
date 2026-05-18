@@ -71,6 +71,7 @@ export type MainStackParamList = {
   PressureReliefTimer: undefined;
   NZSpinalTrust: undefined;
   BladderLog: { patientId: string; patientName: string };
+  BowelLog: { patientId: string; patientName: string };
   SkinCheckLog: { patientId: string; patientName: string };
   CarePreferences: { patientId: string; patientName: string };
 
@@ -85,7 +86,6 @@ export type MainStackParamList = {
     site: string;
   };
   CareHub: undefined;
-  CareNetwork: undefined;
   PatientDetail: {
     patientId: string;
     patientName: string;

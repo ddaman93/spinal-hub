@@ -15,6 +15,7 @@ import {
   getMedicationLogs, upsertMedicationLog,
   getAppointments, addAppointment, updateAppointment, deleteAppointment,
   getBladderLogs, addBladderLog, deleteBladderLog,
+  getBowelLogs, addBowelLog, deleteBowelLog,
   getPainEntries, addPainEntry, deletePainEntry,
   getHydrationLogs, addHydrationLog, deleteHydrationLog,
   getRoutineTasks, addRoutineTask, deleteRoutineTask, getRoutineCompletions, toggleRoutineCompletion,
@@ -119,6 +120,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/health/bladder-logs", getBladderLogs);
   app.post("/api/health/bladder-logs", addBladderLog);
   app.delete("/api/health/bladder-logs/:id", deleteBladderLog);
+
+  app.get("/api/health/bowel-logs", getBowelLogs);
+  app.post("/api/health/bowel-logs", addBowelLog);
+  app.delete("/api/health/bowel-logs/:id", deleteBowelLog);
 
   app.get("/api/health/pain-entries", getPainEntries);
   app.post("/api/health/pain-entries", addPainEntry);

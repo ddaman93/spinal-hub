@@ -308,6 +308,32 @@ export const bladderLogs = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// bowel_logs
+// ---------------------------------------------------------------------------
+
+export const bowelLogs = pgTable(
+  "bowel_logs",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    authorName: text("author_name").notNull(),
+    // digital_stimulation | suppository | enema | manual_evacuation | spontaneous | laxative | no_result
+    method: text("method").notNull(),
+    // Bristol Stool Scale 1–7, null if no_result
+    bristolType: integer("bristol_type"),
+    // small | moderate | large | none
+    amount: text("amount"),
+    // normal | dark | pale | bloody | mucus
+    colour: text("colour"),
+    durationMins: integer("duration_mins"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({ idx: index("bowel_logs_patient_created_idx").on(t.patientId, t.createdAt.desc()) }),
+);
+
+// ---------------------------------------------------------------------------
 // pain_entries
 // ---------------------------------------------------------------------------
 
@@ -545,6 +571,7 @@ export type Medication = typeof medications.$inferSelect;
 export type MedicationLog = typeof medicationLogs.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type BladderLog = typeof bladderLogs.$inferSelect;
+export type BowelLog = typeof bowelLogs.$inferSelect;
 export type PainEntry = typeof painEntries.$inferSelect;
 export type HydrationLog = typeof hydrationLogs.$inferSelect;
 export type RoutineTask = typeof routineTasks.$inferSelect;
