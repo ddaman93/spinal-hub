@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
-import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes } from "@shared/schema";
-import { eq, and, count, desc } from "drizzle-orm";
+import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads } from "@shared/schema";
+import { eq, and, count, desc, inArray } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 
 function requireAuth(req: Request, res: Response): string | null {
@@ -180,7 +180,7 @@ export async function getMyPatients(req: Request, res: Response) {
   res.json(patients);
 }
 
-// GET /api/care/notes/:patientId — handover notes log (newest first)
+// GET /api/care/notes/:patientId — handover notes + read receipts (newest first)
 export async function getCareNotes(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
@@ -197,10 +197,24 @@ export async function getCareNotes(req: Request, res: Response) {
     .orderBy(desc(careNotes.createdAt))
     .limit(50);
 
-  res.json(notes);
+  if (notes.length === 0) return res.json([]);
+
+  const noteIds = notes.map((n) => n.id);
+  const reads = await db
+    .select()
+    .from(handoverReads)
+    .where(inArray(handoverReads.noteId, noteIds));
+
+  const readsByNote: Record<string, { readerId: string; readerName: string; readAt: Date }[]> = {};
+  for (const r of reads) {
+    if (!readsByNote[r.noteId]) readsByNote[r.noteId] = [];
+    readsByNote[r.noteId].push({ readerId: r.readerId, readerName: r.readerName, readAt: r.readAt });
+  }
+
+  res.json(notes.map((n) => ({ ...n, reads: readsByNote[n.id] ?? [] })));
 }
 
-// POST /api/care/notes/:patientId — add a handover note
+// POST /api/care/notes/:patientId — add a handover note (free_text or isbar)
 export async function addCareNote(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
@@ -210,17 +224,60 @@ export async function addCareNote(req: Request, res: Response) {
     return res.status(403).json({ message: "Forbidden." });
   }
 
-  const { content } = req.body;
-  if (!content?.trim()) return res.status(400).json({ message: "Content required." });
+  const { content, noteType, shiftType, situation, background, assessment, recommendation } = req.body;
+
+  const isIsbar = noteType === "isbar";
+  if (isIsbar && !situation?.trim()) return res.status(400).json({ message: "Situation is required for ISBAR notes." });
+  if (!isIsbar && !content?.trim()) return res.status(400).json({ message: "Content required." });
 
   const [author] = await db.select({ name: users.name }).from(users).where(eq(users.id, requesterId));
 
   const [note] = await db
     .insert(careNotes)
-    .values({ patientId, authorId: requesterId, authorName: author?.name ?? "Unknown", content: content.trim() })
+    .values({
+      patientId,
+      authorId: requesterId,
+      authorName: author?.name ?? "Unknown",
+      noteType: noteType ?? "free_text",
+      content: isIsbar ? "" : content.trim(),
+      shiftType: shiftType ?? null,
+      situation: situation?.trim() ?? null,
+      background: background?.trim() ?? null,
+      assessment: assessment?.trim() ?? null,
+      recommendation: recommendation?.trim() ?? null,
+    })
     .returning();
 
-  res.status(201).json(note);
+  res.status(201).json({ ...note, reads: [] });
+}
+
+// POST /api/care/notes/:noteId/read — mark a note as read by the requester
+export async function markNoteRead(req: Request, res: Response) {
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
+
+  const { noteId } = req.params;
+  const [note] = await db.select().from(careNotes).where(eq(careNotes.id, noteId));
+  if (!note) return res.status(404).json({ message: "Not found." });
+
+  if (!(await canAccessPatient(requesterId, note.patientId))) {
+    return res.status(403).json({ message: "Forbidden." });
+  }
+
+  // Idempotent — only insert if not already read
+  const [existing] = await db.select().from(handoverReads).where(
+    and(eq(handoverReads.noteId, noteId), eq(handoverReads.readerId, requesterId))
+  );
+  if (existing) return res.json(existing);
+
+  const [reader] = await db.select({ name: users.name }).from(users).where(eq(users.id, requesterId));
+  const [read] = await db.insert(handoverReads).values({
+    noteId,
+    readerId: requesterId,
+    readerName: reader?.name ?? "Unknown",
+  }).returning();
+
+  res.status(201).json(read);
 }
 
 // GET /api/care/profile/:patientId — patient profile visible to linked carers

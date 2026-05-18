@@ -276,7 +276,16 @@ export const careNotes = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     authorName: text("author_name").notNull(),
-    content: text("content").notNull(),
+    // free_text | isbar
+    noteType: text("note_type").notNull().default("free_text"),
+    content: text("content").notNull().default(""),
+    // ISBAR fields (null for free_text notes)
+    // morning | afternoon | evening | night
+    shiftType: text("shift_type"),
+    situation: text("situation"),
+    background: text("background"),
+    assessment: text("assessment"),
+    recommendation: text("recommendation"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => ({
@@ -284,6 +293,28 @@ export const careNotes = pgTable(
       t.patientId,
       t.createdAt,
     ),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// handover_reads  (who has read each care note)
+// ---------------------------------------------------------------------------
+
+export const handoverReads = pgTable(
+  "handover_reads",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    noteId: varchar("note_id")
+      .notNull()
+      .references(() => careNotes.id, { onDelete: "cascade" }),
+    readerId: varchar("reader_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    readerName: text("reader_name").notNull(),
+    readAt: timestamp("read_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    noteReaderIdx: index("handover_reads_note_reader_idx").on(t.noteId, t.readerId),
   }),
 );
 
@@ -573,6 +604,7 @@ export type InviteCode = typeof inviteCodes.$inferSelect;
 export type PressureInjury = typeof pressureInjuries.$inferSelect;
 export type PressureInjuryCheck = typeof pressureInjuryChecks.$inferSelect;
 export type CareNote = typeof careNotes.$inferSelect;
+export type HandoverRead = typeof handoverReads.$inferSelect;
 export type Vital = typeof vitals.$inferSelect;
 export type Medication = typeof medications.$inferSelect;
 export type MedicationLog = typeof medicationLogs.$inferSelect;
