@@ -9,6 +9,7 @@ import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getCareNotes, addCareNote, markNoteRead, getPatientProfile } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
+import { getAuditLog } from "./routes/audit";
 import {
   getVitals, addVital, deleteVital,
   getMedications, addMedication, updateMedication, deleteMedication,
@@ -152,6 +153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/health/rehab-goals", addRehabGoal);
   app.patch("/api/health/rehab-goals/:id", updateRehabGoal);
   app.delete("/api/health/rehab-goals/:id", deleteRehabGoal);
+
+  // Audit trail
+  app.get("/api/audit/:patientId", getAuditLog);
 
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);

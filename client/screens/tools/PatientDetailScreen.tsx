@@ -357,9 +357,9 @@ export default function PatientDetailScreen() {
             </Pressable>
           </View>
 
-          {/* ── EXPORT PDF (carer/clinician only) ── */}
+          {/* ── EXPORT PDF + AUDIT TRAIL (carer/clinician only) ── */}
           {(params.role === "carer" || params.role === "clinician") && (
-            <View style={[styles.section, { marginBottom: Spacing.sm }]}>
+            <View style={[styles.section, { marginBottom: Spacing.sm, gap: 8 }]}>
               <Pressable
                 onPress={handleExport}
                 disabled={exporting || loading}
@@ -376,6 +376,16 @@ export default function PatientDetailScreen() {
                 <ThemedText style={styles.exportBtnText}>
                   {exporting ? "Generating PDF…" : "Export Clinical Report (PDF)"}
                 </ThemedText>
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate("AuditTrail", { patientId: params.patientId, patientName: params.patientName })}
+                style={({ pressed }) => [styles.auditBtn, { opacity: pressed ? 0.7 : 1 }]}
+              >
+                <Feather name="clock" size={15} color={theme.textSecondary} />
+                <ThemedText type="small" style={{ marginLeft: 8, fontWeight: "600", color: theme.textSecondary }}>
+                  View Audit Trail
+                </ThemedText>
+                <Feather name="chevron-right" size={15} color={theme.textSecondary} style={{ marginLeft: "auto", opacity: 0.5 }} />
               </Pressable>
             </View>
           )}
@@ -511,5 +521,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
+  },
+  auditBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "rgba(128,128,128,0.2)",
   },
 });

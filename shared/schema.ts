@@ -648,3 +648,29 @@ export type RoutineCompletion = typeof routineCompletions.$inferSelect;
 export type SkinCheckEntry = typeof skinCheckEntries.$inferSelect;
 export type CarePreference = typeof carePreferences.$inferSelect;
 export type RehabGoal = typeof rehabGoals.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// audit_logs  (append-only — never deleted)
+// ---------------------------------------------------------------------------
+
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    actorId: varchar("actor_id").notNull().references(() => users.id),
+    actorName: text("actor_name").notNull(),
+    // action: created | updated | deleted | administered | omitted | achieved | status_changed | assessed
+    action: text("action").notNull(),
+    // entityType: wound | wound_check | medication | med_log | care_note | goal | vital | bladder | bowel | pain
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id").notNull(),
+    summary: text("summary").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    auditPatientIdx: index("audit_logs_patient_idx").on(t.patientId, t.createdAt),
+  }),
+);
+
+export type AuditLog = typeof auditLogs.$inferSelect;

@@ -3,6 +3,7 @@ import { db } from "../db";
 import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads } from "@shared/schema";
 import { eq, and, count, desc, inArray } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
+import { addAuditLog } from "./audit";
 
 function requireAuth(req: Request, res: Response): string | null {
   const token = extractToken(req);
@@ -263,6 +264,10 @@ export async function addCareNote(req: Request, res: Response) {
       recommendation: recommendation?.trim() ?? null,
     })
     .returning();
+
+  const shift = shiftType ? ` (${shiftType} shift)` : "";
+  const typeSummary = isIsbar ? `ISBAR handover${shift}` : `Care note${shift}`;
+  await addAuditLog({ patientId, actorId: requesterId, actorName: author?.name ?? "Unknown", action: "created", entityType: "care_note", entityId: note.id, summary: typeSummary });
 
   res.status(201).json({ ...note, reads: [] });
 }

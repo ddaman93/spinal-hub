@@ -11,6 +11,7 @@ import {
 import { eq, and, desc, asc, gte } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 import { canAccessPatient, getCarerRole } from "./care";
+import { addAuditLog } from "./audit";
 
 // Family members see schedules/preferences but not clinical records
 async function requireClinicalAccess(requesterId: string, patientId: string, res: Response): Promise<boolean> {
@@ -135,12 +136,22 @@ export async function upsertMedicationLog(req: Request, res: Response) {
   const targetPatient = patientId || requesterId;
   if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   const adminName = await getAuthorName(requesterId);
+  const [medRow] = await db.select({ name: medications.name }).from(medications).where(eq(medications.id, medicationId)).limit(1);
+  const medName = medRow?.name ?? "medication";
   const existing = await db.select().from(medicationLogs).where(and(eq(medicationLogs.medicationId, medicationId), eq(medicationLogs.patientId, targetPatient), eq(medicationLogs.date, date), eq(medicationLogs.scheduledTime, scheduledTime))).limit(1);
   if (existing.length > 0) {
     const [updated] = await db.update(medicationLogs).set({ taken, actualTime: actualTime ?? null, recordedById: requesterId, administeredByName: taken ? adminName : null, reasonOmitted: taken ? null : (reasonOmitted ?? null) }).where(eq(medicationLogs.id, existing[0].id)).returning();
+    const action = taken ? "administered" : "omitted";
+    const summary = taken ? `${medName} administered at ${scheduledTime}` : `${medName} omitted at ${scheduledTime}${reasonOmitted ? ` — ${reasonOmitted}` : ""}`;
+    await addAuditLog({ patientId: targetPatient, actorId: requesterId, actorName: adminName, action, entityType: "med_log", entityId: updated.id, summary });
     return res.json(updated);
   }
   const [row] = await db.insert(medicationLogs).values({ medicationId, patientId: targetPatient, recordedById: requesterId, date, scheduledTime, taken: taken ?? false, actualTime: actualTime ?? null, administeredByName: taken ? adminName : null, reasonOmitted: taken ? null : (reasonOmitted ?? null) }).returning();
+  if (taken !== undefined) {
+    const action = taken ? "administered" : "omitted";
+    const summary = taken ? `${medName} administered at ${scheduledTime}` : `${medName} omitted at ${scheduledTime}${reasonOmitted ? ` — ${reasonOmitted}` : ""}`;
+    await addAuditLog({ patientId: targetPatient, actorId: requesterId, actorName: adminName, action, entityType: "med_log", entityId: row.id, summary });
+  }
   res.status(201).json(row);
 }
 
@@ -505,6 +516,12 @@ export async function updateRehabGoal(req: Request, res: Response) {
     progressUpdatedAt: progressNote !== undefined ? new Date() : row.progressUpdatedAt,
     progressUpdatedBy: progressNote !== undefined ? authorName : row.progressUpdatedBy,
   }).where(eq(rehabGoals.id, req.params.id)).returning();
+
+  if (status && status !== row.status) {
+    const action = status === "achieved" ? "achieved" : "status_changed";
+    await addAuditLog({ patientId: row.patientId, actorId: requesterId, actorName: authorName, action, entityType: "goal", entityId: row.id, summary: `Goal "${row.title}" — ${status === "achieved" ? "achieved ✓" : `status changed to ${status}`}` });
+  }
+
   res.json(updated);
 }
 
