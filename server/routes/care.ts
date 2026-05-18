@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
 import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads } from "@shared/schema";
-import { eq, and, count, desc, inArray } from "drizzle-orm";
+import { eq, and, count, desc, inArray, notInArray, sql } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 import { addAuditLog } from "./audit";
 
@@ -195,6 +195,73 @@ export async function getMyPatients(req: Request, res: Response) {
   );
 
   res.json(patients);
+}
+
+// GET /api/care/patients/alerts — alert counts per patient for dashboard
+export async function getPatientAlerts(req: Request, res: Response) {
+  const caregiverId = requireAuth(req, res);
+  if (!caregiverId) return;
+
+  // Get my active patient IDs
+  const rels = await db
+    .select({ patientId: careRelationships.patientId })
+    .from(careRelationships)
+    .where(and(eq(careRelationships.caregiverId, caregiverId), eq(careRelationships.status, "active")));
+
+  if (rels.length === 0) return res.json([]);
+
+  const patientIds = rels.map((r) => r.patientId);
+
+  // All notes for these patients
+  const allNotes = await db
+    .select({ id: careNotes.id, patientId: careNotes.patientId })
+    .from(careNotes)
+    .where(inArray(careNotes.patientId, patientIds));
+
+  // Notes this carer has read
+  const noteIds = allNotes.map((n) => n.id);
+  const myReads = noteIds.length > 0
+    ? await db.select({ noteId: handoverReads.noteId }).from(handoverReads)
+        .where(and(inArray(handoverReads.noteId, noteIds), eq(handoverReads.readerId, caregiverId)))
+    : [];
+  const readNoteIds = new Set(myReads.map((r) => r.noteId));
+
+  // Unread count per patient
+  const unreadByPatient: Record<string, number> = {};
+  for (const n of allNotes) {
+    if (!readNoteIds.has(n.id)) {
+      unreadByPatient[n.patientId] = (unreadByPatient[n.patientId] ?? 0) + 1;
+    }
+  }
+
+  // Critical wound count per patient — join latest check per wound
+  // Raw SQL: active wounds whose most recent check has Stage III/IV/Unstageable/DTI
+  const criticalWounds = await db.execute(sql`
+    SELECT pi.patient_id, COUNT(*)::int AS cnt
+    FROM pressure_injuries pi
+    INNER JOIN LATERAL (
+      SELECT stage FROM pressure_injury_checks
+      WHERE injury_id = pi.id
+      ORDER BY created_at DESC
+      LIMIT 1
+    ) latest ON true
+    WHERE pi.patient_id = ANY(${patientIds}::varchar[])
+      AND pi.status = 'active'
+      AND latest.stage IN ('III', 'IV', 'Unstageable', 'DTI')
+    GROUP BY pi.patient_id
+  `);
+
+  const criticalByPatient: Record<string, number> = {};
+  for (const r of criticalWounds.rows as any[]) criticalByPatient[r.patient_id] = Number(r.cnt);
+
+  const result = patientIds.map((pid) => ({
+    patientId: pid,
+    unreadNotes: unreadByPatient[pid] ?? 0,
+    criticalWounds: criticalByPatient[pid] ?? 0,
+    totalAlerts: (unreadByPatient[pid] ?? 0) + (criticalByPatient[pid] ?? 0),
+  }));
+
+  res.json(result);
 }
 
 // GET /api/care/notes/:patientId — handover notes + read receipts (newest first)

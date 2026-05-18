@@ -115,6 +115,7 @@ export default function CareHubScreen() {
     asPatient: [], asCarer: [],
   });
   const [patients, setPatients] = useState<PatientSummary[]>([]);
+  const [patientAlerts, setPatientAlerts] = useState<Record<string, { unreadNotes: number; criticalWounds: number; totalAlerts: number }>>({});
 
   // Patient dashboard state
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
@@ -152,10 +153,11 @@ export default function CareHubScreen() {
       if (token) { const uid = getUserIdFromToken(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [relsRes, patientsRes, profileRes] = await Promise.all([
+      const [relsRes, patientsRes, profileRes, alertsRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/care/relationships`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients`, { headers }),
         fetch(`${getApiUrl()}/api/profile`, { headers }),
+        fetch(`${getApiUrl()}/api/care/patients/alerts`, { headers }),
       ]);
 
       if (relsRes.ok) {
@@ -166,6 +168,12 @@ export default function CareHubScreen() {
         }
       }
       if (patientsRes.ok) setPatients(await patientsRes.json());
+      if (alertsRes.ok) {
+        const arr: { patientId: string; unreadNotes: number; criticalWounds: number; totalAlerts: number }[] = await alertsRes.json();
+        const map: Record<string, typeof arr[0]> = {};
+        for (const a of arr) map[a.patientId] = a;
+        setPatientAlerts(map);
+      }
 
       if (profileRes.ok) {
         const profile = await profileRes.json();
@@ -703,7 +711,12 @@ export default function CareHubScreen() {
                   <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
                     YOUR PATIENTS
                   </ThemedText>
-                  {patients.map((p) => (
+                  {[...patients].sort((a, b) => (patientAlerts[b.patientId]?.totalAlerts ?? 0) - (patientAlerts[a.patientId]?.totalAlerts ?? 0)).map((p) => {
+                    const alerts = patientAlerts[p.patientId];
+                    const hasCritical = (alerts?.criticalWounds ?? 0) > 0;
+                    const hasUnread = (alerts?.unreadNotes ?? 0) > 0;
+                    const totalAlerts = alerts?.totalAlerts ?? 0;
+                    return (
                     <Pressable
                       key={p.patientId}
                       onPress={() => navigation.navigate("PatientDetail", {
@@ -712,13 +725,20 @@ export default function CareHubScreen() {
                         role: p.role,
                       })}
                     >
-                      <ElevatedCard style={styles.patientCard} padding={Spacing.md}>
+                      <ElevatedCard style={StyleSheet.flatten([styles.patientCard, hasCritical ? { borderLeftWidth: 3, borderLeftColor: "#FF3B30" } : undefined])} padding={Spacing.md}>
                         <View style={styles.patientCardInner}>
-                          {/* Avatar */}
-                          <View style={[styles.patientAvatar, { backgroundColor: theme.primary + "22" }]}>
-                            <ThemedText style={{ fontSize: 18, fontWeight: "800", color: theme.primary }}>
-                              {p.patientName.charAt(0).toUpperCase()}
-                            </ThemedText>
+                          {/* Avatar + total alert badge */}
+                          <View style={{ position: "relative" }}>
+                            <View style={[styles.patientAvatar, { backgroundColor: theme.primary + "22" }]}>
+                              <ThemedText style={{ fontSize: 18, fontWeight: "800", color: theme.primary }}>
+                                {p.patientName.charAt(0).toUpperCase()}
+                              </ThemedText>
+                            </View>
+                            {totalAlerts > 0 && (
+                              <View style={[styles.alertDot, { backgroundColor: hasCritical ? "#FF3B30" : "#FF9800" }]}>
+                                <ThemedText style={{ fontSize: 9, fontWeight: "800", color: "#fff" }}>{totalAlerts}</ThemedText>
+                              </View>
+                            )}
                           </View>
 
                           {/* Info */}
@@ -736,12 +756,30 @@ export default function CareHubScreen() {
                                   {ROLE_LABELS[p.role] ?? p.role}
                                 </ThemedText>
                               </View>
-                              {/* Wound count badge */}
-                              {p.activeWoundCount > 0 && (
+                              {/* Critical wound badge */}
+                              {hasCritical && (
+                                <View style={[styles.badge, { backgroundColor: "#FF3B3022" }]}>
+                                  <Feather name="alert-triangle" size={10} color="#FF3B30" />
+                                  <ThemedText type="caption" style={{ color: "#FF3B30", fontWeight: "600", fontSize: 10, marginLeft: 3 }}>
+                                    {alerts.criticalWounds} critical wound{alerts.criticalWounds !== 1 ? "s" : ""}
+                                  </ThemedText>
+                                </View>
+                              )}
+                              {/* Unread notes badge */}
+                              {hasUnread && (
+                                <View style={[styles.badge, { backgroundColor: "#FF980022" }]}>
+                                  <Feather name="book-open" size={10} color="#FF9800" />
+                                  <ThemedText type="caption" style={{ color: "#FF9800", fontWeight: "600", fontSize: 10, marginLeft: 3 }}>
+                                    {alerts.unreadNotes} unread
+                                  </ThemedText>
+                                </View>
+                              )}
+                              {/* Wound count badge (non-critical) */}
+                              {p.activeWoundCount > 0 && !hasCritical && (
                                 <View style={[styles.badge, { backgroundColor: "#FF3B3022" }]}>
                                   <Feather name="alert-circle" size={10} color="#FF3B30" />
                                   <ThemedText type="caption" style={{ color: "#FF3B30", fontWeight: "600", fontSize: 10, marginLeft: 3 }}>
-                                    {p.activeWoundCount} active {p.activeWoundCount === 1 ? "wound" : "wounds"}
+                                    {p.activeWoundCount} wound{p.activeWoundCount !== 1 ? "s" : ""}
                                   </ThemedText>
                                 </View>
                               )}
@@ -763,7 +801,8 @@ export default function CareHubScreen() {
                         ) : null}
                       </ElevatedCard>
                     </Pressable>
-                  ))}
+                    );
+                  })}
                 </View>
               ) : (
                 <View style={styles.emptyState}>
@@ -951,6 +990,12 @@ const styles = StyleSheet.create({
   patientAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   badgeRow: { flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" },
   badge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  alertDot: {
+    position: "absolute", top: -4, right: -4,
+    minWidth: 18, height: 18, borderRadius: 9,
+    alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 3,
+  },
 
   // Patient dashboard
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginBottom: 2 },
