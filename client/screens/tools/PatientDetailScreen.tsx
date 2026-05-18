@@ -19,6 +19,7 @@ import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
 import { getToken } from "@/lib/auth";
 import { CARE_TILES, CareTile } from "@/data/careTiles";
+import { exportPatientPdf } from "@/lib/exportPdf";
 
 type Nav = NativeStackNavigationProp<MainStackParamList>;
 type Route = RouteProp<MainStackParamList, "PatientDetail">;
@@ -116,6 +117,10 @@ export default function PatientDetailScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<EscalationAlert[]>([]);
+  const [rawVitals, setRawVitals] = useState<any[]>([]);
+  const [rawWounds, setRawWounds] = useState<any[]>([]);
+  const [rawMeds, setRawMeds] = useState<any[]>([]);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,6 +143,10 @@ export default function PatientDetailScreen() {
       const vitalsData = vitalsRes.ok ? await vitalsRes.json() : [];
       const woundsData = woundsRes.ok ? await woundsRes.json() : [];
       const medsData = medsRes.ok ? await medsRes.json() : [];
+
+      setRawVitals(vitalsData);
+      setRawWounds(woundsData);
+      setRawMeds(medsData);
 
       let logsData: any[] = [];
       if (medsData.length > 0) {
@@ -171,6 +180,40 @@ export default function PatientDetailScreen() {
 
   const hasIntro = profile?.aboutMe || profile?.injuryLevel || profile?.routineHighlights;
   const visibleTiles = CARE_TILES.filter((t) => t.roles.includes(params.role));
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const token = await getToken();
+      const pid = encodeURIComponent(params.patientId);
+      const headers = { Authorization: `Bearer ${token}` };
+      const api = getApiUrl();
+
+      // Fetch handover notes + pressure injury checks (not in existing state)
+      const notesRes = await fetch(`${api}/api/care/notes/${pid}`, { headers });
+      const notesData = notesRes.ok ? await notesRes.json() : [];
+
+      const checkResponses = await Promise.all(
+        rawWounds.map((w: any) => fetch(`${api}/api/pressure-injuries/${w.id}/checks`, { headers }))
+      );
+      const checkData = await Promise.all(
+        checkResponses.map((r) => r.ok ? r.json() : Promise.resolve([]))
+      );
+      const woundsWithChecks = rawWounds.map((w: any, i: number) => ({ ...w, checks: checkData[i] ?? [] }));
+
+      await exportPatientPdf({
+        patientName: params.patientName,
+        profile: profile as any,
+        vitals: rawVitals,
+        wounds: woundsWithChecks,
+        meds: rawMeds,
+        notes: notesData,
+        generatedBy: "Care Team",
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const roleColor = params.role === "clinician" ? "#AF52DE" : params.role === "family" ? "#5B8DEF" : "#00E676";
 
@@ -314,6 +357,29 @@ export default function PatientDetailScreen() {
             </Pressable>
           </View>
 
+          {/* ── EXPORT PDF (carer/clinician only) ── */}
+          {(params.role === "carer" || params.role === "clinician") && (
+            <View style={[styles.section, { marginBottom: Spacing.sm }]}>
+              <Pressable
+                onPress={handleExport}
+                disabled={exporting || loading}
+                style={({ pressed }) => [
+                  styles.exportBtn,
+                  { opacity: pressed || exporting || loading ? 0.6 : 1 },
+                ]}
+              >
+                {exporting ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Feather name="file-text" size={16} color="#fff" />
+                )}
+                <ThemedText style={styles.exportBtnText}>
+                  {exporting ? "Generating PDF…" : "Export Clinical Report (PDF)"}
+                </ThemedText>
+              </Pressable>
+            </View>
+          )}
+
           {/* ── CARE TOOLS (role-filtered) ── */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -430,5 +496,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderLeftWidth: 3,
+  },
+  exportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#4A90D9",
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  exportBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });
