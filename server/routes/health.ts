@@ -9,7 +9,15 @@ import {
 } from "@shared/schema";
 import { eq, and, desc, asc, gte } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
-import { canAccessPatient } from "./care";
+import { canAccessPatient, getCarerRole } from "./care";
+
+// Family members see schedules/preferences but not clinical records
+async function requireClinicalAccess(requesterId: string, patientId: string, res: Response): Promise<boolean> {
+  const role = await getCarerRole(requesterId, patientId);
+  if (!role) { res.status(403).json({ message: "Access denied." }); return false; }
+  if (role === "family") { res.status(403).json({ message: "Family members cannot access clinical records." }); return false; }
+  return true;
+}
 
 function requireAuth(req: Request, res: Response): string | null {
   const token = extractToken(req);
@@ -35,7 +43,7 @@ export async function getVitals(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
-  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, patientId, res)) return;
   res.json(await db.select().from(vitals).where(eq(vitals.patientId, patientId)).orderBy(desc(vitals.createdAt)));
 }
 
@@ -44,7 +52,7 @@ export async function addVital(req: Request, res: Response) {
   if (!requesterId) return;
   const { patientId, type, value, systolic, diastolic, notes } = req.body;
   const targetPatient = patientId || requesterId;
-  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (!type || !value) return res.status(400).json({ message: "type and value are required." });
   const authorName = await getAuthorName(requesterId);
   const [row] = await db.insert(vitals).values({ patientId: targetPatient, recordedById: requesterId, authorName, type, value, systolic: systolic ?? null, diastolic: diastolic ?? null, notes: notes ?? null }).returning();
@@ -56,7 +64,7 @@ export async function deleteVital(req: Request, res: Response) {
   if (!requesterId) return;
   const [row] = await db.select().from(vitals).where(eq(vitals.id, req.params.id));
   if (!row) return res.status(404).json({ message: "Not found." });
-  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await requireClinicalAccess(requesterId, row.patientId, res)) return;
   await db.delete(vitals).where(eq(vitals.id, req.params.id));
   res.json({ ok: true });
 }
@@ -69,7 +77,7 @@ export async function getMedications(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
-  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, patientId, res)) return;
   res.json(await db.select().from(medications).where(eq(medications.patientId, patientId)).orderBy(asc(medications.createdAt)));
 }
 
@@ -78,7 +86,7 @@ export async function addMedication(req: Request, res: Response) {
   if (!requesterId) return;
   const { patientId, name, dosage, frequency, times, scheduleType, route, notes } = req.body;
   const targetPatient = patientId || requesterId;
-  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (!name) return res.status(400).json({ message: "name is required." });
   const [row] = await db.insert(medications).values({ patientId: targetPatient, name, dosage: dosage ?? "", frequency: frequency ?? "Daily", times: Array.isArray(times) ? times.join(", ") : (times ?? "8:00 AM"), scheduleType: scheduleType ?? "scheduled", route: route ?? "oral", notes: notes ?? null }).returning();
   res.status(201).json(row);
@@ -89,7 +97,7 @@ export async function updateMedication(req: Request, res: Response) {
   if (!requesterId) return;
   const [row] = await db.select().from(medications).where(eq(medications.id, req.params.id));
   if (!row) return res.status(404).json({ message: "Not found." });
-  if (!await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, row.patientId, res)) return;
   const { name, dosage, frequency, times, notes } = req.body;
   const [updated] = await db.update(medications).set({ name: name ?? row.name, dosage: dosage ?? row.dosage, frequency: frequency ?? row.frequency, times: times ? (Array.isArray(times) ? times.join(", ") : times) : row.times, notes: notes ?? row.notes }).where(eq(medications.id, req.params.id)).returning();
   res.json(updated);
@@ -100,7 +108,7 @@ export async function deleteMedication(req: Request, res: Response) {
   if (!requesterId) return;
   const [row] = await db.select().from(medications).where(eq(medications.id, req.params.id));
   if (!row) return res.status(404).json({ message: "Not found." });
-  if (!await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, row.patientId, res)) return;
   await db.delete(medications).where(eq(medications.id, req.params.id));
   res.json({ ok: true });
 }
@@ -115,7 +123,7 @@ export async function getMedicationLogs(req: Request, res: Response) {
   const patientId = (req.query.patientId as string) || requesterId;
   const date = req.query.date as string;
   if (!date) return res.status(400).json({ message: "date is required." });
-  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, patientId, res)) return;
   res.json(await db.select().from(medicationLogs).where(and(eq(medicationLogs.patientId, patientId), eq(medicationLogs.date, date))));
 }
 
@@ -124,7 +132,7 @@ export async function upsertMedicationLog(req: Request, res: Response) {
   if (!requesterId) return;
   const { medicationId, patientId, date, scheduledTime, taken, actualTime, reasonOmitted } = req.body;
   const targetPatient = patientId || requesterId;
-  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   const adminName = await getAuthorName(requesterId);
   const existing = await db.select().from(medicationLogs).where(and(eq(medicationLogs.medicationId, medicationId), eq(medicationLogs.patientId, targetPatient), eq(medicationLogs.date, date), eq(medicationLogs.scheduledTime, scheduledTime))).limit(1);
   if (existing.length > 0) {
@@ -188,7 +196,7 @@ export async function getBladderLogs(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
-  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, patientId, res)) return;
   res.json(await db.select().from(bladderLogs).where(eq(bladderLogs.patientId, patientId)).orderBy(desc(bladderLogs.createdAt)));
 }
 
@@ -197,7 +205,7 @@ export async function addBladderLog(req: Request, res: Response) {
   if (!requesterId) return;
   const { patientId, type, volumeMl, notes } = req.body;
   const targetPatient = patientId || requesterId;
-  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (!type) return res.status(400).json({ message: "type is required." });
   const authorName = await getAuthorName(requesterId);
   const [row] = await db.insert(bladderLogs).values({ patientId: targetPatient, recordedById: requesterId, authorName, type, volumeMl: volumeMl ?? null, notes: notes ?? null }).returning();
@@ -209,7 +217,7 @@ export async function deleteBladderLog(req: Request, res: Response) {
   if (!requesterId) return;
   const [row] = await db.select().from(bladderLogs).where(eq(bladderLogs.id, req.params.id));
   if (!row) return res.status(404).json({ message: "Not found." });
-  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await requireClinicalAccess(requesterId, row.patientId, res)) return;
   await db.delete(bladderLogs).where(eq(bladderLogs.id, req.params.id));
   res.json({ ok: true });
 }
@@ -222,7 +230,7 @@ export async function getBowelLogs(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
-  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, patientId, res)) return;
   res.json(await db.select().from(bowelLogs).where(eq(bowelLogs.patientId, patientId)).orderBy(desc(bowelLogs.createdAt)));
 }
 
@@ -231,7 +239,7 @@ export async function addBowelLog(req: Request, res: Response) {
   if (!requesterId) return;
   const { patientId, method, bristolType, amount, colour, durationMins, notes } = req.body;
   const targetPatient = patientId || requesterId;
-  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (!method) return res.status(400).json({ message: "method is required." });
   const authorName = await getAuthorName(requesterId);
   const [row] = await db.insert(bowelLogs).values({
@@ -253,7 +261,7 @@ export async function deleteBowelLog(req: Request, res: Response) {
   if (!requesterId) return;
   const [row] = await db.select().from(bowelLogs).where(eq(bowelLogs.id, req.params.id));
   if (!row) return res.status(404).json({ message: "Not found." });
-  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await requireClinicalAccess(requesterId, row.patientId, res)) return;
   await db.delete(bowelLogs).where(eq(bowelLogs.id, req.params.id));
   res.json({ ok: true });
 }
@@ -266,7 +274,7 @@ export async function getPainEntries(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
-  if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, patientId, res)) return;
   res.json(await db.select().from(painEntries).where(eq(painEntries.patientId, patientId)).orderBy(desc(painEntries.createdAt)));
 }
 
@@ -275,7 +283,7 @@ export async function addPainEntry(req: Request, res: Response) {
   if (!requesterId) return;
   const { patientId, level, location, description } = req.body;
   const targetPatient = patientId || requesterId;
-  if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (level === undefined || !location) return res.status(400).json({ message: "level and location are required." });
   const authorName = await getAuthorName(requesterId);
   const [row] = await db.insert(painEntries).values({ patientId: targetPatient, recordedById: requesterId, authorName, level: Number(level), location, description: description ?? null }).returning();
@@ -287,7 +295,7 @@ export async function deletePainEntry(req: Request, res: Response) {
   if (!requesterId) return;
   const [row] = await db.select().from(painEntries).where(eq(painEntries.id, req.params.id));
   if (!row) return res.status(404).json({ message: "Not found." });
-  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await canAccessPatient(requesterId, row.patientId)) return res.status(403).json({ message: "Access denied." });
+  if (row.recordedById !== requesterId && row.patientId !== requesterId && !await requireClinicalAccess(requesterId, row.patientId, res)) return;
   await db.delete(painEntries).where(eq(painEntries.id, req.params.id));
   res.json({ ok: true });
 }

@@ -145,6 +145,22 @@ export async function canAccessPatient(requesterId: string, patientId: string): 
   return !!rel;
 }
 
+// Returns the requester's role relative to the patient ("patient" | "carer" | "family" | "clinician" | null)
+export async function getCarerRole(requesterId: string, patientId: string): Promise<string | null> {
+  if (requesterId === patientId) return "patient";
+  const [rel] = await db
+    .select({ role: careRelationships.role })
+    .from(careRelationships)
+    .where(
+      and(
+        eq(careRelationships.patientId, patientId),
+        eq(careRelationships.caregiverId, requesterId),
+        eq(careRelationships.status, "active")
+      )
+    );
+  return rel?.role ?? null;
+}
+
 // GET /api/care/patients — patients I support with summary data
 export async function getMyPatients(req: Request, res: Response) {
   const caregiverId = requireAuth(req, res);
