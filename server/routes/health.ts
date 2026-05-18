@@ -76,11 +76,11 @@ export async function getMedications(req: Request, res: Response) {
 export async function addMedication(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
-  const { patientId, name, dosage, frequency, times, notes } = req.body;
+  const { patientId, name, dosage, frequency, times, scheduleType, route, notes } = req.body;
   const targetPatient = patientId || requesterId;
   if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
   if (!name) return res.status(400).json({ message: "name is required." });
-  const [row] = await db.insert(medications).values({ patientId: targetPatient, name, dosage: dosage ?? "", frequency: frequency ?? "Daily", times: Array.isArray(times) ? times.join(", ") : (times ?? "8:00 AM"), notes: notes ?? null }).returning();
+  const [row] = await db.insert(medications).values({ patientId: targetPatient, name, dosage: dosage ?? "", frequency: frequency ?? "Daily", times: Array.isArray(times) ? times.join(", ") : (times ?? "8:00 AM"), scheduleType: scheduleType ?? "scheduled", route: route ?? "oral", notes: notes ?? null }).returning();
   res.status(201).json(row);
 }
 
@@ -122,15 +122,16 @@ export async function getMedicationLogs(req: Request, res: Response) {
 export async function upsertMedicationLog(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
-  const { medicationId, patientId, date, scheduledTime, taken, actualTime } = req.body;
+  const { medicationId, patientId, date, scheduledTime, taken, actualTime, reasonOmitted } = req.body;
   const targetPatient = patientId || requesterId;
   if (!await canAccessPatient(requesterId, targetPatient)) return res.status(403).json({ message: "Access denied." });
+  const adminName = await getAuthorName(requesterId);
   const existing = await db.select().from(medicationLogs).where(and(eq(medicationLogs.medicationId, medicationId), eq(medicationLogs.patientId, targetPatient), eq(medicationLogs.date, date), eq(medicationLogs.scheduledTime, scheduledTime))).limit(1);
   if (existing.length > 0) {
-    const [updated] = await db.update(medicationLogs).set({ taken, actualTime: actualTime ?? null, recordedById: requesterId }).where(eq(medicationLogs.id, existing[0].id)).returning();
+    const [updated] = await db.update(medicationLogs).set({ taken, actualTime: actualTime ?? null, recordedById: requesterId, administeredByName: taken ? adminName : null, reasonOmitted: taken ? null : (reasonOmitted ?? null) }).where(eq(medicationLogs.id, existing[0].id)).returning();
     return res.json(updated);
   }
-  const [row] = await db.insert(medicationLogs).values({ medicationId, patientId: targetPatient, recordedById: requesterId, date, scheduledTime, taken: taken ?? false, actualTime: actualTime ?? null }).returning();
+  const [row] = await db.insert(medicationLogs).values({ medicationId, patientId: targetPatient, recordedById: requesterId, date, scheduledTime, taken: taken ?? false, actualTime: actualTime ?? null, administeredByName: taken ? adminName : null, reasonOmitted: taken ? null : (reasonOmitted ?? null) }).returning();
   res.status(201).json(row);
 }
 

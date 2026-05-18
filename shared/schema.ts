@@ -484,6 +484,10 @@ export const medications = pgTable("medications", {
   dosage: text("dosage").notNull().default(""),
   frequency: text("frequency").notNull().default("Daily"),
   times: text("times").notNull().default("8:00 AM"), // comma-separated
+  // scheduled | prn
+  scheduleType: text("schedule_type").notNull().default("scheduled"),
+  // oral | sublingual | patch | injection | inhaled | topical | rectal | other
+  route: text("route").notNull().default("oral"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -511,6 +515,9 @@ export const medicationLogs = pgTable(
     scheduledTime: text("scheduled_time").notNull(),
     taken: boolean("taken").notNull().default(false),
     actualTime: text("actual_time"), // ISO string when actually taken
+    administeredByName: text("administered_by_name"),
+    // refused | unavailable | sleeping | held_by_clinician | npo | other
+    reasonOmitted: text("reason_omitted"),
   },
   (t) => ({
     medLogPatientDateIdx: index("medication_logs_patient_date_idx").on(t.patientId, t.date),
