@@ -314,6 +314,35 @@ export default function CareHubScreen() {
             </View>
           )}
 
+          {/* ── ROLE CHIP ── */}
+          {(() => {
+            const carerRole = mode === "carer" ? (patients[0]?.role ?? relationships.asCarer[0]?.role ?? "carer") : null;
+            const label = mode === "patient" ? "Patient"
+              : carerRole === "clinician" ? "Clinician"
+              : carerRole === "family" ? "Family"
+              : "Carer";
+            const color = mode === "patient" ? "#5B8DEF"
+              : carerRole === "clinician" ? "#AF52DE"
+              : carerRole === "family" ? "#FF9800"
+              : "#00E676";
+            const icon: keyof typeof Feather.glyphMap = mode === "patient" ? "user"
+              : carerRole === "clinician" ? "briefcase"
+              : carerRole === "family" ? "users"
+              : "heart";
+            const isFamily = carerRole === "family";
+            return (
+              <View style={[styles.roleChipRow, { paddingTop: isBoth ? Spacing.sm : Spacing.lg }]}>
+                <View style={[styles.roleChip, { backgroundColor: color + "22", borderColor: color + "55" }]}>
+                  <Feather name={icon} size={12} color={color} />
+                  <ThemedText style={[styles.roleChipText, { color }]}>{label}</ThemedText>
+                  {isFamily && (
+                    <ThemedText style={[styles.roleChipText, { color, opacity: 0.7 }]}> · Read-only</ThemedText>
+                  )}
+                </View>
+              </View>
+            );
+          })()}
+
           {/* ═══════════════ PATIENT MODE ═══════════════ */}
           {mode === "patient" && (
             <>
@@ -966,6 +995,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: BorderRadius.medium,
     paddingHorizontal: Spacing.md, paddingVertical: 10,
   },
+  roleChipRow: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xs },
+  roleChip: {
+    flexDirection: "row", alignItems: "center", alignSelf: "flex-start",
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, gap: 5,
+  },
+  roleChipText: { fontSize: 12, fontWeight: "700" },
   orgReportBtn: {
     flexDirection: "row", alignItems: "center",
     borderWidth: 1, borderRadius: BorderRadius.medium,
