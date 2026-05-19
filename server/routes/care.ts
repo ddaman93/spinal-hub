@@ -241,6 +241,7 @@ export async function getPatientAlerts(req: Request, res: Response) {
 
   // Critical wound count per patient — join latest check per wound
   // Raw SQL: active wounds whose most recent check has Stage III/IV/Unstageable/DTI
+  const pgIds = `{${patientIds.join(",")}}`;
   const criticalWounds = await db.execute(sql`
     SELECT pi.patient_id, COUNT(*)::int AS cnt
     FROM pressure_injuries pi
@@ -250,7 +251,7 @@ export async function getPatientAlerts(req: Request, res: Response) {
       ORDER BY created_at DESC
       LIMIT 1
     ) latest ON true
-    WHERE pi.patient_id = ANY(${patientIds}::varchar[])
+    WHERE pi.patient_id = ANY(${pgIds}::varchar[])
       AND pi.status = 'active'
       AND latest.stage IN ('III', 'IV', 'Unstageable', 'DTI')
     GROUP BY pi.patient_id
@@ -422,6 +423,7 @@ export async function getOrgReport(req: Request, res: Response) {
     .where(and(inArray(pressureInjuries.patientId, patientIds), eq(pressureInjuries.status, "active")));
 
   // Critical wounds via LATERAL
+  const pgIds2 = `{${patientIds.join(",")}}`;
   const criticalResult = await db.execute(sql`
     SELECT COUNT(*)::int AS cnt
     FROM pressure_injuries pi
@@ -429,7 +431,7 @@ export async function getOrgReport(req: Request, res: Response) {
       SELECT stage FROM pressure_injury_checks
       WHERE injury_id = pi.id ORDER BY created_at DESC LIMIT 1
     ) latest ON true
-    WHERE pi.patient_id = ANY(${patientIds}::varchar[])
+    WHERE pi.patient_id = ANY(${pgIds2}::varchar[])
       AND pi.status = 'active'
       AND latest.stage IN ('III', 'IV', 'Unstageable', 'DTI')
   `);
