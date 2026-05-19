@@ -1,6 +1,13 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
 import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads, medicationLogs, rehabGoals, auditLogs } from "@shared/schema";
+
+function profileRoleToRelationshipRole(profileRole: string | null | undefined): string | null {
+  if (profileRole === "health_professional") return "clinician";
+  if (profileRole === "family_member") return "family";
+  if (profileRole === "caregiver") return "carer";
+  return null; // sci_patient or unknown — caller uses invite role fallback
+}
 import { eq, and, count, desc, inArray, notInArray, sql, gte } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 import { addAuditLog } from "./audit";
@@ -73,11 +80,15 @@ export async function joinWithCode(req: Request, res: Response) {
   );
   if (existing) return res.status(400).json({ message: "You are already linked to this patient." });
 
+  // Derive role from joiner's profile — patient's invite role is the fallback
+  const [joinerProfile] = await db.select({ role: userProfiles.role }).from(userProfiles).where(eq(userProfiles.userId, caregiverId));
+  const derivedRole = profileRoleToRelationshipRole(joinerProfile?.role) ?? invite.role;
+
   // Create the relationship
   await db.insert(careRelationships).values({
     patientId: invite.patientId,
     caregiverId,
-    role: invite.role,
+    role: derivedRole,
   });
 
   // Mark code as used
@@ -391,6 +402,15 @@ export async function getPatientProfile(req: Request, res: Response) {
     .limit(1);
 
   res.json(profile ?? null);
+}
+
+// Called from POST /api/profile — sync relationship roles when user changes their profile role
+export async function syncRelationshipRolesForUser(userId: string, newProfileRole: string): Promise<void> {
+  const relRole = profileRoleToRelationshipRole(newProfileRole);
+  if (!relRole) return; // sci_patient — no sync needed
+  await db.update(careRelationships)
+    .set({ role: relRole })
+    .where(and(eq(careRelationships.caregiverId, userId), eq(careRelationships.status, "active")));
 }
 
 // GET /api/care/org-report — aggregate stats across all patients for a carer/org

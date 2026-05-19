@@ -7,7 +7,7 @@ import { getChatMessages, postChatMessage, reportMessage, getAdminReports, delet
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
-import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport } from "./routes/care";
+import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport, syncRelationshipRolesForUser } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { getAuditLog } from "./routes/audit";
 import {
@@ -256,6 +256,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             medicalNotes: body.medicalNotes,
           },
         });
+
+      // Sync care relationship roles if profile role changed
+      if (body.role) {
+        await syncRelationshipRolesForUser(userId, body.role).catch(() => {});
+      }
 
       return res.status(200).json({ ok: true });
     } catch (err) {
