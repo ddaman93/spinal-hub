@@ -141,10 +141,21 @@ export default function CareHubScreen() {
         fetch(`${getApiUrl()}/api/care/patients/alerts`, { headers }),
       ]);
 
+      let profileRole: string | null = null;
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setMyProfile(profile);
+        profileRole = profile?.role ?? null;
+      }
+
       if (relsRes.ok) {
         const rels = await relsRes.json();
         setRelationships(rels);
-        if (rels.asCarer.length > 0 && rels.asPatient.length === 0) {
+        // sci_patient profile role always defaults to patient mode
+        // other roles default to carer mode if they have patients but no carers
+        if (profileRole === "sci_patient") {
+          setMode("patient");
+        } else if (rels.asCarer.length > 0 && rels.asPatient.length === 0) {
           setMode("carer");
         }
       }
@@ -155,8 +166,6 @@ export default function CareHubScreen() {
         for (const a of arr) map[a.patientId] = a;
         setPatientAlerts(map);
       }
-
-      if (profileRes.ok) setMyProfile(await profileRes.json());
     } catch {
       // silent
     } finally {
