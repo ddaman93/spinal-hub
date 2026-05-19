@@ -71,24 +71,6 @@ type MyProfile = {
   allergies?: string | null;
 };
 
-type CareNote = {
-  id: string;
-  authorName: string;
-  content: string;
-  createdAt: string;
-};
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
-}
-
 type Relationship = {
   id: string;
   role: string;
@@ -120,7 +102,6 @@ export default function CareHubScreen() {
   // Patient dashboard state
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
   const [jwtUserId, setJwtUserId] = useState<string | null>(null);
-  const [recentNotes, setRecentNotes] = useState<CareNote[]>([]);
   const [showInviteForm, setShowInviteForm] = useState(false);
 
   // Care intro modal
@@ -175,21 +156,7 @@ export default function CareHubScreen() {
         setPatientAlerts(map);
       }
 
-      if (profileRes.ok) {
-        const profile = await profileRes.json();
-        setMyProfile(profile);
-        // Fetch recent notes using own userId
-        if (profile.userId) {
-          const notesRes = await fetch(
-            `${getApiUrl()}/api/care/notes/${encodeURIComponent(profile.userId)}`,
-            { headers },
-          );
-          if (notesRes.ok) {
-            const notes: CareNote[] = await notesRes.json();
-            setRecentNotes(notes.slice(0, 3));
-          }
-        }
-      }
+      if (profileRes.ok) setMyProfile(await profileRes.json());
     } catch {
       // silent
     } finally {
@@ -409,44 +376,9 @@ export default function CareHubScreen() {
                 </ElevatedCard>
               </View>
 
-              {/* ── B: RECENT ACTIVITY ── */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <View style={[styles.sectionDot, { backgroundColor: "#00E676" }]} />
-                  <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-                    RECENT ACTIVITY
-                  </ThemedText>
-                </View>
-
-                {loading ? (
-                  <ActivityIndicator color={theme.primary} size="small" style={{ alignSelf: "flex-start" }} />
-                ) : recentNotes.length > 0 ? (
-                  <>
-                    {recentNotes.map((note) => (
-                      <View key={note.id} style={[styles.activityRow, { borderBottomColor: theme.border }]}>
-                        <View style={[styles.noteAvatar, { backgroundColor: theme.primary + "22" }]}>
-                          <ThemedText style={{ fontSize: 11, fontWeight: "800", color: theme.primary }}>
-                            {note.authorName.charAt(0).toUpperCase()}
-                          </ThemedText>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                            <ThemedText type="small" style={{ fontWeight: "600" }}>{note.authorName}</ThemedText>
-                            <ThemedText type="caption" style={{ opacity: 0.4 }}>{timeAgo(note.createdAt)}</ThemedText>
-                          </View>
-                          <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 1 }} numberOfLines={1}>
-                            {note.content}
-                          </ThemedText>
-                        </View>
-                      </View>
-                    ))}
-                  </>
-                ) : (
-                  <ThemedText type="caption" style={{ opacity: 0.4 }}>No notes yet. Be the first to add one.</ThemedText>
-                )}
-
-                {/* Open full log row */}
-                {myProfile?.userId ? (
+              {/* ── B: HANDOVER LOG ── */}
+              {myProfile?.userId ? (
+                <View style={styles.section}>
                   <Pressable
                     onPress={() => navigation.navigate("HandoverNotes", {
                       patientId: myProfile.userId,
@@ -459,14 +391,14 @@ export default function CareHubScreen() {
                         <Feather name="book-open" size={18} color="#00E676" />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <ThemedText type="small" style={{ fontWeight: "600" }}>Open Handover Log</ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.5, marginTop: 1 }}>Read & add notes</ThemedText>
+                        <ThemedText type="small" style={{ fontWeight: "600" }}>Handover Log</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.5, marginTop: 1 }}>Read & add care notes</ThemedText>
                       </View>
                       <Feather name="chevron-right" size={18} color={theme.textSecondary} style={{ opacity: 0.5 }} />
                     </ElevatedCard>
                   </Pressable>
-                ) : null}
-              </View>
+                </View>
+              ) : null}
 
               {/* ── C: MY CARE TEAM ── */}
               <View style={styles.section}>
