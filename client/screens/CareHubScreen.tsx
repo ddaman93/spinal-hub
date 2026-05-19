@@ -214,12 +214,12 @@ export default function CareHubScreen() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ role: selectedRole }),
       });
-      if (!res.ok) throw new Error();
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? `${res.status}`);
       setGeneratedCode(data.code);
       setCodeExpiry(new Date(data.expiresAt).toLocaleDateString("en-NZ", { day: "numeric", month: "long" }));
-    } catch {
-      Alert.alert("Error", "Could not generate invite code.");
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Could not generate invite code.");
     } finally {
       setGenerating(false);
     }

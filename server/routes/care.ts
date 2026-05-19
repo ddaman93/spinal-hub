@@ -33,17 +33,22 @@ export async function createInvite(req: Request, res: Response) {
     return res.status(400).json({ message: "Invalid role." });
   }
 
-  const code = generateCode();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  try {
+    const code = generateCode();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const [invite] = await db.insert(inviteCodes).values({
-    code,
-    patientId,
-    role,
-    expiresAt,
-  }).returning();
+    const [invite] = await db.insert(inviteCodes).values({
+      code,
+      patientId,
+      role,
+      expiresAt,
+    }).returning();
 
-  res.json({ code: invite.code, expiresAt: invite.expiresAt, role: invite.role });
+    res.json({ code: invite.code, expiresAt: invite.expiresAt, role: invite.role });
+  } catch (err) {
+    console.error("createInvite error:", err);
+    res.status(500).json({ message: "Failed to create invite code." });
+  }
 }
 
 // POST /api/care/join — carer/family/clinician accepts an invite code
