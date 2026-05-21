@@ -199,16 +199,17 @@ export async function getMyPatients(req: Request, res: Response) {
     .leftJoin(userProfiles, eq(careRelationships.patientId, userProfiles.userId))
     .where(and(eq(careRelationships.caregiverId, caregiverId), eq(careRelationships.status, "active")));
 
-  // Count active wounds per patient
-  const patients = await Promise.all(
-    rels.map(async (rel) => {
-      const [woundRow] = await db
-        .select({ activeWounds: count() })
+  // Count active wounds per patient — single batched query
+  const patientIdList = rels.map((r) => r.patientId);
+  const woundCounts = patientIdList.length > 0
+    ? await db
+        .select({ patientId: pressureInjuries.patientId, cnt: count() })
         .from(pressureInjuries)
-        .where(and(eq(pressureInjuries.patientId, rel.patientId), eq(pressureInjuries.status, "active")));
-      return { ...rel, activeWoundCount: Number(woundRow?.activeWounds ?? 0) };
-    })
-  );
+        .where(and(inArray(pressureInjuries.patientId, patientIdList), eq(pressureInjuries.status, "active")))
+        .groupBy(pressureInjuries.patientId)
+    : [];
+  const woundMap = Object.fromEntries(woundCounts.map((w) => [w.patientId, Number(w.cnt)]));
+  const patients = rels.map((rel) => ({ ...rel, activeWoundCount: woundMap[rel.patientId] ?? 0 }));
 
   res.json(patients);
 }

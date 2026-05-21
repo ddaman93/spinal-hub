@@ -3,6 +3,7 @@ import dns from "dns";
 dns.setDefaultResultOrder("ipv4first");
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
@@ -226,6 +227,23 @@ function setupExpoProxy(app: express.Application) {
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
+
+  // Rate limiting — auth endpoints: 20 req/15min; general API: 300 req/min
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many attempts. Try again in 15 minutes." },
+  });
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use("/api/auth", authLimiter);
+  app.use("/api", apiLimiter);
 
   // 🔑 API routes MUST come first
   const server = await registerRoutes(app);

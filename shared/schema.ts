@@ -170,21 +170,28 @@ export const messageReports = pgTable(
 // care_relationships
 // ---------------------------------------------------------------------------
 
-export const careRelationships = pgTable("care_relationships", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  patientId: varchar("patient_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  caregiverId: varchar("caregiver_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  // carer | family | clinician
-  role: text("role").notNull().default("carer"),
-  status: text("status").notNull().default("active"), // active | revoked
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const careRelationships = pgTable(
+  "care_relationships",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    caregiverId: varchar("caregiver_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // carer | family | clinician
+    role: text("role").notNull().default("carer"),
+    status: text("status").notNull().default("active"), // active | revoked
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    caregiverStatusIdx: index("care_relationships_caregiver_status_idx").on(t.caregiverId, t.status),
+    uniqueRelationship: uniqueIndex("care_relationships_unique_pair").on(t.patientId, t.caregiverId),
+  })
+);
 
 // ---------------------------------------------------------------------------
 // invite_codes
@@ -257,7 +264,10 @@ export const pressureInjuryChecks = pgTable("pressure_injury_checks", {
   photoUrl: text("photo_url"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+},
+(t) => ({
+  injuryCreatedAtIdx: index("pressure_injury_checks_injury_created_at_idx").on(t.injuryId, t.createdAt),
+}));
 
 // ---------------------------------------------------------------------------
 // care_notes  (shared handover log — multiple carers can add entries)

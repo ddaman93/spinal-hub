@@ -46,7 +46,7 @@ export async function getVitals(req: Request, res: Response) {
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
   if (!await requireClinicalAccess(requesterId, patientId, res)) return;
-  res.json(await db.select().from(vitals).where(eq(vitals.patientId, patientId)).orderBy(desc(vitals.createdAt)));
+  res.json(await db.select().from(vitals).where(eq(vitals.patientId, patientId)).orderBy(desc(vitals.createdAt)).limit(500));
 }
 
 export async function addVital(req: Request, res: Response) {
@@ -80,6 +80,10 @@ export async function getMedications(req: Request, res: Response) {
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
   if (!await requireClinicalAccess(requesterId, patientId, res)) return;
+  if (requesterId !== patientId) {
+    const actorName = await getAuthorName(requesterId);
+    await addAuditLog({ patientId, actorId: requesterId, actorName, action: "viewed", entityType: "medications", entityId: patientId, summary: "Medication list accessed" });
+  }
   res.json(await db.select().from(medications).where(eq(medications.patientId, patientId)).orderBy(asc(medications.createdAt)));
 }
 
@@ -209,7 +213,7 @@ export async function getBladderLogs(req: Request, res: Response) {
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
   if (!await requireClinicalAccess(requesterId, patientId, res)) return;
-  res.json(await db.select().from(bladderLogs).where(eq(bladderLogs.patientId, patientId)).orderBy(desc(bladderLogs.createdAt)));
+  res.json(await db.select().from(bladderLogs).where(eq(bladderLogs.patientId, patientId)).orderBy(desc(bladderLogs.createdAt)).limit(500));
 }
 
 export async function addBladderLog(req: Request, res: Response) {
@@ -243,7 +247,7 @@ export async function getBowelLogs(req: Request, res: Response) {
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
   if (!await requireClinicalAccess(requesterId, patientId, res)) return;
-  res.json(await db.select().from(bowelLogs).where(eq(bowelLogs.patientId, patientId)).orderBy(desc(bowelLogs.createdAt)));
+  res.json(await db.select().from(bowelLogs).where(eq(bowelLogs.patientId, patientId)).orderBy(desc(bowelLogs.createdAt)).limit(500));
 }
 
 export async function addBowelLog(req: Request, res: Response) {
@@ -287,7 +291,7 @@ export async function getPainEntries(req: Request, res: Response) {
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
   if (!await requireClinicalAccess(requesterId, patientId, res)) return;
-  res.json(await db.select().from(painEntries).where(eq(painEntries.patientId, patientId)).orderBy(desc(painEntries.createdAt)));
+  res.json(await db.select().from(painEntries).where(eq(painEntries.patientId, patientId)).orderBy(desc(painEntries.createdAt)).limit(500));
 }
 
 export async function addPainEntry(req: Request, res: Response) {
@@ -478,7 +482,7 @@ export async function getRehabGoals(req: Request, res: Response) {
   if (!requesterId) return;
   const patientId = (req.query.patientId as string) || requesterId;
   if (!await canAccessPatient(requesterId, patientId)) return res.status(403).json({ message: "Access denied." });
-  res.json(await db.select().from(rehabGoals).where(eq(rehabGoals.patientId, patientId)).orderBy(desc(rehabGoals.createdAt)));
+  res.json(await db.select().from(rehabGoals).where(eq(rehabGoals.patientId, patientId)).orderBy(desc(rehabGoals.createdAt)).limit(500));
 }
 
 export async function addRehabGoal(req: Request, res: Response) {
