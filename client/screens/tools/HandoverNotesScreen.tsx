@@ -179,6 +179,7 @@ export default function HandoverNotesScreen() {
   // Free-text compose
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showQuickInput, setShowQuickInput] = useState(false);
 
   // ISBAR modal
   const [isbarVisible, setIsbarVisible] = useState(false);
@@ -246,6 +247,7 @@ export default function HandoverNotesScreen() {
       const newNote: CareNote = await res.json();
       addNoteToState(newNote);
       setDraft("");
+      setShowQuickInput(false);
     } catch {
       Alert.alert("Error", "Could not save note.");
     } finally {
@@ -386,32 +388,55 @@ export default function HandoverNotesScreen() {
           />
         )}
 
-        {/* Compose bar */}
-        <View style={[styles.composeBar, { backgroundColor: theme.backgroundSecondary, borderTopColor: theme.border, paddingBottom: insets.bottom + 8 }]}>
-          <Pressable
-            onPress={() => setIsbarVisible(true)}
-            style={[styles.isbarBtn, { backgroundColor: "#007AFF" }]}
-          >
-            <ThemedText style={styles.isbarBtnText}>ISBAR</ThemedText>
-          </Pressable>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={`Quick note for ${params.patientName}…`}
-            placeholderTextColor={theme.textSecondary}
-            multiline
-            style={[styles.composeInput, { color: theme.text }]}
-          />
-          <Pressable
-            onPress={submitFreeText}
-            disabled={submitting || !draft.trim()}
-            style={[styles.sendBtn, { backgroundColor: draft.trim() ? theme.primary : theme.backgroundTertiary }]}
-          >
-            {submitting
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Feather name="send" size={16} color={draft.trim() ? "#fff" : theme.textSecondary} />
-            }
-          </Pressable>
+        {/* Compose area */}
+        <View style={[styles.composeArea, { backgroundColor: theme.backgroundSecondary, borderTopColor: theme.border, paddingBottom: insets.bottom + 8 }]}>
+          {/* Expandable quick note input */}
+          {showQuickInput && (
+            <View style={[styles.quickInputRow, { borderColor: theme.border }]}>
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                placeholder={`Note for ${params.patientName}…`}
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                autoFocus
+                style={[styles.composeInput, { color: theme.text }]}
+              />
+              <Pressable
+                onPress={submitFreeText}
+                disabled={submitting || !draft.trim()}
+                style={[styles.sendBtn, { backgroundColor: draft.trim() ? theme.primary : theme.backgroundTertiary }]}
+              >
+                {submitting
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <Feather name="send" size={16} color={draft.trim() ? "#fff" : theme.textSecondary} />
+                }
+              </Pressable>
+            </View>
+          )}
+
+          {/* Two action buttons */}
+          <View style={styles.composeBtnRow}>
+            <Pressable
+              onPress={() => setShowQuickInput((v) => !v)}
+              style={[styles.composeBtn, {
+                backgroundColor: showQuickInput ? theme.primary + "18" : theme.backgroundTertiary,
+                borderColor: showQuickInput ? theme.primary + "60" : theme.border,
+              }]}
+            >
+              <Feather name="edit-2" size={15} color={showQuickInput ? theme.primary : theme.textSecondary} />
+              <ThemedText style={[styles.composeBtnText, { color: showQuickInput ? theme.primary : theme.textSecondary }]}>
+                Quick Note
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => setIsbarVisible(true)}
+              style={[styles.composeBtn, { backgroundColor: "#007AFF18", borderColor: "#007AFF40" }]}
+            >
+              <Feather name="clipboard" size={15} color="#007AFF" />
+              <ThemedText style={[styles.composeBtnText, { color: "#007AFF" }]}>ISBAR Handover</ThemedText>
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -567,21 +592,25 @@ const styles = StyleSheet.create({
 
   readRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: Spacing.sm, opacity: 0.6 },
   readText: { fontSize: 11 },
-  markReadBtn: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6, alignSelf: "flex-start" },
-  markReadText: { fontSize: 12, color: "#007AFF", fontWeight: "600" },
 
-  composeBar: {
-    flexDirection: "row", alignItems: "flex-end",
+
+  composeArea: {
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: Spacing.sm, paddingHorizontal: Spacing.md, gap: Spacing.sm,
   },
-  isbarBtn: {
-    height: 40, paddingHorizontal: 10, borderRadius: BorderRadius.small,
-    alignItems: "center", justifyContent: "center", marginBottom: Spacing.sm,
+  quickInputRow: {
+    flexDirection: "row", alignItems: "flex-end", gap: Spacing.sm,
+    borderRadius: BorderRadius.medium, borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs,
   },
-  isbarBtnText: { color: "#fff", fontSize: 11, fontWeight: "800", letterSpacing: 0.5 },
+  composeBtnRow: { flexDirection: "row", gap: Spacing.sm },
+  composeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 7, paddingVertical: 12, borderRadius: BorderRadius.medium, borderWidth: 1,
+  },
+  composeBtnText: { fontSize: 13, fontWeight: "700" },
   composeInput: { flex: 1, fontSize: 15, maxHeight: 120, paddingVertical: Spacing.sm, paddingTop: Spacing.sm },
-  sendBtn: { width: 40, height: 40, borderRadius: BorderRadius.small, alignItems: "center", justifyContent: "center", marginBottom: Spacing.sm },
+  sendBtn: { width: 38, height: 38, borderRadius: BorderRadius.small, alignItems: "center", justifyContent: "center", marginBottom: 2 },
 
   // ISBAR modal
   isbarModal: { flex: 1, paddingTop: Spacing.xl },
