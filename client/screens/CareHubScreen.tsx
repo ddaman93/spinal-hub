@@ -103,6 +103,7 @@ export default function CareHubScreen() {
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
   const [jwtUserId, setJwtUserId] = useState<string | null>(null);
   const [showInviteForm, setShowInviteForm] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
 
   // Care intro modal
   const [introModalVisible, setIntroModalVisible] = useState(false);
@@ -323,28 +324,18 @@ export default function CareHubScreen() {
             </View>
           )}
 
-          {/* ── ROLE CHIP ── */}
-          {(() => {
-            const carerRole = mode === "carer" ? (patients[0]?.role ?? relationships.asCarer[0]?.role ?? "carer") : null;
-            const label = mode === "patient" ? "Patient"
-              : carerRole === "clinician" ? "Clinician"
-              : carerRole === "family" ? "Family"
-              : "Carer";
-            const color = mode === "patient" ? "#5B8DEF"
-              : carerRole === "clinician" ? "#AF52DE"
-              : carerRole === "family" ? "#FF9800"
-              : "#00E676";
-            const icon: keyof typeof Feather.glyphMap = mode === "patient" ? "user"
-              : carerRole === "clinician" ? "briefcase"
-              : carerRole === "family" ? "users"
-              : "heart";
-            const isFamily = carerRole === "family";
+          {/* ── ROLE CHIP (carer mode only — patient chip lives inside intro card) ── */}
+          {mode === "carer" && (() => {
+            const carerRole = patients[0]?.role ?? relationships.asCarer[0]?.role ?? "carer";
+            const label = carerRole === "clinician" ? "Clinician" : carerRole === "family" ? "Family" : "Carer";
+            const color = carerRole === "clinician" ? "#AF52DE" : carerRole === "family" ? "#FF9800" : "#00E676";
+            const icon: keyof typeof Feather.glyphMap = carerRole === "clinician" ? "briefcase" : carerRole === "family" ? "users" : "heart";
             return (
               <View style={[styles.roleChipRow, { paddingTop: isBoth ? Spacing.sm : Spacing.lg }]}>
                 <View style={[styles.roleChip, { backgroundColor: color + "22", borderColor: color + "55" }]}>
                   <Feather name={icon} size={12} color={color} />
                   <ThemedText style={[styles.roleChipText, { color }]}>{label}</ThemedText>
-                  {isFamily && (
+                  {carerRole === "family" && (
                     <ThemedText style={[styles.roleChipText, { color, opacity: 0.7 }]}> · Read-only</ThemedText>
                   )}
                 </View>
@@ -364,6 +355,11 @@ export default function CareHubScreen() {
                   </ThemedText>
                 </View>
                 <ElevatedCard padding={Spacing.md}>
+                  {/* Patient role pill — absolute top-right, no layout impact */}
+                  <View style={[styles.roleChip, { backgroundColor: "#5B8DEF22", borderColor: "#5B8DEF55", position: "absolute", top: Spacing.md, right: Spacing.md }]}>
+                    <Feather name="user" size={12} color="#5B8DEF" />
+                    <ThemedText style={[styles.roleChipText, { color: "#5B8DEF" }]}>Patient</ThemedText>
+                  </View>
                   {myProfile?.aboutMe ? (
                     <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }} numberOfLines={4}>
                       {myProfile.aboutMe}
@@ -446,121 +442,25 @@ export default function CareHubScreen() {
                     MY CARE TEAM
                   </ThemedText>
                 </View>
-
-                {relationships.asPatient.length > 0 ? (
-                  relationships.asPatient.map((rel) => (
-                    <View key={rel.id} style={[styles.personCard, { backgroundColor: theme.backgroundSecondary }]}>
-                      <View style={[styles.avatar, { backgroundColor: (ROLE_COLORS[rel.role] ?? theme.primary) + "22" }]}>
-                        <Feather name={(ROLE_ICONS[rel.role] ?? "user") as any} size={18} color={ROLE_COLORS[rel.role] ?? theme.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <ThemedText type="small" style={{ fontWeight: "600" }}>{rel.caregiver?.name}</ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.5 }}>{ROLE_LABELS[rel.role] ?? rel.role}</ThemedText>
-                      </View>
-                      <Pressable
-                        onPress={() => revokeRelationship(rel.id, rel.caregiver?.name ?? "")}
-                        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
-                      >
-                        <Feather name="x" size={18} color={theme.textSecondary} />
-                      </Pressable>
-                    </View>
-                  ))
-                ) : (
-                  <ThemedText type="caption" style={{ opacity: 0.4 }}>No one linked yet.</ThemedText>
-                )}
-
-                {/* Invite button */}
                 <Pressable
-                  onPress={() => setShowInviteForm((v) => !v)}
-                  style={({ pressed }) => [styles.inviteToggleBtn, { borderColor: theme.primary, opacity: pressed ? 0.7 : 1 }]}
+                  onPress={() => { setShowTeamModal(true); setShowInviteForm(false); setGeneratedCode(null); }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
                 >
-                  <Feather name={showInviteForm ? "chevron-up" : "user-plus"} size={15} color={theme.primary} />
-                  <ThemedText type="small" style={{ color: theme.primary, fontWeight: "700", marginLeft: 6 }}>
-                    {showInviteForm ? "Hide" : "Invite someone"}
-                  </ThemedText>
-                </Pressable>
-
-                {showInviteForm && (
-                  <>
-                    <View style={styles.roleRow}>
-                      {(["carer", "family", "clinician"] as Role[]).map((role) => {
-                        const active = selectedRole === role;
-                        const color = ROLE_COLORS[role];
-                        return (
-                          <Pressable
-                            key={role}
-                            onPress={() => { setSelectedRole(role); setGeneratedCode(null); }}
-                            style={[styles.roleCard, {
-                              backgroundColor: active ? color + "22" : theme.backgroundSecondary,
-                              borderColor: active ? color : theme.backgroundTertiary,
-                              borderWidth: active ? 2 : 1,
-                            }]}
-                          >
-                            <Feather name={ROLE_ICONS[role]} size={18} color={active ? color : theme.textSecondary} />
-                            <ThemedText type="caption" style={{ fontWeight: active ? "700" : "400", marginTop: 4, color: active ? color : theme.text }}>
-                              {ROLE_LABELS[role]}
-                            </ThemedText>
-                          </Pressable>
-                        );
-                      })}
+                  <ElevatedCard style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }} padding={Spacing.md}>
+                    <View style={[styles.avatar, { backgroundColor: "#5C6BC022" }]}>
+                      <Feather name="users" size={18} color="#5C6BC0" />
                     </View>
-
-                    {!generatedCode ? (
-                      <Pressable
-                        onPress={generateInvite}
-                        disabled={generating}
-                        style={[styles.generateBtn, { backgroundColor: theme.primary }]}
-                      >
-                        {generating
-                          ? <ActivityIndicator color="#fff" size="small" />
-                          : (
-                            <>
-                              <Feather name="link" size={16} color="#fff" />
-                              <ThemedText type="small" style={{ color: "#fff", fontWeight: "700", marginLeft: 8 }}>
-                                Generate Invite Code
-                              </ThemedText>
-                            </>
-                          )}
-                      </Pressable>
-                    ) : (
-                      <View style={[styles.codeBox, { backgroundColor: theme.backgroundSecondary }]}>
-                        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: Spacing.md }}>
-                          Share this invite — expires {codeExpiry}
-                        </ThemedText>
-
-                        <View style={styles.qrRow}>
-                          <View style={[styles.qrWrapper, { backgroundColor: "#fff", borderColor: theme.primary + "33" }]}>
-                            <QRCode
-                              value={`spinalhub://join/${generatedCode}`}
-                              size={110}
-                              color="#000"
-                              backgroundColor="#fff"
-                            />
-                          </View>
-                          <View style={styles.qrTextCol}>
-                            <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 6 }}>Or enter manually</ThemedText>
-                            <ThemedText style={{ fontSize: 20, fontWeight: "800", letterSpacing: 3, color: theme.primary }}>
-                              {generatedCode}
-                            </ThemedText>
-                            <ThemedText type="caption" style={{ opacity: 0.4, marginTop: 4 }}>
-                              Scan QR or share the link
-                            </ThemedText>
-                          </View>
-                        </View>
-
-                        <View style={[styles.codeActions, { width: "100%" }]}>
-                          <Pressable onPress={shareCode} style={[styles.codeBtn, { backgroundColor: theme.primary, flex: 1 }]}>
-                            <Feather name="share-2" size={14} color="#fff" />
-                            <ThemedText type="caption" style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Share Link</ThemedText>
-                          </Pressable>
-                          <Pressable onPress={() => setGeneratedCode(null)} style={[styles.codeBtn, { backgroundColor: theme.backgroundTertiary }]}>
-                            <ThemedText type="caption" style={{ fontWeight: "600" }}>New</ThemedText>
-                          </Pressable>
-                        </View>
-                      </View>
-                    )}
-                  </>
-                )}
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>My Care Team</ThemedText>
+                      <ThemedText type="caption" style={{ opacity: 0.5 }}>
+                        {relationships.asPatient.length > 0
+                          ? `${relationships.asPatient.length} member${relationships.asPatient.length !== 1 ? "s" : ""} · tap to manage`
+                          : "No one linked yet · tap to invite"}
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+                  </ElevatedCard>
+                </Pressable>
               </View>
 
               {/* ── D: MY HEALTH RECORDS ── */}
@@ -912,6 +812,126 @@ export default function CareHubScreen() {
             />
 
           </KeyboardAwareScrollViewCompat>
+        </View>
+      </Modal>
+
+      {/* ── CARE TEAM MODAL ── */}
+      <Modal visible={showTeamModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowTeamModal(false)}>
+        <View style={[introStyles.container, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={introStyles.header}>
+            <Pressable onPress={() => setShowTeamModal(false)}>
+              <ThemedText style={{ color: theme.primary }}>Done</ThemedText>
+            </Pressable>
+            <ThemedText style={introStyles.headerTitle}>My Care Team</ThemedText>
+            <View style={{ width: 44 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}>
+            {relationships.asPatient.length > 0 ? (
+              relationships.asPatient.map((rel) => (
+                <View key={rel.id} style={[styles.personCard, { backgroundColor: theme.backgroundSecondary }]}>
+                  <View style={[styles.avatar, { backgroundColor: (ROLE_COLORS[rel.role] ?? theme.primary) + "22" }]}>
+                    <Feather name={(ROLE_ICONS[rel.role] ?? "user") as any} size={18} color={ROLE_COLORS[rel.role] ?? theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>{rel.caregiver?.name}</ThemedText>
+                    <ThemedText type="caption" style={{ opacity: 0.5 }}>{ROLE_LABELS[rel.role] ?? rel.role}</ThemedText>
+                  </View>
+                  <Pressable
+                    onPress={() => revokeRelationship(rel.id, rel.caregiver?.name ?? "")}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+                  >
+                    <Feather name="x" size={18} color={theme.textSecondary} />
+                  </Pressable>
+                </View>
+              ))
+            ) : (
+              <ThemedText type="caption" style={{ opacity: 0.4 }}>No one linked yet.</ThemedText>
+            )}
+
+            <Pressable
+              onPress={() => setShowInviteForm((v) => !v)}
+              style={({ pressed }) => [styles.inviteToggleBtn, { borderColor: theme.primary, opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Feather name={showInviteForm ? "chevron-up" : "user-plus"} size={15} color={theme.primary} />
+              <ThemedText type="small" style={{ color: theme.primary, fontWeight: "700", marginLeft: 6 }}>
+                {showInviteForm ? "Hide" : "Invite someone"}
+              </ThemedText>
+            </Pressable>
+
+            {showInviteForm && (
+              <>
+                <View style={styles.roleRow}>
+                  {(["carer", "family", "clinician"] as Role[]).map((role) => {
+                    const active = selectedRole === role;
+                    const color = ROLE_COLORS[role];
+                    return (
+                      <Pressable
+                        key={role}
+                        onPress={() => { setSelectedRole(role); setGeneratedCode(null); }}
+                        style={[styles.roleCard, {
+                          backgroundColor: active ? color + "22" : theme.backgroundSecondary,
+                          borderColor: active ? color : theme.backgroundTertiary,
+                          borderWidth: active ? 2 : 1,
+                        }]}
+                      >
+                        <Feather name={ROLE_ICONS[role]} size={18} color={active ? color : theme.textSecondary} />
+                        <ThemedText type="caption" style={{ fontWeight: active ? "700" : "400", marginTop: 4, color: active ? color : theme.text }}>
+                          {ROLE_LABELS[role]}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {!generatedCode ? (
+                  <Pressable
+                    onPress={generateInvite}
+                    disabled={generating}
+                    style={[styles.generateBtn, { backgroundColor: theme.primary }]}
+                  >
+                    {generating
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : (
+                        <>
+                          <Feather name="link" size={16} color="#fff" />
+                          <ThemedText type="small" style={{ color: "#fff", fontWeight: "700", marginLeft: 8 }}>
+                            Generate Invite Code
+                          </ThemedText>
+                        </>
+                      )}
+                  </Pressable>
+                ) : (
+                  <View style={[styles.codeBox, { backgroundColor: theme.backgroundSecondary }]}>
+                    <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: Spacing.md }}>
+                      Share this invite — expires {codeExpiry}
+                    </ThemedText>
+                    <View style={styles.qrRow}>
+                      <View style={[styles.qrWrapper, { backgroundColor: "#fff", borderColor: theme.primary + "33" }]}>
+                        <QRCode value={`spinalhub://join/${generatedCode}`} size={110} color="#000" backgroundColor="#fff" />
+                      </View>
+                      <View style={styles.qrTextCol}>
+                        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 6 }}>Or enter manually</ThemedText>
+                        <ThemedText style={{ fontSize: 20, fontWeight: "800", letterSpacing: 3, color: theme.primary }}>
+                          {generatedCode}
+                        </ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.4, marginTop: 4 }}>Scan QR or share the link</ThemedText>
+                      </View>
+                    </View>
+                    <View style={[styles.codeActions, { width: "100%" }]}>
+                      <Pressable onPress={shareCode} style={[styles.codeBtn, { backgroundColor: theme.primary, flex: 1 }]}>
+                        <Feather name="share-2" size={14} color="#fff" />
+                        <ThemedText type="caption" style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Share Link</ThemedText>
+                      </Pressable>
+                      <Pressable onPress={() => setGeneratedCode(null)} style={[styles.codeBtn, { backgroundColor: theme.backgroundTertiary }]}>
+                        <ThemedText type="caption" style={{ fontWeight: "600" }}>New</ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
         </View>
       </Modal>
     </ThemedView>
