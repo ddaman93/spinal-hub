@@ -14,7 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { MainStackParamList } from "@/types/navigation";
 import { getApiUrl } from "@/lib/query-client";
-import { getToken } from "@/lib/auth";
+import { getToken, getUserIdFromToken } from "@/lib/auth";
 
 type Route = RouteProp<MainStackParamList, "HandoverNotes">;
 
@@ -75,13 +75,11 @@ function groupByDay(notes: CareNote[]): Map<string, CareNote[]> {
 // Note card
 // ---------------------------------------------------------------------------
 
-function NoteCard({ item, isLast, myId, onRead, theme }: {
-  item: CareNote; isLast: boolean; myId: string; onRead: (id: string) => void; theme: any;
+function NoteCard({ item, isLast, theme }: {
+  item: CareNote; isLast: boolean; theme: any;
 }) {
   const shift = SHIFT_TYPES.find((s) => s.key === item.shiftType);
   const isIsbar = item.noteType === "isbar";
-  const iReadIt = item.reads.some((r) => r.readerId === myId);
-  const authorIsMe = false; // server-side we don't have myId easily — mark read on open
 
   return (
     <View style={styles.noteRow}>
@@ -147,13 +145,6 @@ function NoteCard({ item, isLast, myId, onRead, theme }: {
           </View>
         )}
 
-        {/* Mark as read button */}
-        {!iReadIt && (
-          <Pressable onPress={() => onRead(item.id)} style={styles.markReadBtn}>
-            <Feather name="check" size={12} color="#007AFF" />
-            <ThemedText style={styles.markReadText}>Mark as read</ThemedText>
-          </Pressable>
-        )}
       </ElevatedCard>
     </View>
   );
@@ -198,13 +189,15 @@ export default function HandoverNotesScreen() {
   const [recommendation, setRecommendation] = useState("");
   const [savingIsbar, setSavingIsbar] = useState(false);
 
-  // Fake "my" id for read receipt logic — we use authorId comparison
-  const [myId] = useState(() => ""); // populated after auth; read receipts still work server-side
+  const [myId, setMyId] = useState("");
+  const markedRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const token = await getToken();
+      const uid = getUserIdFromToken(token ?? "");
+      if (uid) setMyId(uid);
       const res = await fetch(
         `${getApiUrl()}/api/care/notes/${encodeURIComponent(params.patientId)}`,
         { headers: { Authorization: `Bearer ${token}` } },
@@ -222,6 +215,19 @@ export default function HandoverNotesScreen() {
   }, [params.patientId]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  // Auto-mark all unread notes as read when the visible day changes or notes load
+  React.useEffect(() => {
+    if (!myId || loading || !selectedDay) return;
+    const notes = notesByDay.get(selectedDay) ?? [];
+    const unread = notes.filter(
+      (n) => !n.reads.some((r) => r.readerId === myId) && !markedRef.current.has(n.id)
+    );
+    unread.forEach((n) => {
+      markedRef.current.add(n.id);
+      handleMarkRead(n.id);
+    });
+  }, [selectedDay, loading, myId, notesByDay]);
 
   async function submitFreeText() {
     if (!draft.trim()) return;
@@ -374,8 +380,6 @@ export default function HandoverNotesScreen() {
               <NoteCard
                 item={item}
                 isLast={index === visibleNotes.length - 1}
-                myId={myId}
-                onRead={handleMarkRead}
                 theme={theme}
               />
             )}
