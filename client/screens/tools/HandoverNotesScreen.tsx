@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import {
   View, FlatList, Pressable, StyleSheet, ActivityIndicator, Alert,
-  TextInput, KeyboardAvoidingView, Platform, ScrollView, Modal,
+  TextInput, KeyboardAvoidingView, Platform, ScrollView, Modal, ActionSheetIOS,
 } from "react-native";
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -179,7 +179,6 @@ export default function HandoverNotesScreen() {
   // Free-text compose
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
   const [showQuickInput, setShowQuickInput] = useState(false);
 
   // ISBAR modal
@@ -389,11 +388,14 @@ export default function HandoverNotesScreen() {
           />
         )}
 
-        {/* Compose area — FAB speed dial */}
+        {/* Compose area */}
         <View style={[styles.composeArea, { backgroundColor: theme.backgroundSecondary, borderTopColor: theme.border, paddingBottom: insets.bottom + 8 }]}>
-          {/* Quick note input (shown when selected) */}
+          {/* Quick note input — shown after selecting from action sheet */}
           {showQuickInput && (
             <View style={[styles.quickInputRow, { borderColor: theme.border }]}>
+              <Pressable onPress={() => { setShowQuickInput(false); setDraft(""); }} hitSlop={8}>
+                <Feather name="x" size={16} color={theme.textSecondary} />
+              </Pressable>
               <TextInput
                 value={draft}
                 onChangeText={setDraft}
@@ -416,44 +418,36 @@ export default function HandoverNotesScreen() {
             </View>
           )}
 
-          {/* FAB speed dial */}
-          <View style={styles.fabRow}>
-            {/* Speed dial options — appear when open */}
-            {fabOpen && !showQuickInput && (
-              <View style={styles.fabOptions}>
-                <Pressable
-                  onPress={() => { setShowQuickInput(true); setFabOpen(false); }}
-                  style={[styles.fabOption, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}
-                >
-                  <Feather name="edit-2" size={15} color={theme.primary} />
-                  <ThemedText style={[styles.fabOptionText, { color: theme.text }]}>Quick Note</ThemedText>
-                </Pressable>
-                <Pressable
-                  onPress={() => { setIsbarVisible(true); setFabOpen(false); }}
-                  style={[styles.fabOption, { backgroundColor: theme.backgroundDefault, borderColor: "#007AFF40" }]}
-                >
-                  <Feather name="clipboard" size={15} color="#007AFF" />
-                  <ThemedText style={[styles.fabOptionText, { color: theme.text }]}>ISBAR Handover</ThemedText>
-                </Pressable>
-              </View>
-            )}
-
-            <View style={{ flex: 1 }} />
-
-            {/* FAB button */}
+          {/* Single add note button */}
+          {!showQuickInput && (
             <Pressable
               onPress={() => {
-                if (showQuickInput) { setShowQuickInput(false); setDraft(""); }
-                else setFabOpen((v) => !v);
+                if (Platform.OS === "ios") {
+                  ActionSheetIOS.showActionSheetWithOptions(
+                    {
+                      options: ["Cancel", "Quick Note", "ISBAR Handover"],
+                      cancelButtonIndex: 0,
+                      title: `Add note for ${params.patientName}`,
+                    },
+                    (index) => {
+                      if (index === 1) setShowQuickInput(true);
+                      if (index === 2) setIsbarVisible(true);
+                    }
+                  );
+                } else {
+                  Alert.alert(`Add note for ${params.patientName}`, undefined, [
+                    { text: "Quick Note", onPress: () => setShowQuickInput(true) },
+                    { text: "ISBAR Handover", onPress: () => setIsbarVisible(true) },
+                    { text: "Cancel", style: "cancel" },
+                  ]);
+                }
               }}
-              style={({ pressed }) => [
-                styles.fab,
-                { backgroundColor: (fabOpen || showQuickInput) ? "#EF4444" : theme.primary, opacity: pressed ? 0.85 : 1 },
-              ]}
+              style={({ pressed }) => [styles.addNoteBtn, { backgroundColor: theme.backgroundTertiary, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }]}
             >
-              <Feather name={(fabOpen || showQuickInput) ? "x" : "plus"} size={22} color="#fff" />
+              <Feather name="plus" size={16} color={theme.textSecondary} />
+              <ThemedText style={[styles.addNoteBtnText, { color: theme.textSecondary }]}>Add Note</ThemedText>
             </Pressable>
-          </View>
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -622,21 +616,11 @@ const styles = StyleSheet.create({
   },
   composeInput: { flex: 1, fontSize: 15, maxHeight: 120, paddingVertical: Spacing.sm, paddingTop: Spacing.sm },
   sendBtn: { width: 38, height: 38, borderRadius: BorderRadius.small, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  fabRow: { flexDirection: "row", alignItems: "flex-end" },
-  fabOptions: { flex: 1, gap: Spacing.xs, paddingBottom: 6 },
-  fabOption: {
-    flexDirection: "row", alignItems: "center", gap: 10,
-    paddingHorizontal: Spacing.md, paddingVertical: 11,
-    borderRadius: BorderRadius.medium, borderWidth: 1,
-    alignSelf: "flex-start",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 3,
+  addNoteBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, paddingVertical: 13, borderRadius: BorderRadius.medium, borderWidth: 1,
   },
-  fabOptionText: { fontSize: 14, fontWeight: "600" },
-  fab: {
-    width: 52, height: 52, borderRadius: 26,
-    alignItems: "center", justifyContent: "center",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5,
-  },
+  addNoteBtnText: { fontSize: 15, fontWeight: "600" },
 
   // ISBAR modal
   isbarModal: { flex: 1, paddingTop: Spacing.xl },
