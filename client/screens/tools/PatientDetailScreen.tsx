@@ -33,6 +33,12 @@ type Profile = {
   injuryDate?: string | null;
   rehabCentre?: string | null;
   routineHighlights?: string | null;
+  medicalNotes?: string | null;
+  caregiverNotes?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  medications?: string | null;
+  allergies?: string | null;
 };
 
 type EscalationAlert = {
@@ -178,7 +184,7 @@ export default function PatientDetailScreen() {
     }
   }
 
-  const hasIntro = profile?.aboutMe || profile?.injuryLevel || profile?.routineHighlights;
+  const hasIntro = profile?.aboutMe || profile?.injuryLevel || profile?.routineHighlights || profile?.medicalNotes || profile?.emergencyContactName || profile?.caregiverNotes;
   const visibleTiles = CARE_TILES.filter((t) => t.roles.includes(params.role));
 
   async function handleExport() {
@@ -281,45 +287,104 @@ export default function PatientDetailScreen() {
               <ActivityIndicator color={theme.primary} size="small" style={{ alignSelf: "flex-start" }} />
             ) : hasIntro ? (
               <ElevatedCard padding={Spacing.md}>
-                {profile?.aboutMe ? (
-                  <ThemedText type="small" style={{ lineHeight: 20, marginBottom: profile?.routineHighlights ? Spacing.md : 0 }}>
-                    {profile.aboutMe}
-                  </ThemedText>
+                {/* Injury + date + rehab row */}
+                <View style={styles.introTopRow}>
+                  <ThemedText type="small" style={{ fontWeight: "700", fontSize: 15 }}>{params.patientName}</ThemedText>
+                </View>
+                {(profile?.injuryLevel || profile?.injuryType) ? (
+                  <View style={styles.infoChip}>
+                    <Feather name="activity" size={12} color={theme.textSecondary} />
+                    <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
+                      {[profile.injuryLevel, profile.injuryType].filter(Boolean).join(" · ")}
+                    </ThemedText>
+                  </View>
                 ) : null}
-
                 {profile?.injuryDate || profile?.rehabCentre ? (
                   <View style={styles.infoRow}>
                     {profile.injuryDate ? (
                       <View style={styles.infoChip}>
                         <Feather name="calendar" size={12} color={theme.textSecondary} />
-                        <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
-                          Injured {profile.injuryDate}
-                        </ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>Injured {profile.injuryDate}</ThemedText>
                       </View>
                     ) : null}
                     {profile.rehabCentre ? (
                       <View style={styles.infoChip}>
                         <Feather name="map-pin" size={12} color={theme.textSecondary} />
-                        <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
-                          {profile.rehabCentre}
-                        </ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>{profile.rehabCentre}</ThemedText>
                       </View>
                     ) : null}
                   </View>
                 ) : null}
 
+                {/* Medical notes — AD warnings, safety-critical */}
+                {profile?.medicalNotes ? (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    <View style={[styles.alertBanner, { backgroundColor: "#FF980018", borderColor: "#FF980040" }]}>
+                      <Feather name="alert-triangle" size={13} color="#FF9800" />
+                      <ThemedText type="caption" style={{ flex: 1, marginLeft: 6, color: "#FF9800", lineHeight: 18 }}>
+                        {profile.medicalNotes}
+                      </ThemedText>
+                    </View>
+                  </>
+                ) : null}
+
+                {/* Emergency contact */}
+                {(profile?.emergencyContactName || profile?.emergencyContactPhone) ? (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    <View style={styles.infoChip}>
+                      <Feather name="phone" size={12} color={theme.textSecondary} />
+                      <ThemedText type="caption" style={{ opacity: 0.7, marginLeft: 4 }}>
+                        {[profile.emergencyContactName, profile.emergencyContactPhone].filter(Boolean).join(" · ")}
+                      </ThemedText>
+                    </View>
+                  </>
+                ) : null}
+
+                {/* About me */}
+                {profile?.aboutMe ? (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }}>{profile.aboutMe}</ThemedText>
+                  </>
+                ) : null}
+
+                {/* Routine highlights */}
                 {profile?.routineHighlights ? (
                   <>
                     <View style={[styles.divider, { backgroundColor: theme.border }]} />
                     <View style={styles.routineHeader}>
                       <Feather name="sun" size={14} color="#FFC107" />
-                      <ThemedText type="caption" style={{ fontWeight: "700", marginLeft: 6, color: "#FFC107" }}>
-                        ROUTINE HIGHLIGHTS
+                      <ThemedText type="caption" style={{ fontWeight: "700", marginLeft: 6, color: "#FFC107" }}>ROUTINE HIGHLIGHTS</ThemedText>
+                    </View>
+                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85, marginTop: Spacing.xs }}>{profile.routineHighlights}</ThemedText>
+                  </>
+                ) : null}
+
+                {/* Caregiver notes */}
+                {profile?.caregiverNotes ? (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    <View style={styles.routineHeader}>
+                      <Feather name="file-text" size={14} color={theme.textSecondary} />
+                      <ThemedText type="caption" style={{ fontWeight: "700", marginLeft: 6, opacity: 0.6 }}>CARER NOTES</ThemedText>
+                    </View>
+                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85, marginTop: Spacing.xs }}>{profile.caregiverNotes}</ThemedText>
+                  </>
+                ) : null}
+
+                {/* Allergies */}
+                {profile?.allergies ? (
+                  <>
+                    <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                    <View style={[styles.alertBanner, { backgroundColor: "#EF444418", borderColor: "#EF444440" }]}>
+                      <Feather name="alert-circle" size={13} color="#EF4444" />
+                      <ThemedText type="caption" style={{ flex: 1, marginLeft: 6, color: "#EF4444" }}>
+                        <ThemedText type="caption" style={{ fontWeight: "700", color: "#EF4444" }}>Allergies: </ThemedText>
+                        {profile.allergies}
                       </ThemedText>
                     </View>
-                    <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85, marginTop: Spacing.xs }}>
-                      {profile.routineHighlights}
-                    </ThemedText>
                   </>
                 ) : null}
               </ElevatedCard>
@@ -473,10 +538,12 @@ const styles = StyleSheet.create({
   sectionDot: { width: 6, height: 6, borderRadius: 3 },
   sectionTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, flex: 1 },
   sectionAction: { paddingVertical: 2, paddingHorizontal: 4 },
-  infoRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.sm },
-  infoChip: { flexDirection: "row", alignItems: "center" },
+  introTopRow: { marginBottom: 4 },
+  infoRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginTop: Spacing.xs },
+  infoChip: { flexDirection: "row", alignItems: "center", marginTop: 2 },
   divider: { height: 1, marginVertical: Spacing.md },
   routineHeader: { flexDirection: "row", alignItems: "center" },
+  alertBanner: { flexDirection: "row", alignItems: "flex-start", padding: 10, borderRadius: 8, borderWidth: 1, gap: 2 },
   notesEntryRow: {
     flexDirection: "row",
     alignItems: "center",
