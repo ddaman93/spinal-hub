@@ -179,6 +179,7 @@ export default function HandoverNotesScreen() {
   // Free-text compose
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [showQuickInput, setShowQuickInput] = useState(false);
 
   // ISBAR modal
@@ -388,9 +389,9 @@ export default function HandoverNotesScreen() {
           />
         )}
 
-        {/* Compose area */}
+        {/* Compose area — FAB speed dial */}
         <View style={[styles.composeArea, { backgroundColor: theme.backgroundSecondary, borderTopColor: theme.border, paddingBottom: insets.bottom + 8 }]}>
-          {/* Expandable quick note input */}
+          {/* Quick note input (shown when selected) */}
           {showQuickInput && (
             <View style={[styles.quickInputRow, { borderColor: theme.border }]}>
               <TextInput
@@ -415,26 +416,42 @@ export default function HandoverNotesScreen() {
             </View>
           )}
 
-          {/* Two action buttons */}
-          <View style={styles.composeBtnRow}>
+          {/* FAB speed dial */}
+          <View style={styles.fabRow}>
+            {/* Speed dial options — appear when open */}
+            {fabOpen && !showQuickInput && (
+              <View style={styles.fabOptions}>
+                <Pressable
+                  onPress={() => { setShowQuickInput(true); setFabOpen(false); }}
+                  style={[styles.fabOption, { backgroundColor: theme.backgroundDefault, borderColor: theme.border }]}
+                >
+                  <Feather name="edit-2" size={15} color={theme.primary} />
+                  <ThemedText style={[styles.fabOptionText, { color: theme.text }]}>Quick Note</ThemedText>
+                </Pressable>
+                <Pressable
+                  onPress={() => { setIsbarVisible(true); setFabOpen(false); }}
+                  style={[styles.fabOption, { backgroundColor: theme.backgroundDefault, borderColor: "#007AFF40" }]}
+                >
+                  <Feather name="clipboard" size={15} color="#007AFF" />
+                  <ThemedText style={[styles.fabOptionText, { color: theme.text }]}>ISBAR Handover</ThemedText>
+                </Pressable>
+              </View>
+            )}
+
+            <View style={{ flex: 1 }} />
+
+            {/* FAB button */}
             <Pressable
-              onPress={() => setShowQuickInput((v) => !v)}
-              style={[styles.composeBtn, {
-                backgroundColor: showQuickInput ? theme.primary + "18" : theme.backgroundTertiary,
-                borderColor: showQuickInput ? theme.primary + "60" : theme.border,
-              }]}
+              onPress={() => {
+                if (showQuickInput) { setShowQuickInput(false); setDraft(""); }
+                else setFabOpen((v) => !v);
+              }}
+              style={({ pressed }) => [
+                styles.fab,
+                { backgroundColor: (fabOpen || showQuickInput) ? "#EF4444" : theme.primary, opacity: pressed ? 0.85 : 1 },
+              ]}
             >
-              <Feather name="edit-2" size={15} color={showQuickInput ? theme.primary : theme.textSecondary} />
-              <ThemedText style={[styles.composeBtnText, { color: showQuickInput ? theme.primary : theme.textSecondary }]}>
-                Quick Note
-              </ThemedText>
-            </Pressable>
-            <Pressable
-              onPress={() => setIsbarVisible(true)}
-              style={[styles.composeBtn, { backgroundColor: "#007AFF18", borderColor: "#007AFF40" }]}
-            >
-              <Feather name="clipboard" size={15} color="#007AFF" />
-              <ThemedText style={[styles.composeBtnText, { color: "#007AFF" }]}>ISBAR Handover</ThemedText>
+              <Feather name={(fabOpen || showQuickInput) ? "x" : "plus"} size={22} color="#fff" />
             </Pressable>
           </View>
         </View>
@@ -603,14 +620,23 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.medium, borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs,
   },
-  composeBtnRow: { flexDirection: "row", gap: Spacing.sm },
-  composeBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 7, paddingVertical: 12, borderRadius: BorderRadius.medium, borderWidth: 1,
-  },
-  composeBtnText: { fontSize: 13, fontWeight: "700" },
   composeInput: { flex: 1, fontSize: 15, maxHeight: 120, paddingVertical: Spacing.sm, paddingTop: Spacing.sm },
   sendBtn: { width: 38, height: 38, borderRadius: BorderRadius.small, alignItems: "center", justifyContent: "center", marginBottom: 2 },
+  fabRow: { flexDirection: "row", alignItems: "flex-end" },
+  fabOptions: { flex: 1, gap: Spacing.xs, paddingBottom: 6 },
+  fabOption: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: Spacing.md, paddingVertical: 11,
+    borderRadius: BorderRadius.medium, borderWidth: 1,
+    alignSelf: "flex-start",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 3,
+  },
+  fabOptionText: { fontSize: 14, fontWeight: "600" },
+  fab: {
+    width: 52, height: 52, borderRadius: 26,
+    alignItems: "center", justifyContent: "center",
+    shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5,
+  },
 
   // ISBAR modal
   isbarModal: { flex: 1, paddingTop: Spacing.xl },
