@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from "react";
 import {
   View, FlatList, Pressable, StyleSheet, ActivityIndicator, Alert,
-  TextInput, KeyboardAvoidingView, Platform, ScrollView, Modal, ActionSheetIOS,
+  TextInput, KeyboardAvoidingView, Platform, ScrollView, Modal,
 } from "react-native";
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -390,12 +390,9 @@ export default function HandoverNotesScreen() {
 
         {/* Compose area */}
         <View style={[styles.composeArea, { backgroundColor: theme.backgroundSecondary, borderTopColor: theme.border, paddingBottom: insets.bottom + 8 }]}>
-          {/* Quick note input — shown after selecting from action sheet */}
+          {/* Expandable quick note input */}
           {showQuickInput && (
             <View style={[styles.quickInputRow, { borderColor: theme.border }]}>
-              <Pressable onPress={() => { setShowQuickInput(false); setDraft(""); }} hitSlop={8}>
-                <Feather name="x" size={16} color={theme.textSecondary} />
-              </Pressable>
               <TextInput
                 value={draft}
                 onChangeText={setDraft}
@@ -418,36 +415,28 @@ export default function HandoverNotesScreen() {
             </View>
           )}
 
-          {/* Single add note button */}
-          {!showQuickInput && (
+          {/* Two action buttons */}
+          <View style={styles.composeBtnRow}>
             <Pressable
-              onPress={() => {
-                if (Platform.OS === "ios") {
-                  ActionSheetIOS.showActionSheetWithOptions(
-                    {
-                      options: ["Cancel", "Quick Note", "ISBAR Handover"],
-                      cancelButtonIndex: 0,
-                      title: `Add note for ${params.patientName}`,
-                    },
-                    (index) => {
-                      if (index === 1) setShowQuickInput(true);
-                      if (index === 2) setIsbarVisible(true);
-                    }
-                  );
-                } else {
-                  Alert.alert(`Add note for ${params.patientName}`, undefined, [
-                    { text: "Quick Note", onPress: () => setShowQuickInput(true) },
-                    { text: "ISBAR Handover", onPress: () => setIsbarVisible(true) },
-                    { text: "Cancel", style: "cancel" },
-                  ]);
-                }
-              }}
-              style={({ pressed }) => [styles.addNoteBtn, { backgroundColor: theme.backgroundTertiary, borderColor: theme.border, opacity: pressed ? 0.7 : 1 }]}
+              onPress={() => setShowQuickInput((v) => !v)}
+              style={[styles.composeBtn, {
+                backgroundColor: showQuickInput ? theme.primary + "18" : theme.backgroundTertiary,
+                borderColor: showQuickInput ? theme.primary + "60" : theme.border,
+              }]}
             >
-              <Feather name="plus" size={16} color={theme.textSecondary} />
-              <ThemedText style={[styles.addNoteBtnText, { color: theme.textSecondary }]}>Add Note</ThemedText>
+              <Feather name="edit-2" size={15} color={showQuickInput ? theme.primary : theme.textSecondary} />
+              <ThemedText style={[styles.composeBtnText, { color: showQuickInput ? theme.primary : theme.textSecondary }]}>
+                Quick Note
+              </ThemedText>
             </Pressable>
-          )}
+            <Pressable
+              onPress={() => setIsbarVisible(true)}
+              style={[styles.composeBtn, { backgroundColor: "#007AFF18", borderColor: "#007AFF40" }]}
+            >
+              <Feather name="clipboard" size={15} color="#007AFF" />
+              <ThemedText style={[styles.composeBtnText, { color: "#007AFF" }]}>ISBAR Handover</ThemedText>
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -614,13 +603,14 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.medium, borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.sm, paddingVertical: Spacing.xs,
   },
+  composeBtnRow: { flexDirection: "row", gap: Spacing.sm },
+  composeBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 7, paddingVertical: 12, borderRadius: BorderRadius.medium, borderWidth: 1,
+  },
+  composeBtnText: { fontSize: 13, fontWeight: "700" },
   composeInput: { flex: 1, fontSize: 15, maxHeight: 120, paddingVertical: Spacing.sm, paddingTop: Spacing.sm },
   sendBtn: { width: 38, height: 38, borderRadius: BorderRadius.small, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  addNoteBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, paddingVertical: 13, borderRadius: BorderRadius.medium, borderWidth: 1,
-  },
-  addNoteBtnText: { fontSize: 15, fontWeight: "600" },
 
   // ISBAR modal
   isbarModal: { flex: 1, paddingTop: Spacing.xl },
