@@ -26,6 +26,8 @@ type Medication = {
   dosage: string;
   frequency: string;
   times: string; // comma-separated
+  scheduleType: "scheduled" | "prn";
+  route: string;
   notes?: string | null;
 };
 
@@ -34,7 +36,30 @@ type MedLog = {
   medicationId: string;
   scheduledTime: string;
   taken: boolean;
+  actualTime?: string | null;
+  administeredByName?: string | null;
+  reasonOmitted?: string | null;
 };
+
+const ROUTES = [
+  { key: "oral",       label: "Oral" },
+  { key: "sublingual", label: "Sublingual" },
+  { key: "patch",      label: "Patch" },
+  { key: "injection",  label: "Injection" },
+  { key: "inhaled",    label: "Inhaled" },
+  { key: "topical",    label: "Topical" },
+  { key: "rectal",     label: "Rectal" },
+  { key: "other",      label: "Other" },
+];
+
+const OMIT_REASONS = [
+  { key: "refused",           label: "Patient Refused" },
+  { key: "unavailable",       label: "Unavailable" },
+  { key: "sleeping",          label: "Patient Sleeping" },
+  { key: "held_by_clinician", label: "Held by Clinician" },
+  { key: "npo",               label: "NPO / Fasting" },
+  { key: "other",             label: "Other" },
+];
 
 const QUICK_TIMES = ["6:00 AM", "8:00 AM", "10:00 AM", "12:00 PM", "2:00 PM", "4:00 PM", "6:00 PM", "8:00 PM", "10:00 PM"];
 const SLOT_LABELS = ["Time 1", "Time 2", "Time 3", "Time 4"];
@@ -65,8 +90,14 @@ export default function MedicationTrackerScreen() {
   const [name, setName] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dosage, setDosage] = useState("");
+  const [scheduleType, setScheduleType] = useState<"scheduled" | "prn">("scheduled");
+  const [route, setRoute] = useState("oral");
   const [slots, setSlots] = useState(["", "", "", ""]); // up to 4 time slots
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
+
+  // omit reason modal
+  const [omitModalVisible, setOmitModalVisible] = useState(false);
+  const [pendingOmit, setPendingOmit] = useState<{ medication: Medication; scheduledTime: string } | null>(null);
 
   const today = todayStr();
 
@@ -103,19 +134,19 @@ export default function MedicationTrackerScreen() {
       return;
     }
     const filledSlots = slots.filter((s) => s.trim());
-    if (filledSlots.length === 0) {
+    if (scheduleType === "scheduled" && filledSlots.length === 0) {
       Alert.alert("Missing times", "Add at least one time.");
       return;
     }
     setSaving(true);
     try {
       const token = await getToken();
-      const times = filledSlots.join(", ");
-      const frequency = filledSlots.length === 1 ? "Once daily" : filledSlots.length === 2 ? "Twice daily" : filledSlots.length === 3 ? "Three times daily" : "Four times daily";
+      const times = scheduleType === "prn" ? "PRN" : filledSlots.join(", ");
+      const frequency = scheduleType === "prn" ? "PRN" : filledSlots.length === 1 ? "Once daily" : filledSlots.length === 2 ? "Twice daily" : filledSlots.length === 3 ? "Three times daily" : "Four times daily";
       const res = await fetch(`${getApiUrl()}/api/health/medications`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ patientId, name: name.trim(), dosage: dosage.trim(), frequency, times }),
+        body: JSON.stringify({ patientId, name: name.trim(), dosage: dosage.trim(), frequency, times, scheduleType, route }),
       });
       if (res.ok) {
         await loadData();
@@ -146,9 +177,7 @@ export default function MedicationTrackerScreen() {
     ]);
   };
 
-  const handleToggleTaken = async (medication: Medication, scheduledTime: string) => {
-    const existing = todayLogs.find((l) => l.medicationId === medication.id && l.scheduledTime === scheduledTime);
-    const taken = !existing?.taken;
+  const doToggleTaken = async (medication: Medication, scheduledTime: string, taken: boolean, reasonOmitted?: string) => {
     const token = await getToken();
     const res = await fetch(`${getApiUrl()}/api/health/medication-logs`, {
       method: "POST",
@@ -160,6 +189,7 @@ export default function MedicationTrackerScreen() {
         scheduledTime,
         taken,
         actualTime: taken ? new Date().toISOString() : null,
+        reasonOmitted: taken ? null : (reasonOmitted ?? null),
       }),
     });
     if (res.ok) {
@@ -171,12 +201,33 @@ export default function MedicationTrackerScreen() {
     }
   };
 
+  const handleToggleTaken = (medication: Medication, scheduledTime: string) => {
+    const existing = todayLogs.find((l) => l.medicationId === medication.id && l.scheduledTime === scheduledTime);
+    const willBeTaken = !existing?.taken;
+    if (willBeTaken) {
+      doToggleTaken(medication, scheduledTime, true);
+    } else {
+      // marking as not given — ask for reason
+      setPendingOmit({ medication, scheduledTime });
+      setOmitModalVisible(true);
+    }
+  };
+
+  const handleOmitConfirm = (reason: string) => {
+    if (!pendingOmit) return;
+    setOmitModalVisible(false);
+    doToggleTaken(pendingOmit.medication, pendingOmit.scheduledTime, false, reason);
+    setPendingOmit(null);
+  };
+
   const isTaken = (medicationId: string, time: string) =>
     todayLogs.some((l) => l.medicationId === medicationId && l.scheduledTime === time && l.taken);
 
   const resetForm = () => {
     setName("");
     setDosage("");
+    setScheduleType("scheduled");
+    setRoute("oral");
     setSlots(["", "", "", ""]);
     setActiveSlot(null);
     setShowSuggestions(false);
@@ -186,8 +237,12 @@ export default function MedicationTrackerScreen() {
     setSlots((prev) => { const next = [...prev]; next[index] = value; return next; });
   };
 
-  const totalDoses = medications.reduce((sum, m) => sum + m.times.split(",").filter(Boolean).length, 0);
+  const scheduledMeds = medications.filter((m) => m.scheduleType !== "prn");
+  const prnMeds = medications.filter((m) => m.scheduleType === "prn");
+  const totalDoses = scheduledMeds.reduce((sum, m) => sum + m.times.split(",").filter(Boolean).length, 0);
   const takenToday = todayLogs.filter((l) => l.taken).length;
+  const omittedToday = todayLogs.filter((l) => !l.taken && l.reasonOmitted).length;
+  const prnGivenToday = prnMeds.reduce((sum, m) => sum + todayLogs.filter((l) => l.medicationId === m.id && l.taken).length, 0);
 
   return (
     <ThemedView style={styles.container}>
@@ -234,7 +289,8 @@ export default function MedicationTrackerScreen() {
             </View>
           ) : (
             medications.map((med, index) => {
-              const timeList = med.times.split(",").map((t) => t.trim()).filter(Boolean);
+              const isPrn = med.scheduleType === "prn";
+              const timeList = isPrn ? ["PRN"] : med.times.split(",").map((t) => t.trim()).filter(Boolean);
               return (
                 <View
                   key={med.id}
@@ -248,7 +304,16 @@ export default function MedicationTrackerScreen() {
                   <View style={styles.medLeft}>
                     <ThemedText style={styles.medName} numberOfLines={2}>{med.name}</ThemedText>
                     <ThemedText style={[styles.medDose, { color: theme.textSecondary }]}>{med.dosage}</ThemedText>
-                    <ThemedText style={[styles.medFreq, { color: theme.textSecondary }]}>{med.frequency}</ThemedText>
+                    <View style={{ flexDirection: "row", gap: 4, flexWrap: "wrap", marginTop: 2 }}>
+                      {isPrn && (
+                        <View style={styles.prnBadge}>
+                          <ThemedText style={styles.prnBadgeText}>PRN</ThemedText>
+                        </View>
+                      )}
+                      <ThemedText style={[styles.medFreq, { color: theme.textSecondary }]}>
+                        {ROUTES.find((r) => r.key === med.route)?.label ?? med.route}
+                      </ThemedText>
+                    </View>
                     <Pressable
                       onPress={() => handleDelete(med.id, med.name)}
                       style={[styles.removeBtn, { borderColor: theme.error + "40" }]}
@@ -260,9 +325,11 @@ export default function MedicationTrackerScreen() {
 
                   {/* right: time boxes */}
                   <View style={styles.medRight}>
-                    {[0, 1, 2, 3].map((i) => {
+                    {(isPrn ? [0] : [0, 1, 2, 3]).map((i) => {
                       const time = timeList[i];
-                      const taken = time ? isTaken(med.id, time) : false;
+                      const log = time ? todayLogs.find((l) => l.medicationId === med.id && l.scheduledTime === time) : null;
+                      const taken = log?.taken ?? false;
+                      const omitted = log && !log.taken && log.reasonOmitted;
                       return (
                         <Pressable
                           key={i}
@@ -270,29 +337,42 @@ export default function MedicationTrackerScreen() {
                           disabled={!time}
                           style={[
                             styles.doseBox,
+                            isPrn && { width: "auto", minWidth: 64, flex: 0, paddingHorizontal: 10 },
                             time
                               ? taken
                                 ? { backgroundColor: "#22c55e" }
-                                : { backgroundColor: theme.backgroundSecondary ?? theme.backgroundDefault, borderWidth: 1.5, borderColor: theme.border ?? "#E0E0E0" }
+                                : omitted
+                                  ? { backgroundColor: "#ef444422", borderWidth: 1.5, borderColor: "#ef4444" }
+                                  : { backgroundColor: theme.backgroundSecondary ?? theme.backgroundDefault, borderWidth: 1.5, borderColor: theme.border ?? "#E0E0E0" }
                               : { backgroundColor: "transparent", borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border ?? "#E0E0E0", opacity: 0.3 },
                           ]}
                         >
                           {time ? (
                             <>
                               <Feather
-                                name={taken ? "check" : "circle"}
+                                name={taken ? "check" : omitted ? "x" : "circle"}
                                 size={16}
-                                color={taken ? "#FFFFFF" : theme.textSecondary}
+                                color={taken ? "#FFFFFF" : omitted ? "#ef4444" : theme.textSecondary}
                               />
                               <ThemedText
                                 style={[
                                   styles.doseTime,
-                                  { color: taken ? "#FFFFFF" : theme.textSecondary },
+                                  { color: taken ? "#FFFFFF" : omitted ? "#ef4444" : theme.textSecondary },
                                 ]}
                                 numberOfLines={2}
                               >
-                                {time}
+                                {isPrn ? "Log PRN" : time}
                               </ThemedText>
+                              {taken && log?.administeredByName ? (
+                                <ThemedText style={styles.doseAdmin} numberOfLines={1}>
+                                  {log.administeredByName.split(" ")[0]}
+                                </ThemedText>
+                              ) : null}
+                              {taken && log?.actualTime ? (
+                                <ThemedText style={styles.doseActualTime} numberOfLines={1}>
+                                  {new Date(log.actualTime).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                                </ThemedText>
+                              ) : null}
                             </>
                           ) : (
                             <ThemedText style={{ fontSize: 9, color: theme.textSecondary }}>—</ThemedText>
@@ -308,12 +388,34 @@ export default function MedicationTrackerScreen() {
         </View>
 
         {/* column headers below chart body */}
-        {medications.length > 0 && (
+        {scheduledMeds.length > 0 && (
           <View style={[styles.columnLabels, { paddingHorizontal: Spacing.lg }]}>
             <View style={{ width: 120 }} />
             {["Dose 1", "Dose 2", "Dose 3", "Dose 4"].map((l) => (
               <ThemedText key={l} style={[styles.colLabel, { color: theme.textSecondary }]}>{l}</ThemedText>
             ))}
+          </View>
+        )}
+
+        {/* omitted / PRN summary */}
+        {(omittedToday > 0 || prnGivenToday > 0) && (
+          <View style={[styles.marSummary, { backgroundColor: theme.backgroundSecondary ?? theme.backgroundDefault }]}>
+            {omittedToday > 0 && (
+              <View style={styles.marSummaryRow}>
+                <View style={[styles.marDot, { backgroundColor: "#ef4444" }]} />
+                <ThemedText style={{ fontSize: 12, color: theme.text }}>
+                  {omittedToday} dose{omittedToday !== 1 ? "s" : ""} not given today — reason recorded
+                </ThemedText>
+              </View>
+            )}
+            {prnGivenToday > 0 && (
+              <View style={styles.marSummaryRow}>
+                <View style={[styles.marDot, { backgroundColor: "#f97316" }]} />
+                <ThemedText style={{ fontSize: 12, color: theme.text }}>
+                  {prnGivenToday} PRN dose{prnGivenToday !== 1 ? "s" : ""} administered today
+                </ThemedText>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -370,65 +472,128 @@ export default function MedicationTrackerScreen() {
               style={[styles.formInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
             />
 
-            {/* time slots */}
-            <ThemedText type="small" style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>TIMES (UP TO 4 PER DAY)</ThemedText>
-
-            {SLOT_LABELS.map((label, i) => (
-              <View key={i} style={styles.slotRow}>
-                <View style={[styles.slotNumBadge, { backgroundColor: slots[i] ? theme.primary + "22" : theme.backgroundDefault }]}>
-                  <ThemedText style={{ fontSize: 11, fontWeight: "700", color: slots[i] ? theme.primary : theme.textSecondary }}>{i + 1}</ThemedText>
-                </View>
-                <TextInput
-                  value={slots[i]}
-                  onChangeText={(v) => setSlot(i, v)}
-                  onFocus={() => setActiveSlot(i)}
-                  onBlur={() => setActiveSlot(null)}
-                  placeholder={label}
-                  placeholderTextColor={theme.textSecondary}
-                  style={[
-                    styles.slotInput,
-                    { backgroundColor: theme.backgroundDefault, color: theme.text },
-                    activeSlot === i && { borderWidth: 1.5, borderColor: theme.primary },
-                  ]}
-                />
-                {slots[i] ? (
-                  <Pressable onPress={() => setSlot(i, "")} style={{ padding: 8 }}>
-                    <Feather name="x" size={16} color={theme.textSecondary} />
-                  </Pressable>
-                ) : null}
-              </View>
-            ))}
-
-            {/* quick pick */}
-            <ThemedText type="small" style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.md }]}>
-              QUICK PICK {activeSlot !== null ? `→ SLOT ${activeSlot + 1}` : "(tap a slot first)"}
-            </ThemedText>
-            <View style={styles.quickPicks}>
-              {QUICK_TIMES.map((t) => {
-                const inUse = slots.includes(t);
-                return (
-                  <Pressable
-                    key={t}
-                    onPress={() => {
-                      const target = activeSlot !== null ? activeSlot : slots.findIndex((s) => !s);
-                      if (target !== -1) { setSlot(target, t); }
-                    }}
-                    style={[
-                      styles.quickPickBtn,
-                      { backgroundColor: inUse ? theme.primary : theme.backgroundDefault },
-                    ]}
-                    disabled={inUse}
-                  >
-                    <ThemedText style={{ fontSize: 12, color: inUse ? "#FFFFFF" : theme.text }}>{t}</ThemedText>
-                  </Pressable>
-                );
-              })}
+            {/* schedule type */}
+            <ThemedText type="small" style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>SCHEDULE TYPE</ThemedText>
+            <View style={styles.segmentRow}>
+              {(["scheduled", "prn"] as const).map((s) => (
+                <Pressable
+                  key={s}
+                  onPress={() => setScheduleType(s)}
+                  style={[styles.segment, scheduleType === s && { backgroundColor: theme.primary }]}
+                >
+                  <ThemedText style={{ fontSize: 13, fontWeight: "700", color: scheduleType === s ? "#fff" : theme.text }}>
+                    {s === "scheduled" ? "Scheduled" : "PRN (as needed)"}
+                  </ThemedText>
+                </Pressable>
+              ))}
             </View>
+
+            {/* route */}
+            <ThemedText type="small" style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>ROUTE</ThemedText>
+            <View style={styles.routePills}>
+              {ROUTES.map((r) => (
+                <Pressable
+                  key={r.key}
+                  onPress={() => setRoute(r.key)}
+                  style={[styles.routePill, route === r.key && { backgroundColor: theme.primary, borderColor: theme.primary }]}
+                >
+                  <ThemedText style={{ fontSize: 12, fontWeight: "600", color: route === r.key ? "#fff" : theme.text }}>
+                    {r.label}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* time slots — only for scheduled */}
+            {scheduleType === "scheduled" && (
+              <>
+                <ThemedText type="small" style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>TIMES (UP TO 4 PER DAY)</ThemedText>
+                {SLOT_LABELS.map((label, i) => (
+                  <View key={i} style={styles.slotRow}>
+                    <View style={[styles.slotNumBadge, { backgroundColor: slots[i] ? theme.primary + "22" : theme.backgroundDefault }]}>
+                      <ThemedText style={{ fontSize: 11, fontWeight: "700", color: slots[i] ? theme.primary : theme.textSecondary }}>{i + 1}</ThemedText>
+                    </View>
+                    <TextInput
+                      value={slots[i]}
+                      onChangeText={(v) => setSlot(i, v)}
+                      onFocus={() => setActiveSlot(i)}
+                      onBlur={() => setActiveSlot(null)}
+                      placeholder={label}
+                      placeholderTextColor={theme.textSecondary}
+                      style={[
+                        styles.slotInput,
+                        { backgroundColor: theme.backgroundDefault, color: theme.text },
+                        activeSlot === i && { borderWidth: 1.5, borderColor: theme.primary },
+                      ]}
+                    />
+                    {slots[i] ? (
+                      <Pressable onPress={() => setSlot(i, "")} style={{ padding: 8 }}>
+                        <Feather name="x" size={16} color={theme.textSecondary} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ))}
+                <ThemedText type="small" style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.md }]}>
+                  QUICK PICK {activeSlot !== null ? `→ SLOT ${activeSlot + 1}` : "(tap a slot first)"}
+                </ThemedText>
+                <View style={styles.quickPicks}>
+                  {QUICK_TIMES.map((t) => {
+                    const inUse = slots.includes(t);
+                    return (
+                      <Pressable
+                        key={t}
+                        onPress={() => {
+                          const target = activeSlot !== null ? activeSlot : slots.findIndex((s) => !s);
+                          if (target !== -1) { setSlot(target, t); }
+                        }}
+                        style={[
+                          styles.quickPickBtn,
+                          { backgroundColor: inUse ? theme.primary : theme.backgroundDefault },
+                        ]}
+                        disabled={inUse}
+                      >
+                        <ThemedText style={{ fontSize: 12, color: inUse ? "#FFFFFF" : theme.text }}>{t}</ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            )}
 
             <Button onPress={handleSave} style={styles.saveButton} disabled={saving}>
               {saving ? "Adding…" : "Add to Chart"}
             </Button>
           </KeyboardAwareScrollViewCompat>
+        </View>
+      </Modal>
+
+      {/* ── OMIT REASON MODAL ── */}
+      <Modal
+        visible={omitModalVisible}
+        animationType="slide"
+        presentationStyle="formSheet"
+        onRequestClose={() => { setOmitModalVisible(false); setPendingOmit(null); }}
+      >
+        <View style={[styles.omitModalContainer, { backgroundColor: theme.backgroundDefault }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h3">Reason Not Given</ThemedText>
+            <Pressable onPress={() => { setOmitModalVisible(false); setPendingOmit(null); }}>
+              <ThemedText type="body" style={{ color: theme.primary }}>Cancel</ThemedText>
+            </Pressable>
+          </View>
+          <ThemedText type="caption" style={{ paddingHorizontal: Spacing.xl, opacity: 0.6, marginBottom: Spacing.lg }}>
+            {pendingOmit?.medication.name} — {pendingOmit?.scheduledTime}
+          </ThemedText>
+          {OMIT_REASONS.map((r) => (
+            <Pressable
+              key={r.key}
+              onPress={() => handleOmitConfirm(r.key)}
+              style={[styles.omitOption, { borderBottomColor: theme.backgroundTertiary }]}
+            >
+              <ThemedText type="body" style={{ fontWeight: "500" }}>{r.label}</ThemedText>
+              <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+            </Pressable>
+          ))}
         </View>
       </Modal>
     </ThemedView>
@@ -475,6 +640,10 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   doseTime: { fontSize: 10, fontWeight: "600", textAlign: "center", lineHeight: 13 },
+  doseAdmin: { fontSize: 9, color: "rgba(255,255,255,0.8)", textAlign: "center" },
+  doseActualTime: { fontSize: 9, color: "rgba(255,255,255,0.7)", textAlign: "center" },
+  prnBadge: { backgroundColor: "#f9731622", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
+  prnBadgeText: { fontSize: 9, fontWeight: "800", color: "#f97316", letterSpacing: 0.5 },
 
   /* column labels */
   columnLabels: { flexDirection: "row", gap: 6, marginTop: 4, marginBottom: Spacing.lg },
@@ -503,4 +672,13 @@ const styles = StyleSheet.create({
   quickPicks: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm, marginBottom: Spacing.xl },
   quickPickBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8 },
   saveButton: { marginTop: Spacing.sm },
+  segmentRow: { flexDirection: "row", borderRadius: BorderRadius.medium, overflow: "hidden", gap: 2 },
+  segment: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: BorderRadius.small, backgroundColor: "rgba(0,0,0,0.06)" },
+  routePills: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  routePill: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: "rgba(0,0,0,0.15)" },
+  marSummary: { marginHorizontal: Spacing.lg, marginBottom: Spacing.lg, borderRadius: BorderRadius.medium, padding: Spacing.md, gap: 6 },
+  marSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  marDot: { width: 8, height: 8, borderRadius: 4 },
+  omitModalContainer: { paddingTop: Spacing.xl },
+  omitOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl, borderBottomWidth: StyleSheet.hairlineWidth },
 });

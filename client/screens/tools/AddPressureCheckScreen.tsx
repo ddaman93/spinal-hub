@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
   View, ScrollView, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator,
-  KeyboardAvoidingView, Platform,
+  KeyboardAvoidingView, Platform, Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -90,7 +91,40 @@ export default function AddPressureCheckScreen() {
   const [odor, setOdor] = useState(false);
   const [painScore, setPainScore] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  async function pickPhoto(useCamera: boolean) {
+    const permFn = useCamera
+      ? ImagePicker.requestCameraPermissionsAsync
+      : ImagePicker.requestMediaLibraryPermissionsAsync;
+    const { status } = await permFn();
+    if (status !== "granted") {
+      Alert.alert("Permission needed", useCamera ? "Camera access is required." : "Photo library access is required.");
+      return;
+    }
+    const launchFn = useCamera
+      ? ImagePicker.launchCameraAsync
+      : ImagePicker.launchImageLibraryAsync;
+    const result = await launchFn({
+      mediaTypes: "images",
+      quality: 0.5,
+      base64: true,
+      allowsEditing: true,
+      aspect: [4, 3],
+    });
+    if (!result.canceled && result.assets[0]?.base64) {
+      setPhotoBase64(result.assets[0].base64);
+    }
+  }
+
+  function showPhotoPicker() {
+    Alert.alert("Add Photo", "Choose source", [
+      { text: "Camera", onPress: () => pickPhoto(true) },
+      { text: "Photo Library", onPress: () => pickPhoto(false) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  }
 
   async function handleSave() {
     if (!stage) { Alert.alert("Required", "Please select a stage."); return; }
@@ -110,6 +144,7 @@ export default function AddPressureCheckScreen() {
           surroundingSkin,
           odor,
           painScore,
+          photoUrl: photoBase64 ? `data:image/jpeg;base64,${photoBase64}` : null,
           notes: notes.trim() || null,
         }),
       });
@@ -234,6 +269,37 @@ export default function AddPressureCheckScreen() {
               ))}
             </View>
 
+            {/* Photo */}
+            <ThemedText type="small" style={styles.fieldLabel}>Wound Photo</ThemedText>
+            {photoBase64 ? (
+              <View style={styles.photoPreviewWrapper}>
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${photoBase64}` }}
+                  style={styles.photoPreview}
+                  resizeMode="cover"
+                />
+                <Pressable
+                  onPress={() => setPhotoBase64(null)}
+                  style={styles.photoRemove}
+                >
+                  <Feather name="x" size={14} color="#fff" />
+                </Pressable>
+                <Pressable onPress={showPhotoPicker} style={styles.photoRetake}>
+                  <Feather name="camera" size={13} color="#fff" />
+                  <ThemedText type="caption" style={{ color: "#fff", marginLeft: 4, fontSize: 11 }}>Retake</ThemedText>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={showPhotoPicker}
+                style={[styles.photoBtn, { backgroundColor: theme.backgroundSecondary, borderColor: theme.backgroundTertiary }]}
+              >
+                <Feather name="camera" size={20} color={theme.textSecondary} />
+                <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 6 }}>Add wound photo</ThemedText>
+                <ThemedText style={{ fontSize: 10, opacity: 0.4, marginTop: 2 }}>Camera or photo library</ThemedText>
+              </Pressable>
+            )}
+
             {/* Notes */}
             <ThemedText type="small" style={styles.fieldLabel}>Clinical Notes</ThemedText>
             <TextInput
@@ -298,6 +364,20 @@ const styles = StyleSheet.create({
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff" },
   painRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   painBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  photoBtn: {
+    borderRadius: BorderRadius.medium, borderWidth: 1, borderStyle: "dashed",
+    paddingVertical: Spacing.xl, alignItems: "center",
+  },
+  photoPreviewWrapper: { position: "relative", borderRadius: BorderRadius.medium, overflow: "hidden" },
+  photoPreview: { width: "100%", height: 180, borderRadius: BorderRadius.medium },
+  photoRemove: {
+    position: "absolute", top: 8, right: 8,
+    backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 12, padding: 4,
+  },
+  photoRetake: {
+    position: "absolute", bottom: 8, right: 8, flexDirection: "row", alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.55)", borderRadius: 12, paddingHorizontal: 8, paddingVertical: 4,
+  },
   notesInput: {
     borderRadius: BorderRadius.medium, padding: Spacing.md,
     fontSize: 14, textAlignVertical: "top", minHeight: 100,

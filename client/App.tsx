@@ -108,7 +108,7 @@ function AppContent(): React.JSX.Element {
     <AuthProvider value={{ signOut: handleSignOut }}>
     <GestureHandlerRootView style={styles.root}>
       <KeyboardProvider>
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer ref={navigationRef} linking={{ prefixes: ["spinalhub://"], config: { screens: { CareTab: { screens: { CareHub: { path: "join/:code" } } } } } }}>
           {!isLoggedIn ? (
             <AuthStack onLogin={handleLogin} />
           ) : onboardingDone ? (

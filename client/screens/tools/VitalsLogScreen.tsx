@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View, ScrollView, StyleSheet, Pressable, TextInput, Modal,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Dimensions,
 } from "react-native";
+import { LineChart } from "react-native-gifted-charts";
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -96,6 +97,29 @@ function scoreRR(entry: VitalEntry): 0 | 1 | 2 | 3 {
 const SCORE_COLORS = ["#22c55e", "#f59e0b", "#f97316", "#ef4444"] as const;
 const SCORE_BG = ["#22c55e22", "#f59e0b22", "#f9731622", "#ef444422"] as const;
 const SCORE_LABELS = ["Normal", "Low concern", "Concern", "Critical"] as const;
+
+const CHART_COLORS: Record<VitalKey, string> = {
+  blood_pressure: "#ef4444",
+  heart_rate: "#f97316",
+  oxygen: "#06B6D4",
+  temperature: "#f59e0b",
+  resp_rate: "#8B5CF6",
+};
+
+const CHART_REFS: Partial<Record<VitalKey, { min: number; max: number }>> = {
+  blood_pressure: { min: 90, max: 149 },
+  heart_rate: { min: 51, max: 90 },
+  oxygen: { min: 96, max: 100 },
+  temperature: { min: 36.1, max: 38.0 },
+  resp_rate: { min: 12, max: 20 },
+};
+
+function chartLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 const VITAL_CONFIGS: VitalConfig[] = [
   {
@@ -201,6 +225,9 @@ export default function VitalsLogScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedType, setSelectedType] = useState<VitalKey>("blood_pressure");
+  const [activeTab, setActiveTab] = useState<"current" | "trends">("current");
+  const [trendVitalKey, setTrendVitalKey] = useState<VitalKey>("blood_pressure");
+  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "all">("30d");
   const [value, setValue] = useState("");
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
@@ -287,6 +314,46 @@ export default function VitalsLogScreen() {
 
   const cfg = VITAL_CONFIGS.find((v) => v.key === selectedType)!;
 
+  // Trend chart data
+  const trendEntries = useMemo(() => {
+    const now = Date.now();
+    const days = timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 0;
+    return entries
+      .filter((e) => e.type === trendVitalKey && (days === 0 || now - new Date(e.createdAt).getTime() < days * 86400000))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [entries, trendVitalKey, timeRange]);
+
+  const chartWidth = SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md * 2;
+
+  const { lineData, line2Data } = useMemo(() => {
+    const total = trendEntries.length;
+    const skipLabel = (i: number) => total <= 6 ? false : i % Math.ceil(total / 5) !== 0 && i !== 0 && i !== total - 1;
+    if (trendVitalKey === "blood_pressure") {
+      return {
+        lineData: trendEntries.map((e, i) => ({ value: e.systolic ?? 0, label: skipLabel(i) ? "" : chartLabel(e.createdAt) })),
+        line2Data: trendEntries.map((e, i) => ({ value: e.diastolic ?? 0, label: skipLabel(i) ? "" : chartLabel(e.createdAt) })),
+      };
+    }
+    return {
+      lineData: trendEntries.map((e, i) => ({ value: parseFloat(e.value) || 0, label: skipLabel(i) ? "" : chartLabel(e.createdAt) })),
+      line2Data: undefined,
+    };
+  }, [trendEntries, trendVitalKey]);
+
+  const trendStats = useMemo(() => {
+    if (lineData.length === 0) return null;
+    const vals = lineData.map((d) => d.value).filter((v) => v > 0);
+    return {
+      min: Math.min(...vals),
+      max: Math.max(...vals),
+      avg: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10,
+    };
+  }, [lineData]);
+
+  const trendColor = CHART_COLORS[trendVitalKey];
+  const trendRef = CHART_REFS[trendVitalKey];
+  const trendCfg = VITAL_CONFIGS.find((v) => v.key === trendVitalKey)!;
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
@@ -304,6 +371,138 @@ export default function VitalsLogScreen() {
           </View>
         )}
 
+        {/* ── TAB TOGGLE ── */}
+        <View style={[styles.tabRow, { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg }]}>
+          {(["current", "trends"] as const).map((tab) => (
+            <Pressable
+              key={tab}
+              onPress={() => setActiveTab(tab)}
+              style={[styles.tabBtn, { backgroundColor: activeTab === tab ? theme.primary : theme.backgroundDefault }]}
+            >
+              <Feather name={tab === "current" ? "activity" : "trending-up"} size={14} color={activeTab === tab ? "#fff" : theme.textSecondary} />
+              <ThemedText style={{ fontSize: 13, fontWeight: "600", color: activeTab === tab ? "#fff" : theme.textSecondary, marginLeft: 6 }}>
+                {tab === "current" ? "Current" : "Trends"}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        {activeTab === "trends" ? (
+          <View style={{ paddingBottom: Spacing.xl }}>
+            {/* Vital type selector */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: Spacing.md }} contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: Spacing.sm }}>
+              {VITAL_CONFIGS.map((v) => {
+                const active = trendVitalKey === v.key;
+                const color = CHART_COLORS[v.key];
+                return (
+                  <Pressable
+                    key={v.key}
+                    onPress={() => setTrendVitalKey(v.key)}
+                    style={[styles.typeChip, { backgroundColor: active ? color : theme.backgroundDefault }]}
+                  >
+                    <Feather name={v.icon} size={13} color={active ? "#fff" : theme.textSecondary} />
+                    <ThemedText style={{ fontSize: 12, fontWeight: "600", color: active ? "#fff" : theme.text }}>{v.shortLabel}</ThemedText>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Time range toggle */}
+            <View style={[styles.tabRow, { paddingHorizontal: Spacing.lg, marginTop: Spacing.sm }]}>
+              {(["7d", "30d", "all"] as const).map((r) => (
+                <Pressable
+                  key={r}
+                  onPress={() => setTimeRange(r)}
+                  style={[styles.rangeBtn, { backgroundColor: timeRange === r ? trendColor + "22" : theme.backgroundDefault, borderColor: timeRange === r ? trendColor : "transparent" }]}
+                >
+                  <ThemedText style={{ fontSize: 12, fontWeight: "700", color: timeRange === r ? trendColor : theme.textSecondary }}>
+                    {r === "all" ? "All time" : r}
+                  </ThemedText>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Chart */}
+            <View style={[styles.chartCard, { backgroundColor: theme.backgroundDefault, marginHorizontal: Spacing.lg }]}>
+              {trendVitalKey === "blood_pressure" && (
+                <View style={styles.chartLegend}>
+                  <View style={styles.legendDot} />
+                  <ThemedText style={[styles.legendText, { color: "#ef4444" }]}>Systolic</ThemedText>
+                  <View style={[styles.legendDot, { backgroundColor: "#3B82F6" }]} />
+                  <ThemedText style={[styles.legendText, { color: "#3B82F6" }]}>Diastolic</ThemedText>
+                </View>
+              )}
+
+              {lineData.length < 2 ? (
+                <View style={styles.noDataBox}>
+                  <Feather name="trending-up" size={32} color={trendColor} style={{ opacity: 0.3 }} />
+                  <ThemedText style={[styles.noDataText, { color: theme.textSecondary }]}>
+                    {lineData.length === 0 ? "No data for this period" : "Log at least 2 readings to see a trend"}
+                  </ThemedText>
+                </View>
+              ) : (
+                <LineChart
+                  data={lineData}
+                  data2={line2Data}
+                  width={chartWidth}
+                  height={180}
+                  color={trendColor}
+                  color2="#3B82F6"
+                  thickness={2.5}
+                  thickness2={2.5}
+                  hideDataPoints={lineData.length > 15}
+                  dataPointsColor={trendColor}
+                  dataPointsColor2="#3B82F6"
+                  dataPointsRadius={4}
+                  xAxisLabelTextStyle={{ color: theme.textSecondary, fontSize: 9 }}
+                  yAxisTextStyle={{ color: theme.textSecondary, fontSize: 10 }}
+                  rulesType="solid"
+                  rulesColor={theme.border ?? "rgba(0,0,0,0.05)"}
+                  yAxisColor="transparent"
+                  xAxisColor={theme.border ?? "rgba(0,0,0,0.08)"}
+                  showReferenceLine1={!!trendRef}
+                  referenceLine1Position={trendRef?.max ?? 0}
+                  referenceLine1Config={{ color: "#22c55e55", dashWidth: 5, dashGap: 4, thickness: 1.5, labelText: "Max normal", labelTextStyle: { color: "#22c55e", fontSize: 9 } }}
+                  showReferenceLine2={!!trendRef}
+                  referenceLine2Position={trendRef?.min ?? 0}
+                  referenceLine2Config={{ color: "#22c55e55", dashWidth: 5, dashGap: 4, thickness: 1.5, labelText: "Min normal", labelTextStyle: { color: "#22c55e", fontSize: 9 } }}
+                  isAnimated
+                  curved
+                  initialSpacing={10}
+                  endSpacing={10}
+                  noOfSections={4}
+                />
+              )}
+
+              {/* Stats row */}
+              {trendStats && lineData.length >= 2 && (
+                <View style={[styles.statsRow, { borderTopColor: theme.border ?? "rgba(0,0,0,0.06)" }]}>
+                  {[
+                    { label: "Min", value: `${trendStats.min}` },
+                    { label: "Avg", value: `${trendStats.avg}` },
+                    { label: "Max", value: `${trendStats.max}` },
+                    { label: "Readings", value: `${lineData.length}` },
+                  ].map((s) => (
+                    <View key={s.label} style={styles.statItem}>
+                      <ThemedText style={[styles.statValue, { color: trendColor }]}>{s.value}</ThemedText>
+                      <ThemedText style={[styles.statLabel, { color: theme.textSecondary }]}>{s.label}</ThemedText>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {trendRef && (
+              <View style={[styles.refReminder, { marginHorizontal: Spacing.lg, marginTop: Spacing.sm, backgroundColor: theme.backgroundDefault }]}>
+                <View style={[styles.refDot, { backgroundColor: "#22c55e" }]} />
+                <ThemedText style={{ fontSize: 12, color: theme.textSecondary }}>
+                  Normal range: <ThemedText style={{ fontWeight: "700", color: theme.text }}>{trendCfg.reference} {trendCfg.unit}</ThemedText>
+                </ThemedText>
+              </View>
+            )}
+          </View>
+        ) : (
+          <>
         {/* ── CURRENT READINGS GRID ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -464,6 +663,8 @@ export default function VitalsLogScreen() {
               No observations recorded yet.{"\n"}Tap a reading tile above to log the first entry.
             </ThemedText>
           </View>
+        )}
+          </>
         )}
       </ScrollView>
 
@@ -662,6 +863,23 @@ const styles = StyleSheet.create({
   addBarContainer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(0,0,0,0.08)" },
   addBar: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: Spacing.sm, height: 52, borderRadius: 14 },
   addBarText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+
+  /* tab toggle */
+  tabRow: { flexDirection: "row", gap: Spacing.sm },
+  tabBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 10, borderRadius: BorderRadius.medium },
+  rangeBtn: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: BorderRadius.small, borderWidth: 1 },
+
+  /* chart */
+  chartCard: { borderRadius: BorderRadius.medium, padding: Spacing.md, marginTop: Spacing.sm, overflow: "hidden" },
+  chartLegend: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: Spacing.sm },
+  legendDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#ef4444" },
+  legendText: { fontSize: 11, fontWeight: "600", marginRight: 8 },
+  noDataBox: { height: 180, alignItems: "center", justifyContent: "center", gap: Spacing.sm },
+  noDataText: { fontSize: 13, textAlign: "center", opacity: 0.5 },
+  statsRow: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, marginTop: Spacing.md, paddingTop: Spacing.sm },
+  statItem: { flex: 1, alignItems: "center" },
+  statValue: { fontSize: 18, fontWeight: "800" },
+  statLabel: { fontSize: 10, fontWeight: "600", opacity: 0.6, marginTop: 2 },
 
   /* modal */
   modalContainer: { flex: 1, paddingTop: Spacing.xxl },

@@ -4,6 +4,7 @@ import { pressureInjuries, pressureInjuryChecks, users } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 import { canAccessPatient } from "./care";
+import { addAuditLog } from "./audit";
 
 function requireAuth(req: Request, res: Response): string | null {
   const token = extractToken(req);
@@ -75,6 +76,10 @@ export async function updateInjury(req: Request, res: Response) {
     .set({ status, updatedAt: new Date() })
     .where(eq(pressureInjuries.id, id))
     .returning();
+
+  const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, requesterId));
+  const label = injury.siteLabel || injury.site;
+  await addAuditLog({ patientId: injury.patientId, actorId: requesterId, actorName: actor?.name ?? "Unknown", action: "status_changed", entityType: "wound", entityId: id, summary: `Wound (${label}) marked as ${status}` });
 
   res.json(updated);
 }
@@ -175,6 +180,11 @@ export async function addCheck(req: Request, res: Response) {
   await db.update(pressureInjuries)
     .set({ updatedAt: new Date() })
     .where(eq(pressureInjuries.id, id));
+
+  const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, requesterId));
+  const label = injury.siteLabel || injury.site;
+  const dims = lengthCm ? ` (${lengthCm}×${widthCm ?? "?"}×${depthCm ?? "?"}cm)` : "";
+  await addAuditLog({ patientId: injury.patientId, actorId: requesterId, actorName: actor?.name ?? "Unknown", action: "assessed", entityType: "wound_check", entityId: check.id, summary: `Wound check: ${label} — Stage ${stage}${dims}` });
 
   res.status(201).json(check);
 }

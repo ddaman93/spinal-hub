@@ -7,19 +7,22 @@ import { getChatMessages, postChatMessage, reportMessage, getAdminReports, delet
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
-import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getCareNotes, addCareNote, getPatientProfile } from "./routes/care";
+import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport, syncRelationshipRolesForUser } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
+import { getAuditLog } from "./routes/audit";
 import {
   getVitals, addVital, deleteVital,
   getMedications, addMedication, updateMedication, deleteMedication,
   getMedicationLogs, upsertMedicationLog,
   getAppointments, addAppointment, updateAppointment, deleteAppointment,
   getBladderLogs, addBladderLog, deleteBladderLog,
+  getBowelLogs, addBowelLog, deleteBowelLog,
   getPainEntries, addPainEntry, deletePainEntry,
   getHydrationLogs, addHydrationLog, deleteHydrationLog,
   getRoutineTasks, addRoutineTask, deleteRoutineTask, getRoutineCompletions, toggleRoutineCompletion,
   getSkinCheckEntries, addSkinCheckEntry, deleteSkinCheckEntry,
   getCarePreferences, upsertCarePreferences,
+  getRehabGoals, addRehabGoal, updateRehabGoal, deleteRehabGoal,
 } from "./routes/health";
 import { authStorage } from "./storage";
 import { db } from "./db";
@@ -94,9 +97,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/care/relationships", getRelationships);
   app.delete("/api/care/relationships/:id", revokeRelationship);
   app.get("/api/care/patients", getMyPatients);
+  app.get("/api/care/patients/alerts", getPatientAlerts);
   app.get("/api/care/notes/:patientId", getCareNotes);
   app.post("/api/care/notes/:patientId", addCareNote);
+  app.post("/api/care/notes/:noteId/read", markNoteRead);
   app.get("/api/care/profile/:patientId", getPatientProfile);
+  app.get("/api/care/org-report", getOrgReport);
 
   // Health records (vitals, medications, appointments)
   app.get("/api/health/vitals", getVitals);
@@ -120,6 +126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/health/bladder-logs", addBladderLog);
   app.delete("/api/health/bladder-logs/:id", deleteBladderLog);
 
+  app.get("/api/health/bowel-logs", getBowelLogs);
+  app.post("/api/health/bowel-logs", addBowelLog);
+  app.delete("/api/health/bowel-logs/:id", deleteBowelLog);
+
   app.get("/api/health/pain-entries", getPainEntries);
   app.post("/api/health/pain-entries", addPainEntry);
   app.delete("/api/health/pain-entries/:id", deletePainEntry);
@@ -140,6 +150,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/health/care-preferences", getCarePreferences);
   app.put("/api/health/care-preferences", upsertCarePreferences);
+
+  app.get("/api/health/rehab-goals", getRehabGoals);
+  app.post("/api/health/rehab-goals", addRehabGoal);
+  app.patch("/api/health/rehab-goals/:id", updateRehabGoal);
+  app.delete("/api/health/rehab-goals/:id", deleteRehabGoal);
+
+  // Audit trail
+  app.get("/api/audit/:patientId", getAuditLog);
 
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);
@@ -238,6 +256,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             medicalNotes: body.medicalNotes,
           },
         });
+
+      // Sync care relationship roles if profile role changed
+      if (body.role) {
+        await syncRelationshipRolesForUser(userId, body.role).catch(() => {});
+      }
 
       return res.status(200).json({ ok: true });
     } catch (err) {

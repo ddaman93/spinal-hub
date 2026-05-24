@@ -3,11 +3,12 @@ import {
   View, ScrollView, Pressable, StyleSheet, TextInput, Alert, ActivityIndicator,
   Share, KeyboardAvoidingView, Platform, Dimensions, Modal,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Feather } from "@expo/vector-icons";
+import QRCode from "react-native-qrcode-svg";
 
 import { ThemedView } from "@/components/ThemedView";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
@@ -16,14 +17,7 @@ import { ElevatedCard } from "@/components/ElevatedCard";
 import { useTheme } from "@/hooks/useTheme";
 import { Spacing, BorderRadius } from "@/constants/theme";
 import { getApiUrl } from "@/lib/query-client";
-import { getToken } from "@/lib/auth";
-
-function decodeTokenUserId(token: string): string | null {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload?.id ?? payload?.sub ?? null;
-  } catch { return null; }
-}
+import { getToken, getUserIdFromToken } from "@/lib/auth";
 import { MainStackParamList } from "@/types/navigation";
 import { CARE_TILES } from "@/data/careTiles";
 
@@ -77,24 +71,6 @@ type MyProfile = {
   allergies?: string | null;
 };
 
-type CareNote = {
-  id: string;
-  authorName: string;
-  content: string;
-  createdAt: string;
-};
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
-}
-
 type Relationship = {
   id: string;
   role: string;
@@ -107,6 +83,13 @@ export default function CareHubScreen() {
   const insets = useSafeAreaInsets();
   const headerHeight = useHeaderHeight();
   const { theme } = useTheme();
+  const route = useRoute<any>();
+
+  React.useEffect(() => {
+    if (route.params?.code) {
+      setJoinCode((route.params.code as string).toUpperCase());
+    }
+  }, [route.params?.code]);
 
   const [mode, setMode] = useState<Mode>("patient");
   const [loading, setLoading] = useState(true);
@@ -114,12 +97,13 @@ export default function CareHubScreen() {
     asPatient: [], asCarer: [],
   });
   const [patients, setPatients] = useState<PatientSummary[]>([]);
+  const [patientAlerts, setPatientAlerts] = useState<Record<string, { unreadNotes: number; criticalWounds: number; totalAlerts: number }>>({});
 
   // Patient dashboard state
   const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
   const [jwtUserId, setJwtUserId] = useState<string | null>(null);
-  const [recentNotes, setRecentNotes] = useState<CareNote[]>([]);
   const [showInviteForm, setShowInviteForm] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
 
   // Care intro modal
   const [introModalVisible, setIntroModalVisible] = useState(false);
@@ -148,38 +132,40 @@ export default function CareHubScreen() {
     setLoading(true);
     try {
       const token = await getToken();
-      if (token) { const uid = decodeTokenUserId(token); if (uid) setJwtUserId(uid); }
+      if (token) { const uid = getUserIdFromToken(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [relsRes, patientsRes, profileRes] = await Promise.all([
+      const [relsRes, patientsRes, profileRes, alertsRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/care/relationships`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients`, { headers }),
         fetch(`${getApiUrl()}/api/profile`, { headers }),
+        fetch(`${getApiUrl()}/api/care/patients/alerts`, { headers }),
       ]);
+
+      let profileRole: string | null = null;
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        setMyProfile(profile);
+        profileRole = profile?.role ?? null;
+      }
 
       if (relsRes.ok) {
         const rels = await relsRes.json();
         setRelationships(rels);
-        if (rels.asCarer.length > 0 && rels.asPatient.length === 0) {
+        // sci_patient profile role always defaults to patient mode
+        // other roles default to carer mode if they have patients but no carers
+        if (profileRole === "sci_patient") {
+          setMode("patient");
+        } else if (rels.asCarer.length > 0 && rels.asPatient.length === 0) {
           setMode("carer");
         }
       }
       if (patientsRes.ok) setPatients(await patientsRes.json());
-
-      if (profileRes.ok) {
-        const profile = await profileRes.json();
-        setMyProfile(profile);
-        // Fetch recent notes using own userId
-        if (profile.userId) {
-          const notesRes = await fetch(
-            `${getApiUrl()}/api/care/notes/${encodeURIComponent(profile.userId)}`,
-            { headers },
-          );
-          if (notesRes.ok) {
-            const notes: CareNote[] = await notesRes.json();
-            setRecentNotes(notes.slice(0, 3));
-          }
-        }
+      if (alertsRes.ok) {
+        const arr: { patientId: string; unreadNotes: number; criticalWounds: number; totalAlerts: number }[] = await alertsRes.json();
+        const map: Record<string, typeof arr[0]> = {};
+        for (const a of arr) map[a.patientId] = a;
+        setPatientAlerts(map);
       }
     } catch {
       // silent
@@ -238,12 +224,12 @@ export default function CareHubScreen() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ role: selectedRole }),
       });
-      if (!res.ok) throw new Error();
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? `${res.status}`);
       setGeneratedCode(data.code);
       setCodeExpiry(new Date(data.expiresAt).toLocaleDateString("en-NZ", { day: "numeric", month: "long" }));
-    } catch {
-      Alert.alert("Error", "Could not generate invite code.");
+    } catch (err: any) {
+      Alert.alert("Error", err?.message ?? "Could not generate invite code.");
     } finally {
       setGenerating(false);
     }
@@ -251,8 +237,10 @@ export default function CareHubScreen() {
 
   async function shareCode() {
     if (!generatedCode) return;
+    const deepLink = `spinalhub://join/${generatedCode}`;
     await Share.share({
-      message: `I'd like to add you to my care network on Spinal Hub.\n\nYour invite code: ${generatedCode}\n\n1. Download Spinal Hub\n2. Create an account\n3. Open the Care tab\n4. Tap "Join with Code" and enter: ${generatedCode}\n\nCode expires ${codeExpiry}.`,
+      message: `I'd like to add you to my care network on Spinal Hub.\n\nTap this link to join instantly:\n${deepLink}\n\nOr enter code manually: ${generatedCode}\n\nCode expires ${codeExpiry}.`,
+      url: deepLink,
     });
   }
 
@@ -336,6 +324,25 @@ export default function CareHubScreen() {
             </View>
           )}
 
+          {/* ── ROLE CHIP (carer mode only — patient chip lives inside intro card) ── */}
+          {mode === "carer" && (() => {
+            const carerRole = patients[0]?.role ?? relationships.asCarer[0]?.role ?? "carer";
+            const label = carerRole === "clinician" ? "Clinician" : carerRole === "family" ? "Family" : "Carer";
+            const color = carerRole === "clinician" ? "#AF52DE" : carerRole === "family" ? "#FF9800" : "#00E676";
+            const icon: keyof typeof Feather.glyphMap = carerRole === "clinician" ? "briefcase" : carerRole === "family" ? "users" : "heart";
+            return (
+              <View style={[styles.roleChipRow, { paddingTop: isBoth ? Spacing.sm : Spacing.lg }]}>
+                <View style={[styles.roleChip, { backgroundColor: color + "22", borderColor: color + "55" }]}>
+                  <Feather name={icon} size={12} color={color} />
+                  <ThemedText style={[styles.roleChipText, { color }]}>{label}</ThemedText>
+                  {carerRole === "family" && (
+                    <ThemedText style={[styles.roleChipText, { color, opacity: 0.7 }]}> · Read-only</ThemedText>
+                  )}
+                </View>
+              </View>
+            );
+          })()}
+
           {/* ═══════════════ PATIENT MODE ═══════════════ */}
           {mode === "patient" && (
             <>
@@ -348,6 +355,11 @@ export default function CareHubScreen() {
                   </ThemedText>
                 </View>
                 <ElevatedCard padding={Spacing.md}>
+                  {/* Patient role pill — absolute top-right, no layout impact */}
+                  <View style={[styles.roleChip, { backgroundColor: "#5B8DEF22", borderColor: "#5B8DEF55", position: "absolute", top: Spacing.md, right: Spacing.md }]}>
+                    <Feather name="user" size={12} color="#5B8DEF" />
+                    <ThemedText style={[styles.roleChipText, { color: "#5B8DEF" }]}>Patient</ThemedText>
+                  </View>
                   {myProfile?.aboutMe ? (
                     <ThemedText type="small" style={{ lineHeight: 20, opacity: 0.85 }} numberOfLines={4}>
                       {myProfile.aboutMe}
@@ -398,44 +410,9 @@ export default function CareHubScreen() {
                 </ElevatedCard>
               </View>
 
-              {/* ── B: RECENT ACTIVITY ── */}
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <View style={[styles.sectionDot, { backgroundColor: "#00E676" }]} />
-                  <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-                    RECENT ACTIVITY
-                  </ThemedText>
-                </View>
-
-                {loading ? (
-                  <ActivityIndicator color={theme.primary} size="small" style={{ alignSelf: "flex-start" }} />
-                ) : recentNotes.length > 0 ? (
-                  <>
-                    {recentNotes.map((note) => (
-                      <View key={note.id} style={[styles.activityRow, { borderBottomColor: theme.border }]}>
-                        <View style={[styles.noteAvatar, { backgroundColor: theme.primary + "22" }]}>
-                          <ThemedText style={{ fontSize: 11, fontWeight: "800", color: theme.primary }}>
-                            {note.authorName.charAt(0).toUpperCase()}
-                          </ThemedText>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                            <ThemedText type="small" style={{ fontWeight: "600" }}>{note.authorName}</ThemedText>
-                            <ThemedText type="caption" style={{ opacity: 0.4 }}>{timeAgo(note.createdAt)}</ThemedText>
-                          </View>
-                          <ThemedText type="caption" style={{ opacity: 0.6, marginTop: 1 }} numberOfLines={1}>
-                            {note.content}
-                          </ThemedText>
-                        </View>
-                      </View>
-                    ))}
-                  </>
-                ) : (
-                  <ThemedText type="caption" style={{ opacity: 0.4 }}>No notes yet. Be the first to add one.</ThemedText>
-                )}
-
-                {/* Open full log row */}
-                {myProfile?.userId ? (
+              {/* ── B: HANDOVER LOG ── */}
+              {myProfile?.userId ? (
+                <View style={styles.section}>
                   <Pressable
                     onPress={() => navigation.navigate("HandoverNotes", {
                       patientId: myProfile.userId,
@@ -448,14 +425,14 @@ export default function CareHubScreen() {
                         <Feather name="book-open" size={18} color="#00E676" />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <ThemedText type="small" style={{ fontWeight: "600" }}>Open Handover Log</ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.5, marginTop: 1 }}>Read & add notes</ThemedText>
+                        <ThemedText type="small" style={{ fontWeight: "600" }}>Handover Log</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.5, marginTop: 1 }}>Read & add care notes</ThemedText>
                       </View>
                       <Feather name="chevron-right" size={18} color={theme.textSecondary} style={{ opacity: 0.5 }} />
                     </ElevatedCard>
                   </Pressable>
-                ) : null}
-              </View>
+                </View>
+              ) : null}
 
               {/* ── C: MY CARE TEAM ── */}
               <View style={styles.section}>
@@ -465,103 +442,25 @@ export default function CareHubScreen() {
                     MY CARE TEAM
                   </ThemedText>
                 </View>
-
-                {relationships.asPatient.length > 0 ? (
-                  relationships.asPatient.map((rel) => (
-                    <View key={rel.id} style={[styles.personCard, { backgroundColor: theme.backgroundSecondary }]}>
-                      <View style={[styles.avatar, { backgroundColor: (ROLE_COLORS[rel.role] ?? theme.primary) + "22" }]}>
-                        <Feather name={(ROLE_ICONS[rel.role] ?? "user") as any} size={18} color={ROLE_COLORS[rel.role] ?? theme.primary} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <ThemedText type="small" style={{ fontWeight: "600" }}>{rel.caregiver?.name}</ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.5 }}>{ROLE_LABELS[rel.role] ?? rel.role}</ThemedText>
-                      </View>
-                      <Pressable
-                        onPress={() => revokeRelationship(rel.id, rel.caregiver?.name ?? "")}
-                        style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
-                      >
-                        <Feather name="x" size={18} color={theme.textSecondary} />
-                      </Pressable>
-                    </View>
-                  ))
-                ) : (
-                  <ThemedText type="caption" style={{ opacity: 0.4 }}>No one linked yet.</ThemedText>
-                )}
-
-                {/* Invite button */}
                 <Pressable
-                  onPress={() => setShowInviteForm((v) => !v)}
-                  style={({ pressed }) => [styles.inviteToggleBtn, { borderColor: theme.primary, opacity: pressed ? 0.7 : 1 }]}
+                  onPress={() => { setShowTeamModal(true); setShowInviteForm(false); setGeneratedCode(null); }}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
                 >
-                  <Feather name={showInviteForm ? "chevron-up" : "user-plus"} size={15} color={theme.primary} />
-                  <ThemedText type="small" style={{ color: theme.primary, fontWeight: "700", marginLeft: 6 }}>
-                    {showInviteForm ? "Hide" : "Invite someone"}
-                  </ThemedText>
-                </Pressable>
-
-                {showInviteForm && (
-                  <>
-                    <View style={styles.roleRow}>
-                      {(["carer", "family", "clinician"] as Role[]).map((role) => {
-                        const active = selectedRole === role;
-                        const color = ROLE_COLORS[role];
-                        return (
-                          <Pressable
-                            key={role}
-                            onPress={() => { setSelectedRole(role); setGeneratedCode(null); }}
-                            style={[styles.roleCard, {
-                              backgroundColor: active ? color + "22" : theme.backgroundSecondary,
-                              borderColor: active ? color : theme.backgroundTertiary,
-                              borderWidth: active ? 2 : 1,
-                            }]}
-                          >
-                            <Feather name={ROLE_ICONS[role]} size={18} color={active ? color : theme.textSecondary} />
-                            <ThemedText type="caption" style={{ fontWeight: active ? "700" : "400", marginTop: 4, color: active ? color : theme.text }}>
-                              {ROLE_LABELS[role]}
-                            </ThemedText>
-                          </Pressable>
-                        );
-                      })}
+                  <ElevatedCard style={{ flexDirection: "row", alignItems: "center", gap: Spacing.md }} padding={Spacing.md}>
+                    <View style={[styles.avatar, { backgroundColor: "#5C6BC022" }]}>
+                      <Feather name="users" size={18} color="#5C6BC0" />
                     </View>
-
-                    {!generatedCode ? (
-                      <Pressable
-                        onPress={generateInvite}
-                        disabled={generating}
-                        style={[styles.generateBtn, { backgroundColor: theme.primary }]}
-                      >
-                        {generating
-                          ? <ActivityIndicator color="#fff" size="small" />
-                          : (
-                            <>
-                              <Feather name="link" size={16} color="#fff" />
-                              <ThemedText type="small" style={{ color: "#fff", fontWeight: "700", marginLeft: 8 }}>
-                                Generate Invite Code
-                              </ThemedText>
-                            </>
-                          )}
-                      </Pressable>
-                    ) : (
-                      <View style={[styles.codeBox, { backgroundColor: theme.backgroundSecondary }]}>
-                        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 4 }}>
-                          Share this code — expires {codeExpiry}
-                        </ThemedText>
-                        <ThemedText style={{ fontSize: 32, fontWeight: "800", letterSpacing: 6, color: theme.primary }}>
-                          {generatedCode}
-                        </ThemedText>
-                        <View style={styles.codeActions}>
-                          <Pressable onPress={shareCode} style={[styles.codeBtn, { backgroundColor: theme.primary }]}>
-                            <Feather name="share-2" size={14} color="#fff" />
-                            <ThemedText type="caption" style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Share</ThemedText>
-                          </Pressable>
-                          <Pressable onPress={() => setGeneratedCode(null)} style={[styles.codeBtn, { backgroundColor: theme.backgroundTertiary }]}>
-                            <ThemedText type="caption" style={{ fontWeight: "600" }}>New Code</ThemedText>
-                          </Pressable>
-                        </View>
-                      </View>
-                    )}
-                  </>
-                )}
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="small" style={{ fontWeight: "600" }}>My Care Team</ThemedText>
+                      <ThemedText type="caption" style={{ opacity: 0.5 }}>
+                        {relationships.asPatient.length > 0
+                          ? `${relationships.asPatient.length} member${relationships.asPatient.length !== 1 ? "s" : ""} · tap to manage`
+                          : "No one linked yet · tap to invite"}
+                      </ThemedText>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={theme.textSecondary} />
+                  </ElevatedCard>
+                </Pressable>
               </View>
 
               {/* ── D: MY HEALTH RECORDS ── */}
@@ -578,7 +477,7 @@ export default function CareHubScreen() {
                       key={tile.id}
                       onPress={() => {
                         if (!tile.screen) { Alert.alert("Coming Soon", `${tile.label} will be available in a future update.`); return; }
-                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences"];
+                        const patientScreens = ["VitalsLog", "MedicationTracker", "AppointmentScheduler", "BladderLog", "BowelLog", "PainJournal", "HydrationTracker", "MorningRoutine", "EveningRoutine", "SkinCheckLog", "CarePreferences", "RehabGoals"];
                         if (patientScreens.includes(tile.screen)) {
                           const pid = myProfile?.userId ?? jwtUserId;
                           if (!pid) { Alert.alert("Still loading", "Please wait a moment and try again."); return; }
@@ -674,6 +573,22 @@ export default function CareHubScreen() {
                 </View>
               </View>
 
+              {/* Org Report button */}
+              {patients.length > 0 && (
+                <View style={[styles.section, { paddingTop: 0 }]}>
+                  <Pressable
+                    onPress={() => navigation.navigate("OrgReport")}
+                    style={({ pressed }) => [styles.orgReportBtn, { borderColor: theme.primary, opacity: pressed ? 0.7 : 1 }]}
+                  >
+                    <Feather name="bar-chart-2" size={15} color={theme.primary} />
+                    <ThemedText type="small" style={{ color: theme.primary, fontWeight: "700", marginLeft: 6 }}>
+                      Organisation Report
+                    </ThemedText>
+                    <Feather name="chevron-right" size={15} color={theme.primary} style={{ marginLeft: "auto" }} />
+                  </Pressable>
+                </View>
+              )}
+
               {/* Patient cards */}
               {loading ? (
                 <ActivityIndicator style={{ marginTop: Spacing.xl }} color={theme.primary} />
@@ -682,7 +597,12 @@ export default function CareHubScreen() {
                   <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
                     YOUR PATIENTS
                   </ThemedText>
-                  {patients.map((p) => (
+                  {[...patients].sort((a, b) => (patientAlerts[b.patientId]?.totalAlerts ?? 0) - (patientAlerts[a.patientId]?.totalAlerts ?? 0)).map((p) => {
+                    const alerts = patientAlerts[p.patientId];
+                    const hasCritical = (alerts?.criticalWounds ?? 0) > 0;
+                    const hasUnread = (alerts?.unreadNotes ?? 0) > 0;
+                    const totalAlerts = alerts?.totalAlerts ?? 0;
+                    return (
                     <Pressable
                       key={p.patientId}
                       onPress={() => navigation.navigate("PatientDetail", {
@@ -691,13 +611,20 @@ export default function CareHubScreen() {
                         role: p.role,
                       })}
                     >
-                      <ElevatedCard style={styles.patientCard} padding={Spacing.md}>
+                      <ElevatedCard style={StyleSheet.flatten([styles.patientCard, hasCritical ? { borderLeftWidth: 3, borderLeftColor: "#FF3B30" } : undefined])} padding={Spacing.md}>
                         <View style={styles.patientCardInner}>
-                          {/* Avatar */}
-                          <View style={[styles.patientAvatar, { backgroundColor: theme.primary + "22" }]}>
-                            <ThemedText style={{ fontSize: 18, fontWeight: "800", color: theme.primary }}>
-                              {p.patientName.charAt(0).toUpperCase()}
-                            </ThemedText>
+                          {/* Avatar + total alert badge */}
+                          <View style={{ position: "relative" }}>
+                            <View style={[styles.patientAvatar, { backgroundColor: theme.primary + "22" }]}>
+                              <ThemedText style={{ fontSize: 18, fontWeight: "800", color: theme.primary }}>
+                                {p.patientName.charAt(0).toUpperCase()}
+                              </ThemedText>
+                            </View>
+                            {totalAlerts > 0 && (
+                              <View style={[styles.alertDot, { backgroundColor: hasCritical ? "#FF3B30" : "#FF9800" }]}>
+                                <ThemedText style={{ fontSize: 9, fontWeight: "800", color: "#fff" }}>{totalAlerts}</ThemedText>
+                              </View>
+                            )}
                           </View>
 
                           {/* Info */}
@@ -715,12 +642,30 @@ export default function CareHubScreen() {
                                   {ROLE_LABELS[p.role] ?? p.role}
                                 </ThemedText>
                               </View>
-                              {/* Wound count badge */}
-                              {p.activeWoundCount > 0 && (
+                              {/* Critical wound badge */}
+                              {hasCritical && (
+                                <View style={[styles.badge, { backgroundColor: "#FF3B3022" }]}>
+                                  <Feather name="alert-triangle" size={10} color="#FF3B30" />
+                                  <ThemedText type="caption" style={{ color: "#FF3B30", fontWeight: "600", fontSize: 10, marginLeft: 3 }}>
+                                    {alerts.criticalWounds} critical wound{alerts.criticalWounds !== 1 ? "s" : ""}
+                                  </ThemedText>
+                                </View>
+                              )}
+                              {/* Unread notes badge */}
+                              {hasUnread && (
+                                <View style={[styles.badge, { backgroundColor: "#FF980022" }]}>
+                                  <Feather name="book-open" size={10} color="#FF9800" />
+                                  <ThemedText type="caption" style={{ color: "#FF9800", fontWeight: "600", fontSize: 10, marginLeft: 3 }}>
+                                    {alerts.unreadNotes} unread
+                                  </ThemedText>
+                                </View>
+                              )}
+                              {/* Wound count badge (non-critical) */}
+                              {p.activeWoundCount > 0 && !hasCritical && (
                                 <View style={[styles.badge, { backgroundColor: "#FF3B3022" }]}>
                                   <Feather name="alert-circle" size={10} color="#FF3B30" />
                                   <ThemedText type="caption" style={{ color: "#FF3B30", fontWeight: "600", fontSize: 10, marginLeft: 3 }}>
-                                    {p.activeWoundCount} active {p.activeWoundCount === 1 ? "wound" : "wounds"}
+                                    {p.activeWoundCount} wound{p.activeWoundCount !== 1 ? "s" : ""}
                                   </ThemedText>
                                 </View>
                               )}
@@ -742,7 +687,8 @@ export default function CareHubScreen() {
                         ) : null}
                       </ElevatedCard>
                     </Pressable>
-                  ))}
+                    );
+                  })}
                 </View>
               ) : (
                 <View style={styles.emptyState}>
@@ -868,6 +814,126 @@ export default function CareHubScreen() {
           </KeyboardAwareScrollViewCompat>
         </View>
       </Modal>
+
+      {/* ── CARE TEAM MODAL ── */}
+      <Modal visible={showTeamModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowTeamModal(false)}>
+        <View style={[introStyles.container, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={introStyles.header}>
+            <Pressable onPress={() => setShowTeamModal(false)}>
+              <ThemedText style={{ color: theme.primary }}>Done</ThemedText>
+            </Pressable>
+            <ThemedText style={introStyles.headerTitle}>My Care Team</ThemedText>
+            <View style={{ width: 44 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.sm }}>
+            {relationships.asPatient.length > 0 ? (
+              relationships.asPatient.map((rel) => (
+                <View key={rel.id} style={[styles.personCard, { backgroundColor: theme.backgroundSecondary }]}>
+                  <View style={[styles.avatar, { backgroundColor: (ROLE_COLORS[rel.role] ?? theme.primary) + "22" }]}>
+                    <Feather name={(ROLE_ICONS[rel.role] ?? "user") as any} size={18} color={ROLE_COLORS[rel.role] ?? theme.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <ThemedText type="small" style={{ fontWeight: "600" }}>{rel.caregiver?.name}</ThemedText>
+                    <ThemedText type="caption" style={{ opacity: 0.5 }}>{ROLE_LABELS[rel.role] ?? rel.role}</ThemedText>
+                  </View>
+                  <Pressable
+                    onPress={() => revokeRelationship(rel.id, rel.caregiver?.name ?? "")}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+                  >
+                    <Feather name="x" size={18} color={theme.textSecondary} />
+                  </Pressable>
+                </View>
+              ))
+            ) : (
+              <ThemedText type="caption" style={{ opacity: 0.4 }}>No one linked yet.</ThemedText>
+            )}
+
+            <Pressable
+              onPress={() => setShowInviteForm((v) => !v)}
+              style={({ pressed }) => [styles.inviteToggleBtn, { borderColor: theme.primary, opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Feather name={showInviteForm ? "chevron-up" : "user-plus"} size={15} color={theme.primary} />
+              <ThemedText type="small" style={{ color: theme.primary, fontWeight: "700", marginLeft: 6 }}>
+                {showInviteForm ? "Hide" : "Invite someone"}
+              </ThemedText>
+            </Pressable>
+
+            {showInviteForm && (
+              <>
+                <View style={styles.roleRow}>
+                  {(["carer", "family", "clinician"] as Role[]).map((role) => {
+                    const active = selectedRole === role;
+                    const color = ROLE_COLORS[role];
+                    return (
+                      <Pressable
+                        key={role}
+                        onPress={() => { setSelectedRole(role); setGeneratedCode(null); }}
+                        style={[styles.roleCard, {
+                          backgroundColor: active ? color + "22" : theme.backgroundSecondary,
+                          borderColor: active ? color : theme.backgroundTertiary,
+                          borderWidth: active ? 2 : 1,
+                        }]}
+                      >
+                        <Feather name={ROLE_ICONS[role]} size={18} color={active ? color : theme.textSecondary} />
+                        <ThemedText type="caption" style={{ fontWeight: active ? "700" : "400", marginTop: 4, color: active ? color : theme.text }}>
+                          {ROLE_LABELS[role]}
+                        </ThemedText>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                {!generatedCode ? (
+                  <Pressable
+                    onPress={generateInvite}
+                    disabled={generating}
+                    style={[styles.generateBtn, { backgroundColor: theme.primary }]}
+                  >
+                    {generating
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : (
+                        <>
+                          <Feather name="link" size={16} color="#fff" />
+                          <ThemedText type="small" style={{ color: "#fff", fontWeight: "700", marginLeft: 8 }}>
+                            Generate Invite Code
+                          </ThemedText>
+                        </>
+                      )}
+                  </Pressable>
+                ) : (
+                  <View style={[styles.codeBox, { backgroundColor: theme.backgroundSecondary }]}>
+                    <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: Spacing.md }}>
+                      Share this invite — expires {codeExpiry}
+                    </ThemedText>
+                    <View style={styles.qrRow}>
+                      <View style={[styles.qrWrapper, { backgroundColor: "#fff", borderColor: theme.primary + "33" }]}>
+                        <QRCode value={`spinalhub://join/${generatedCode}`} size={110} color="#000" backgroundColor="#fff" />
+                      </View>
+                      <View style={styles.qrTextCol}>
+                        <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 6 }}>Or enter manually</ThemedText>
+                        <ThemedText style={{ fontSize: 20, fontWeight: "800", letterSpacing: 3, color: theme.primary }}>
+                          {generatedCode}
+                        </ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.4, marginTop: 4 }}>Scan QR or share the link</ThemedText>
+                      </View>
+                    </View>
+                    <View style={[styles.codeActions, { width: "100%" }]}>
+                      <Pressable onPress={shareCode} style={[styles.codeBtn, { backgroundColor: theme.primary, flex: 1 }]}>
+                        <Feather name="share-2" size={14} color="#fff" />
+                        <ThemedText type="caption" style={{ color: "#fff", fontWeight: "700", marginLeft: 6 }}>Share Link</ThemedText>
+                      </Pressable>
+                      <Pressable onPress={() => setGeneratedCode(null)} style={[styles.codeBtn, { backgroundColor: theme.backgroundTertiary }]}>
+                        <ThemedText type="caption" style={{ fontWeight: "600" }}>New</ThemedText>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -905,7 +971,10 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     padding: Spacing.md, borderRadius: BorderRadius.medium, gap: 6,
   },
-  codeBox: { borderRadius: BorderRadius.medium, padding: Spacing.lg, alignItems: "center", gap: 8 },
+  codeBox: { borderRadius: BorderRadius.medium, padding: Spacing.lg, alignItems: "center", gap: Spacing.sm, width: "100%" },
+  qrRow: { flexDirection: "row", alignItems: "center", gap: Spacing.lg, marginBottom: Spacing.sm, width: "100%" },
+  qrWrapper: { borderRadius: 12, padding: 10, borderWidth: 1 },
+  qrTextCol: { flex: 1 },
   codeActions: { flexDirection: "row", gap: Spacing.sm, marginTop: 4 },
   codeBtn: {
     flexDirection: "row", alignItems: "center", paddingHorizontal: Spacing.md,
@@ -927,6 +996,12 @@ const styles = StyleSheet.create({
   patientAvatar: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   badgeRow: { flexDirection: "row", gap: 6, marginTop: 6, flexWrap: "wrap" },
   badge: { flexDirection: "row", alignItems: "center", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
+  alertDot: {
+    position: "absolute", top: -4, right: -4,
+    minWidth: 18, height: 18, borderRadius: 9,
+    alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 3,
+  },
 
   // Patient dashboard
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.xs, marginBottom: 2 },
@@ -948,6 +1023,18 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     borderWidth: 1, borderRadius: BorderRadius.medium,
     paddingHorizontal: Spacing.md, paddingVertical: 10,
+  },
+  roleChipRow: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xs },
+  roleChip: {
+    flexDirection: "row", alignItems: "center", alignSelf: "flex-start",
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, gap: 5,
+  },
+  roleChipText: { fontSize: 12, fontWeight: "700" },
+  orgReportBtn: {
+    flexDirection: "row", alignItems: "center",
+    borderWidth: 1, borderRadius: BorderRadius.medium,
+    paddingHorizontal: Spacing.md, paddingVertical: 12,
   },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tile: { position: "relative" },

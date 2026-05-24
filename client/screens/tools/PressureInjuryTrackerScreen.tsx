@@ -321,7 +321,7 @@ export default function PressureInjuryTrackerScreen() {
 
       {/* FAB — Care Network */}
       <Pressable
-        onPress={() => navigation.navigate("CareNetwork")}
+        onPress={() => (navigation as any).navigate("CareTab")}
         style={[styles.fab, { backgroundColor: theme.primary, bottom: insets.bottom + Spacing.lg }]}
       >
         <Feather name="users" size={20} color="#fff" />

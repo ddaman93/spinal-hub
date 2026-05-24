@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useLayoutEffect, useRef, useEffect } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -19,8 +19,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useTour } from "@/context/TourContext";
 import { TourTarget } from "@/components/TourTarget";
 import { Spacing, BorderRadius } from "@/constants/theme";
-import { UserProfile } from "@/types/user";
+import { UserProfile, UserRole } from "@/types/user";
 import { MainStackParamList } from "@/types/navigation";
+import { getApiUrl } from "@/lib/query-client";
+import { getToken } from "@/lib/auth";
+
+type RoleOption = { role: UserRole; icon: React.ComponentProps<typeof Feather>["name"]; label: string; color: string };
+const ROLE_OPTIONS: RoleOption[] = [
+  { role: "sci_patient",         icon: "user",      label: "SCI Patient",         color: "#5B8DEF" },
+  { role: "caregiver",           icon: "heart",     label: "Caregiver",           color: "#00E676" },
+  { role: "health_professional", icon: "briefcase", label: "Health Professional", color: "#AF52DE" },
+  { role: "family_member",       icon: "users",     label: "Family Member",       color: "#FF9800" },
+];
 
 export const PROFILE_STORAGE_KEY = "user_profile";
 
@@ -59,10 +69,31 @@ export default function ProfileScreen() {
   const { registerScrollRef } = useTour();
   const scrollRef = useRef<ScrollView>(null);
   const [user, setUser] = useState<UserProfile>(DEFAULT_USER);
+  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const [savingRole, setSavingRole] = useState(false);
 
   useEffect(() => {
     registerScrollRef("ProfileTab", scrollRef);
   }, [registerScrollRef]);
+
+  async function changeRole(role: UserRole) {
+    if (role === currentRole) return;
+    setSavingRole(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${getApiUrl()}/api/profile`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      if (!res.ok) throw new Error();
+      setCurrentRole(role);
+    } catch {
+      Alert.alert("Error", "Could not update role. Please try again.");
+    } finally {
+      setSavingRole(false);
+    }
+  }
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -88,6 +119,13 @@ export default function ProfileScreen() {
     useCallback(() => {
       AsyncStorage.getItem(PROFILE_STORAGE_KEY).then((raw) => {
         if (raw) setUser(JSON.parse(raw));
+      });
+      getToken().then((token) => {
+        if (!token) return;
+        fetch(`${getApiUrl()}/api/profile`, { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => r.ok ? r.json() : null)
+          .then((p) => { if (p?.role) setCurrentRole(p.role as UserRole); })
+          .catch(() => {});
       });
     }, [])
   );
@@ -135,6 +173,48 @@ export default function ProfileScreen() {
           <ProfileItem icon="file-text" label="Caregiver Notes" value={user.caregiverNotes} isLast />
         </ProfileSection>
 
+        {/* Role switcher */}
+        <ProfileSection title="My Role">
+          <View style={{ paddingVertical: Spacing.sm }}>
+            <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: Spacing.md }}>
+              Change if you selected the wrong role during setup.
+            </ThemedText>
+            <View style={roleStyles.grid}>
+              {ROLE_OPTIONS.map((opt) => {
+                const active = currentRole === opt.role;
+                return (
+                  <Pressable
+                    key={opt.role}
+                    onPress={() => changeRole(opt.role)}
+                    disabled={savingRole}
+                    style={({ pressed }) => [
+                      roleStyles.card,
+                      {
+                        backgroundColor: active ? opt.color + "22" : "transparent",
+                        borderColor: active ? opt.color : "rgba(128,128,128,0.2)",
+                        borderWidth: active ? 2 : 1,
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <Feather name={opt.icon} size={20} color={active ? opt.color : theme.textSecondary} />
+                    <ThemedText
+                      type="caption"
+                      style={{ fontWeight: active ? "700" : "400", color: active ? opt.color : theme.text, marginTop: 6, textAlign: "center" }}
+                      numberOfLines={2}
+                    >
+                      {opt.label}
+                    </ThemedText>
+                    {active && savingRole && (
+                      <ActivityIndicator size="small" color={opt.color} style={{ marginTop: 4 }} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </ProfileSection>
+
         {/* Emergency Medical Card */}
         <Pressable
           onPress={() => navigation.navigate("EmergencyCard")}
@@ -167,6 +247,15 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+});
+
+const roleStyles = RNStyleSheet.create({
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  card: {
+    width: "47%", alignItems: "center", justifyContent: "center",
+    paddingVertical: Spacing.md, paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.medium, minHeight: 80,
+  },
 });
 
 const signOutStyles = RNStyleSheet.create({
