@@ -3,7 +3,7 @@
     "name": "Spinal Hub",
     "slug": "spinal-hub",
     "owner": "spinal-hub",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "spinalhub",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.spinalhub.app",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Spinal Hub uses your location to show local weather, nearby accessible transport, and carer services in your area.",
         "NSCameraUsageDescription": "Spinal Hub uses your camera to document wound progress photos.",
@@ -38,7 +38,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.spinalhub.app",
-      "versionCode": 8,
+      "versionCode": 9,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
