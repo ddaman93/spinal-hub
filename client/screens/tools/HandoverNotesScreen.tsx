@@ -166,7 +166,8 @@ function IsbarRow({ label, color, text }: { label: string; color: string; text: 
 // ---------------------------------------------------------------------------
 
 export default function HandoverNotesScreen() {
-  const { params } = useRoute<Route>();
+  const route = useRoute<Route>();
+  const params = route.params ?? { patientId: "", patientName: "Care Log" };
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const stripRef = useRef<ScrollView>(null);

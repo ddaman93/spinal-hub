@@ -648,7 +648,7 @@ function ToolsStackNavigator() {
         component={HandoverNotesScreen}
         options={({ route }) => ({
           ...opaqueScreenOptions,
-          headerTitle: `${route.params.patientName} — Handover Notes`,
+          headerTitle: `${route.params?.patientName ?? "Handover Log"} — Handover Notes`,
         })}
       />
 
@@ -880,7 +880,7 @@ function CareStackNavigator() {
         component={HandoverNotesScreen}
         options={({ route }) => ({
           ...opaqueScreenOptions,
-          headerTitle: `${route.params.patientName} — Handover Notes`,
+          headerTitle: `${route.params?.patientName ?? "Handover Log"} — Handover Notes`,
         })}
       />
       <CareStack.Screen
