@@ -1,5 +1,18 @@
 # Spinal Hub — Claude Instructions
 
+## CRITICAL: Branch & File Rules
+
+**`dev.command` must NEVER be committed to `main`.**
+- It is local dev tooling only — it starts a local server and Expo on LAN.
+- `main` runs on Render (production server). `dev.command` has no place there.
+- When merging a feature branch into `main`, always exclude it:
+  ```bash
+  git checkout main
+  git merge <feature-branch> --no-commit
+  git restore main -- dev.command
+  git commit
+  ```
+
 ## App Store Build Rules
 
 **Every time you touch `app.json` for a build or submit:**

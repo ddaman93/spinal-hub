@@ -27,7 +27,9 @@ export function verifyToken(token: string): JwtPayload {
 export function extractToken(req: Request): string | null {
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith("Bearer ")) return null;
-  return auth.slice(7);
+  const token = auth.slice(7);
+  if (!token || token === "null" || token === "undefined") return null;
+  return token;
 }
 
 export async function registerRoute(req: Request, res: Response) {

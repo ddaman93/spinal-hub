@@ -249,12 +249,14 @@ export default function CareHubScreen() {
     setJoining(true);
     try {
       const token = await getToken();
+      if (!token) { Alert.alert("Sign in required", "Please sign in or create an account before joining a care network."); setJoining(false); return; }
       const res = await fetch(`${getApiUrl()}/api/care/join`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ code: joinCode.trim() }),
       });
       const data = await res.json();
+      if (res.status === 401) { Alert.alert("Session expired", "Please sign out and sign back in, then try the code again."); return; }
       if (!res.ok) { Alert.alert("Error", data.message ?? "Invalid code."); return; }
       Alert.alert("Linked!", `You are now linked to ${data.patientName} as their ${ROLE_LABELS[data.role] ?? data.role}.`);
       setJoinCode("");
