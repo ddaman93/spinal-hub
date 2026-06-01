@@ -207,17 +207,11 @@ function configureExpoAndLanding(app: express.Application) {
   .alt { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 18px; }
   .alt a { color: #00E676; text-decoration: none; }
 </style>
-<script>
-  // Try to open the app immediately on page load
-  setTimeout(function () {
-    window.location.href = ${JSON.stringify(deepLink)};
-  }, 50);
-</script>
 </head>
 <body>
   <div class="card">
     <h1>Join Care Team</h1>
-    <p>Opening Spinal Hub…</p>
+    <p>You've been invited to join a Spinal Hub care network.</p>
     <div class="code">${code}</div>
     <a class="btn" href="${deepLink}">Open Spinal Hub</a>
     <p class="alt">
