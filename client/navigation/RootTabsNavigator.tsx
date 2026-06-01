@@ -28,6 +28,7 @@ import SciNewsListScreen from "@/screens/SciNewsListScreen";
 
 import PressureReliefTimerScreen from "@/screens/tools/PressureReliefTimerScreen";
 import VitalsLogScreen from "@/screens/tools/VitalsLogScreen";
+import MyDocumentsScreen from "@/screens/tools/MyDocumentsScreen";
 import PainJournalScreen from "@/screens/tools/PainJournalScreen";
 import MedicationTrackerScreen from "@/screens/tools/MedicationTrackerScreen";
 import HydrationTrackerScreen from "@/screens/tools/HydrationTrackerScreen";
@@ -333,6 +334,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="MedicationTracker" component={MedicationTrackerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Medications" }} />
       <HomeStack.Screen name="HydrationTracker" component={HydrationTrackerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Hydration Tracker" }} />
       <HomeStack.Screen name="PressureReliefTimer" component={PressureReliefTimerScreen} options={{ ...opaqueScreenOptions, headerTitle: "Pressure Relief" }} />
+      <HomeStack.Screen name="MyDocuments" component={MyDocumentsScreen} options={{ ...opaqueScreenOptions, headerTitle: "My Documents" }} />
     </HomeStack.Navigator>
   );
 }
@@ -991,6 +993,11 @@ function CareStackNavigator() {
           ...opaqueScreenOptions,
           headerTitle: `${(route.params as any)?.patientName ?? "Patient"} — Care Preferences`,
         })}
+      />
+      <CareStack.Screen
+        name="MyDocuments"
+        component={MyDocumentsScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "My Documents" }}
       />
     </CareStack.Navigator>
   );
