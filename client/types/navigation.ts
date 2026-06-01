@@ -102,6 +102,8 @@ export type MainStackParamList = {
   CommunityChat: undefined;
   ChatRoom: { channelId: string; channelName: string };
 
+  MyDocuments: undefined;
+
   AutonomicDysreflexia: undefined;
   SCIMedications: undefined;
   SCIMedicationDetail: {
