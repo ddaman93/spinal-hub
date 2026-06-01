@@ -20,13 +20,18 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -n "$URL" | pbcopy
 echo "  ✅ Expo URL copied to clipboard"
-echo "  Open Messages on your Mac, paste it, send to yourself"
 echo ""
-open -a Messages
 
 # Write .env.local to override production EXPO_PUBLIC_DOMAIN
 # (.env.local has higher priority than .env in Expo's loading order)
 echo "EXPO_PUBLIC_DOMAIN=http://$IP:3000" > .env.local
+
+# Trap ensures .env.local is ALWAYS deleted on exit — even Ctrl+C, crash, or closed terminal
+cleanup() {
+  rm -f .env.local
+  kill $SERVER_PID 2>/dev/null
+}
+trap cleanup EXIT
 
 # Kill any stale server process on port 3000
 lsof -ti:3000 | xargs kill -9 2>/dev/null
@@ -39,8 +44,4 @@ SERVER_PID=$!
 sleep 2
 
 # Start Expo
-npx expo start --lan
-
-# Clean up
-rm -f .env.local
-kill $SERVER_PID 2>/dev/null
+npx expo start --lan --clear

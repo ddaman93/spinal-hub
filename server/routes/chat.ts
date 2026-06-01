@@ -147,6 +147,75 @@ export async function getAdminReports(req: Request, res: Response) {
   }
 }
 
+const DELETED_MARKER = "[deleted]";
+
+export async function deleteChatMessage(req: Request, res: Response) {
+  const token = extractToken(req);
+  if (!token) return res.status(401).json({ error: "Authentication required." });
+
+  let userId: string;
+  try {
+    userId = verifyToken(token).id;
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token." });
+  }
+
+  const { id } = req.params;
+  try {
+    const rows = await db.select().from(chatMessages).where(eq(chatMessages.id, id)).limit(1);
+    if (rows.length === 0) return res.status(404).json({ error: "Message not found." });
+    if (rows[0].authorId !== userId) return res.status(403).json({ error: "Not your message." });
+
+    await db
+      .update(chatMessages)
+      .set({ text: DELETED_MARKER })
+      .where(eq(chatMessages.id, id));
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("deleteChatMessage error:", err);
+    return res.status(500).json({ error: "Failed to delete message." });
+  }
+}
+
+export async function editChatMessage(req: Request, res: Response) {
+  const token = extractToken(req);
+  if (!token) return res.status(401).json({ error: "Authentication required." });
+
+  let userId: string;
+  try {
+    userId = verifyToken(token).id;
+  } catch {
+    return res.status(401).json({ error: "Invalid or expired token." });
+  }
+
+  const { id } = req.params;
+  const { text } = req.body;
+  if (!text || typeof text !== "string" || text.trim().length === 0) {
+    return res.status(400).json({ error: "text is required" });
+  }
+  if (text.trim().length > 1000) {
+    return res.status(400).json({ error: "message too long (max 1000 chars)" });
+  }
+
+  try {
+    const rows = await db.select().from(chatMessages).where(eq(chatMessages.id, id)).limit(1);
+    if (rows.length === 0) return res.status(404).json({ error: "Message not found." });
+    if (rows[0].authorId !== userId) return res.status(403).json({ error: "Not your message." });
+
+    const updated = await db
+      .update(chatMessages)
+      .set({ text: text.trim() })
+      .where(eq(chatMessages.id, id))
+      .returning();
+
+    return res.json(toClientMessage(updated[0]));
+  } catch (err) {
+    console.error("editChatMessage error:", err);
+    return res.status(500).json({ error: "Failed to edit message." });
+  }
+}
+
 export async function deleteAdminMessage(req: Request, res: Response) {
   const secret = req.headers["x-admin-secret"];
   if (!process.env.ADMIN_SECRET || secret !== process.env.ADMIN_SECRET) {
@@ -176,6 +245,7 @@ function toClientMessage(row: typeof chatMessages.$inferSelect) {
   return {
     id: row.id,
     channel: row.channel,
+    authorId: row.authorId,
     author: row.authorName,
     text: row.text,
     timestamp: row.createdAt.toISOString(),

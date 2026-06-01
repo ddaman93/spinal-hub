@@ -183,6 +183,7 @@ export default function DashboardScreen() {
   const [liveTrials, setLiveTrials] = useState<LiveTrial[]>([]);
   const [liveLoading, setLiveLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [communityUnread, setCommunityUnread] = useState(false);
 
   /* ───────── username + userId ───────── */
   useFocusEffect(
@@ -304,6 +305,34 @@ export default function DashboardScreen() {
     loadWeather();
     return () => { cancelled = true; };
   }, []);
+
+  /* ───────── community unread ───────── */
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const CHANNEL_IDS = ["general", "equipment-tech", "care-companies", "transport", "health-wellness", "research-trials", "spinal-units", "acc"];
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem("chat_last_read_v1");
+          const lastRead: Record<string, string> = raw ? JSON.parse(raw) : {};
+          const base = getApiUrl();
+          const results = await Promise.all(CHANNEL_IDS.map(async (id) => {
+            try {
+              const res = await fetch(`${base}/api/chat/${id}`);
+              if (!res.ok) return false;
+              const rows: Array<{ timestamp: string }> = await res.json();
+              if (rows.length === 0) return false;
+              const lastTs = rows[rows.length - 1].timestamp;
+              const lr = lastRead[id];
+              return !lr || new Date(lastTs).getTime() > new Date(lr).getTime();
+            } catch { return false; }
+          }));
+          if (active) setCommunityUnread(results.some(Boolean));
+        } catch {}
+      })();
+      return () => { active = false; };
+    }, [])
+  );
 
   /* ───────── trials ───────── */
   useFocusEffect(
@@ -644,9 +673,14 @@ export default function DashboardScreen() {
             <View style={styles.tileRow}>
               <Pressable style={({ pressed }) => [styles.exploreTile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => (navigation as any).navigate("ToolsTab", { screen: "CommunityChat" })}>
                 <LinearGradient colors={isDark ? ["#10B98110", "#10B98105"] : ["#10B9810a", "#10B98103"]} style={[styles.exploreTileGradient, { borderColor: isDark ? "#10B98128" : "#10B9811a" }]}>
-                  <IconCircle color="#10B981" name="message-square" size={18} />
+                  <View>
+                    <IconCircle color="#10B981" name="message-square" size={18} />
+                    {communityUnread && (
+                      <View style={{ position: "absolute", top: -2, right: -2, width: 10, height: 10, borderRadius: 5, backgroundColor: "#EF4444", borderWidth: 1.5, borderColor: isDark ? "#0a0a0a" : "#ffffff" }} />
+                    )}
+                  </View>
                   <ThemedText style={[styles.tileLabel, { color: "#10B981" }]}>Community</ThemedText>
-                  <ThemedText style={styles.exploreTilePreview}>Chat rooms</ThemedText>
+                  <ThemedText style={styles.exploreTilePreview}>{communityUnread ? "New messages" : "Chat rooms"}</ThemedText>
                 </LinearGradient>
               </Pressable>
 
