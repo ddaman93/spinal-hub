@@ -99,6 +99,9 @@ export type MainStackParamList = {
     patientName: string;
   };
 
+  CommunityChat: undefined;
+  ChatRoom: { channelId: string; channelName: string };
+
   AutonomicDysreflexia: undefined;
   SCIMedications: undefined;
   SCIMedicationDetail: {

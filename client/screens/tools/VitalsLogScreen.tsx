@@ -7,6 +7,7 @@ import { LineChart } from "react-native-gifted-charts";
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -48,16 +49,57 @@ type VitalConfig = {
   getScore: (entry: VitalEntry) => 0 | 1 | 2 | 3;
 };
 
+// Per-user vital ranges (per-patient, local-only)
+type BpRange = { sysMin: number; sysMax: number; diaMin: number; diaMax: number };
+type SimpleRange = { min: number; max: number };
+type VitalRanges = {
+  blood_pressure?: BpRange;
+  heart_rate?: SimpleRange;
+  oxygen?: SimpleRange;
+  temperature?: SimpleRange;
+  resp_rate?: SimpleRange;
+};
+const VITAL_RANGES_KEY_PREFIX = "vital_ranges_v1:";
+function rangesKey(patientId: string) { return `${VITAL_RANGES_KEY_PREFIX}${patientId || "self"}`; }
+
 // NEWS2-derived scoring (0=normal, 1=low concern, 2=concern, 3=critical)
 // SCI adaptation: systolic ≥150 = amber (Autonomic Dysreflexia risk)
-function scoreBP(entry: VitalEntry): 0 | 1 | 2 | 3 {
-  const sys = entry.systolic ?? parseInt(entry.value);
-  if (isNaN(sys)) return 0;
-  if (sys < 91 || sys >= 220) return 3;
-  if (sys < 101) return 2;
-  if (sys < 111 || sys >= 150) return 1;
-  return 0;
+function makeScoreBP(range: BpRange | undefined) {
+  return function scoreBP(entry: VitalEntry): 0 | 1 | 2 | 3 {
+    const sys = entry.systolic ?? parseInt(entry.value);
+    if (isNaN(sys)) return 0;
+    if (sys >= 220) return 3;
+    if (sys >= 150) return 1; // AD safety floor — always
+    if (range) {
+      if (sys < range.sysMin - 20) return 3;
+      if (sys < range.sysMin - 10) return 2;
+      if (sys < range.sysMin) return 1;
+      if (sys > range.sysMax) return 1;
+      return 0;
+    }
+    if (sys < 91) return 3;
+    if (sys < 101) return 2;
+    if (sys < 111) return 1;
+    return 0;
+  };
 }
+
+function makeSimpleScorer(defaultScorer: (e: VitalEntry) => 0 | 1 | 2 | 3, range: SimpleRange | undefined) {
+  if (!range) return defaultScorer;
+  return function (entry: VitalEntry): 0 | 1 | 2 | 3 {
+    const v = parseFloat(entry.value);
+    if (isNaN(v)) return 0;
+    const span = range.max - range.min;
+    const critOff = Math.max(span * 0.5, 10);
+    const concernOff = Math.max(span * 0.25, 5);
+    if (v < range.min - critOff || v > range.max + critOff) return 3;
+    if (v < range.min - concernOff || v > range.max + concernOff) return 2;
+    if (v < range.min || v > range.max) return 1;
+    return 0;
+  };
+}
+
+const defaultScoreBP = makeScoreBP(undefined);
 
 function scoreHR(entry: VitalEntry): 0 | 1 | 2 | 3 {
   const hr = parseFloat(entry.value);
@@ -130,7 +172,7 @@ const VITAL_CONFIGS: VitalConfig[] = [
     icon: "activity",
     placeholder: ["120", "80"],
     reference: "111–149 / <90",
-    getScore: scoreBP,
+    getScore: defaultScoreBP,
   },
   {
     key: "heart_rate",
@@ -232,6 +274,85 @@ export default function VitalsLogScreen() {
   const [systolic, setSystolic] = useState("");
   const [diastolic, setDiastolic] = useState("");
   const [notes, setNotes] = useState("");
+  const [ranges, setRanges] = useState<VitalRanges>({});
+  const [rangeModalKey, setRangeModalKey] = useState<VitalKey | null>(null);
+  const [bpDraft, setBpDraft] = useState({ sysMin: "", sysMax: "", diaMin: "", diaMax: "" });
+  const [simpleDraft, setSimpleDraft] = useState({ min: "", max: "" });
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem(rangesKey(patientId)).then((raw) => {
+      if (raw) {
+        try { setRanges(JSON.parse(raw) as VitalRanges); } catch { setRanges({}); }
+      } else {
+        setRanges({});
+      }
+    });
+  }, [patientId]));
+
+  const bpRange = ranges.blood_pressure;
+
+  const openRangeModal = (key: VitalKey) => {
+    setRangeModalKey(key);
+    if (key === "blood_pressure") {
+      const r = ranges.blood_pressure;
+      setBpDraft({
+        sysMin: r ? String(r.sysMin) : "",
+        sysMax: r ? String(r.sysMax) : "",
+        diaMin: r ? String(r.diaMin) : "",
+        diaMax: r ? String(r.diaMax) : "",
+      });
+    } else {
+      const r = ranges[key];
+      setSimpleDraft({ min: r ? String(r.min) : "", max: r ? String(r.max) : "" });
+    }
+  };
+
+  const closeRangeModal = () => setRangeModalKey(null);
+
+  const persistRanges = async (next: VitalRanges) => {
+    await AsyncStorage.setItem(rangesKey(patientId), JSON.stringify(next));
+    setRanges(next);
+  };
+
+  const saveRange = async () => {
+    if (!rangeModalKey) return;
+    if (rangeModalKey === "blood_pressure") {
+      const sysMin = parseInt(bpDraft.sysMin);
+      const sysMax = parseInt(bpDraft.sysMax);
+      const diaMin = parseInt(bpDraft.diaMin);
+      const diaMax = parseInt(bpDraft.diaMax);
+      if ([sysMin, sysMax, diaMin, diaMax].some(isNaN)) {
+        Alert.alert("Invalid", "Enter all 4 numbers.");
+        return;
+      }
+      if (sysMin >= sysMax || diaMin >= diaMax) {
+        Alert.alert("Invalid", "Min must be less than max.");
+        return;
+      }
+      await persistRanges({ ...ranges, blood_pressure: { sysMin, sysMax, diaMin, diaMax } });
+    } else {
+      const min = parseFloat(simpleDraft.min);
+      const max = parseFloat(simpleDraft.max);
+      if (isNaN(min) || isNaN(max)) {
+        Alert.alert("Invalid", "Enter both min and max.");
+        return;
+      }
+      if (min >= max) {
+        Alert.alert("Invalid", "Min must be less than max.");
+        return;
+      }
+      await persistRanges({ ...ranges, [rangeModalKey]: { min, max } });
+    }
+    closeRangeModal();
+  };
+
+  const resetRange = async () => {
+    if (!rangeModalKey) return;
+    const next = { ...ranges };
+    delete next[rangeModalKey];
+    await persistRanges(next);
+    closeRangeModal();
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -312,7 +433,28 @@ export default function VitalsLogScreen() {
     else groups.push({ label, items: [entry] });
   }
 
-  const cfg = VITAL_CONFIGS.find((v) => v.key === selectedType)!;
+  // Per-user scoring + reference overrides
+  const VITAL_CONFIGS_LIVE = useMemo<VitalConfig[]>(() => VITAL_CONFIGS.map((c) => {
+    if (c.key === "blood_pressure") {
+      const r = ranges.blood_pressure;
+      return {
+        ...c,
+        getScore: makeScoreBP(r),
+        reference: r ? `${r.sysMin}–${r.sysMax} / ${r.diaMin}–${r.diaMax}` : c.reference,
+      };
+    }
+    const r = ranges[c.key];
+    return {
+      ...c,
+      getScore: makeSimpleScorer(c.getScore, r),
+      reference: r ? `${r.min}–${r.max}` : c.reference,
+    };
+  }), [ranges]);
+  const getConfigLive = (key: string) => VITAL_CONFIGS_LIVE.find((v) => v.key === key);
+  const hasCustom = (key: VitalKey) => !!ranges[key];
+  const anyCustom = Object.keys(ranges).length > 0;
+
+  const cfg = VITAL_CONFIGS_LIVE.find((v) => v.key === selectedType)!;
 
   // Trend chart data
   const trendEntries = useMemo(() => {
@@ -351,8 +493,13 @@ export default function VitalsLogScreen() {
   }, [lineData]);
 
   const trendColor = CHART_COLORS[trendVitalKey];
-  const trendRef = CHART_REFS[trendVitalKey];
-  const trendCfg = VITAL_CONFIGS.find((v) => v.key === trendVitalKey)!;
+  const trendRef = (() => {
+    if (trendVitalKey === "blood_pressure" && bpRange) return { min: bpRange.sysMin, max: bpRange.sysMax };
+    const r = ranges[trendVitalKey];
+    if (r && trendVitalKey !== "blood_pressure") return { min: (r as SimpleRange).min, max: (r as SimpleRange).max };
+    return CHART_REFS[trendVitalKey];
+  })();
+  const trendCfg = VITAL_CONFIGS_LIVE.find((v) => v.key === trendVitalKey)!;
 
   return (
     <ThemedView style={styles.container}>
@@ -514,7 +661,7 @@ export default function VitalsLogScreen() {
             <ActivityIndicator color={theme.primary} style={{ marginTop: Spacing.lg }} />
           ) : (
             <View style={styles.tileGrid}>
-              {VITAL_CONFIGS.map((cfg) => {
+              {VITAL_CONFIGS_LIVE.map((cfg) => {
                 const entry = latest[cfg.key];
                 const score = entry ? cfg.getScore(entry) : null;
                 const color = score != null ? SCORE_COLORS[score] : theme.textSecondary;
@@ -574,21 +721,36 @@ export default function VitalsLogScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionDot, { backgroundColor: "#5B8DEF" }]} />
-            <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>NEWS2 REFERENCE RANGES</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+              {anyCustom ? "REFERENCE RANGES (CUSTOMISED)" : "NEWS2 REFERENCE RANGES"}
+            </ThemedText>
           </View>
           <View style={[styles.refCard, { backgroundColor: theme.backgroundDefault }]}>
-            {VITAL_CONFIGS.map((cfg, i) => (
-              <View
-                key={cfg.key}
-                style={[styles.refRow, i < VITAL_CONFIGS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border ?? "#E0E0E0" }]}
-              >
-                <ThemedText style={[styles.refLabel, { color: theme.textSecondary }]}>{cfg.label}</ThemedText>
-                <View style={styles.refRight}>
-                  <View style={[styles.refDot, { backgroundColor: "#22c55e" }]} />
-                  <ThemedText style={{ fontSize: 12, color: theme.text }}>{cfg.reference}</ThemedText>
+            {VITAL_CONFIGS_LIVE.map((cfg, i) => {
+              const custom = hasCustom(cfg.key);
+              return (
+                <View
+                  key={cfg.key}
+                  style={[styles.refRow, i < VITAL_CONFIGS_LIVE.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border ?? "#E0E0E0" }]}
+                >
+                  <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <ThemedText style={[styles.refLabel, { color: theme.textSecondary }]}>{cfg.label}</ThemedText>
+                    {custom && (
+                      <View style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: theme.primary + "22" }}>
+                        <ThemedText style={{ fontSize: 9, fontWeight: "700", color: theme.primary }}>YOUR RANGE</ThemedText>
+                      </View>
+                    )}
+                  </View>
+                  <View style={styles.refRight}>
+                    <View style={[styles.refDot, { backgroundColor: "#22c55e" }]} />
+                    <ThemedText style={{ fontSize: 12, color: theme.text }}>{cfg.reference}</ThemedText>
+                    <Pressable onPress={() => openRangeModal(cfg.key)} hitSlop={8} style={{ marginLeft: 6 }}>
+                      <Feather name="edit-2" size={13} color={theme.primary} />
+                    </Pressable>
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
             <View style={[styles.adRefRow, { backgroundColor: "#ef444414", borderRadius: BorderRadius.small }]}>
               <Feather name="alert-triangle" size={12} color="#ef4444" />
               <ThemedText style={{ fontSize: 11, color: "#ef4444", flex: 1 }}>
@@ -611,7 +773,7 @@ export default function VitalsLogScreen() {
                 <ThemedText style={[styles.historyGroupLabel, { color: theme.textSecondary }]}>{group.label}</ThemedText>
                 <View style={[styles.historyCard, { backgroundColor: theme.backgroundDefault }]}>
                   {group.items.map((entry, i) => {
-                    const vc = getConfig(entry.type);
+                    const vc = getConfigLive(entry.type);
                     const score = vc ? vc.getScore(entry) : 0;
                     const color = SCORE_COLORS[score];
                     const isLast = i === group.items.length - 1;
@@ -713,11 +875,17 @@ export default function VitalsLogScreen() {
             </ScrollView>
 
             {/* reference range reminder */}
-            <View style={[styles.refReminder, { backgroundColor: theme.backgroundDefault }]}>
+            <View style={[styles.refReminder, { backgroundColor: theme.backgroundDefault, flexDirection: "row", alignItems: "center" }]}>
               <View style={[styles.refDot, { backgroundColor: "#22c55e" }]} />
-              <ThemedText style={{ fontSize: 13, color: theme.textSecondary }}>
-                Normal: <ThemedText style={{ fontWeight: "700", color: theme.text }}>{cfg.reference}</ThemedText>  ·  {cfg.unit}
+              <ThemedText style={{ fontSize: 13, color: theme.textSecondary, flex: 1 }}>
+                {hasCustom(selectedType) ? "Your range" : "Normal"}: <ThemedText style={{ fontWeight: "700", color: theme.text }}>{cfg.reference}</ThemedText>  ·  {cfg.unit}
               </ThemedText>
+              <Pressable onPress={() => { setModalVisible(false); setTimeout(() => openRangeModal(selectedType), 250); }} hitSlop={8} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Feather name="edit-2" size={12} color={theme.primary} />
+                <ThemedText style={{ fontSize: 12, fontWeight: "600", color: theme.primary }}>
+                  {hasCustom(selectedType) ? "Edit" : "Customise"}
+                </ThemedText>
+              </Pressable>
             </View>
 
             {/* value input */}
@@ -779,6 +947,77 @@ export default function VitalsLogScreen() {
             <Button onPress={handleSave} style={styles.saveButton} disabled={saving}>
               {saving ? "Saving…" : "Record Observation"}
             </Button>
+          </KeyboardAwareScrollViewCompat>
+        </View>
+      </Modal>
+
+      {/* ── RANGE CUSTOMISE MODAL ── */}
+      <Modal visible={rangeModalKey !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeRangeModal}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h3">My usual {rangeModalKey ? getConfigLive(rangeModalKey)?.label.toLowerCase() : ""} range</ThemedText>
+            <Pressable onPress={closeRangeModal}>
+              <ThemedText type="body" style={{ color: theme.primary }}>Cancel</ThemedText>
+            </Pressable>
+          </View>
+
+          <KeyboardAwareScrollViewCompat style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+            <ThemedText style={{ fontSize: 13, color: theme.textSecondary, lineHeight: 19, marginBottom: Spacing.lg }}>
+              {rangeModalKey === "blood_pressure"
+                ? "People with SCI often run lower or higher than the standard NEWS2 range. Set your usual range so readings are scored against what's normal for you. Systolic ≥150 always flags Autonomic Dysreflexia risk regardless."
+                : "Set the range that is normal for you. Readings outside will flag as low concern; far outside will flag as critical."}
+            </ThemedText>
+
+            {rangeModalKey === "blood_pressure" ? (
+              <>
+                <ThemedText style={[styles.formLabel, { color: theme.textSecondary }]}>SYSTOLIC (mmHg)</ThemedText>
+                <View style={styles.bpRow}>
+                  <View style={styles.bpField}>
+                    <ThemedText style={[styles.bpFieldLabel, { color: theme.textSecondary }]}>Min</ThemedText>
+                    <TextInput value={bpDraft.sysMin} onChangeText={(t) => setBpDraft((d) => ({ ...d, sysMin: t }))} keyboardType="numeric" placeholder="90" placeholderTextColor={theme.textSecondary} style={[styles.bigInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]} maxLength={3} />
+                  </View>
+                  <ThemedText style={[styles.bpSlash, { color: theme.textSecondary }]}>–</ThemedText>
+                  <View style={styles.bpField}>
+                    <ThemedText style={[styles.bpFieldLabel, { color: theme.textSecondary }]}>Max</ThemedText>
+                    <TextInput value={bpDraft.sysMax} onChangeText={(t) => setBpDraft((d) => ({ ...d, sysMax: t }))} keyboardType="numeric" placeholder="130" placeholderTextColor={theme.textSecondary} style={[styles.bigInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]} maxLength={3} />
+                  </View>
+                </View>
+                <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>DIASTOLIC (mmHg)</ThemedText>
+                <View style={styles.bpRow}>
+                  <View style={styles.bpField}>
+                    <ThemedText style={[styles.bpFieldLabel, { color: theme.textSecondary }]}>Min</ThemedText>
+                    <TextInput value={bpDraft.diaMin} onChangeText={(t) => setBpDraft((d) => ({ ...d, diaMin: t }))} keyboardType="numeric" placeholder="60" placeholderTextColor={theme.textSecondary} style={[styles.bigInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]} maxLength={3} />
+                  </View>
+                  <ThemedText style={[styles.bpSlash, { color: theme.textSecondary }]}>–</ThemedText>
+                  <View style={styles.bpField}>
+                    <ThemedText style={[styles.bpFieldLabel, { color: theme.textSecondary }]}>Max</ThemedText>
+                    <TextInput value={bpDraft.diaMax} onChangeText={(t) => setBpDraft((d) => ({ ...d, diaMax: t }))} keyboardType="numeric" placeholder="85" placeholderTextColor={theme.textSecondary} style={[styles.bigInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]} maxLength={3} />
+                  </View>
+                </View>
+              </>
+            ) : rangeModalKey ? (
+              <>
+                <ThemedText style={[styles.formLabel, { color: theme.textSecondary }]}>{getConfigLive(rangeModalKey)?.label.toUpperCase()} ({getConfigLive(rangeModalKey)?.unit})</ThemedText>
+                <View style={styles.bpRow}>
+                  <View style={styles.bpField}>
+                    <ThemedText style={[styles.bpFieldLabel, { color: theme.textSecondary }]}>Min</ThemedText>
+                    <TextInput value={simpleDraft.min} onChangeText={(t) => setSimpleDraft((d) => ({ ...d, min: t }))} keyboardType="numeric" placeholder="—" placeholderTextColor={theme.textSecondary} style={[styles.bigInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]} maxLength={5} />
+                  </View>
+                  <ThemedText style={[styles.bpSlash, { color: theme.textSecondary }]}>–</ThemedText>
+                  <View style={styles.bpField}>
+                    <ThemedText style={[styles.bpFieldLabel, { color: theme.textSecondary }]}>Max</ThemedText>
+                    <TextInput value={simpleDraft.max} onChangeText={(t) => setSimpleDraft((d) => ({ ...d, max: t }))} keyboardType="numeric" placeholder="—" placeholderTextColor={theme.textSecondary} style={[styles.bigInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]} maxLength={5} />
+                  </View>
+                </View>
+              </>
+            ) : null}
+
+            <Button onPress={saveRange} style={styles.saveButton}>Save my range</Button>
+            {rangeModalKey && hasCustom(rangeModalKey) && (
+              <Pressable onPress={resetRange} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
+                <ThemedText style={{ color: theme.error, fontSize: 14, fontWeight: "600" }}>Reset to NEWS2 default</ThemedText>
+              </Pressable>
+            )}
           </KeyboardAwareScrollViewCompat>
         </View>
       </Modal>

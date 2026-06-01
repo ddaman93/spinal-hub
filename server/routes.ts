@@ -3,7 +3,7 @@ import { createServer, type Server } from "node:http";
 import { getClinicalTrials } from "./routes/clinicalTrials";
 import { getWeather } from "./routes/weather";
 import { getSciNews } from "./routes/sciNews";
-import { getChatMessages, postChatMessage, reportMessage, getAdminReports, deleteAdminMessage } from "./routes/chat";
+import { getChatMessages, postChatMessage, reportMessage, getAdminReports, deleteAdminMessage, deleteChatMessage, editChatMessage } from "./routes/chat";
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
 import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
@@ -77,6 +77,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/chat/report", reportMessage);
   app.get("/api/chat/:channel", getChatMessages);
   app.post("/api/chat/:channel", postChatMessage);
+  app.patch("/api/chat/message/:id", editChatMessage);
+  app.delete("/api/chat/message/:id", deleteChatMessage);
 
   // Admin moderation (protected by ADMIN_SECRET header)
   app.get("/api/admin/reports", getAdminReports);
