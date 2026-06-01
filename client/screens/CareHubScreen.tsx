@@ -237,10 +237,10 @@ export default function CareHubScreen() {
 
   async function shareCode() {
     if (!generatedCode) return;
-    const deepLink = `spinalhub://join/${generatedCode}`;
+    const joinUrl = `https://spinal-hub.onrender.com/join/${generatedCode}`;
     await Share.share({
-      message: `I'd like to add you to my care network on Spinal Hub.\n\nTap this link to join instantly:\n${deepLink}\n\nOr enter code manually: ${generatedCode}\n\nCode expires ${codeExpiry}.`,
-      url: deepLink,
+      message: `I'd like to add you to my care network on Spinal Hub.\n\nTap this link to join: ${joinUrl}\n\nOr enter code manually: ${generatedCode}\n\nCode expires ${codeExpiry}.`,
+      url: joinUrl,
     });
   }
 
@@ -910,7 +910,7 @@ export default function CareHubScreen() {
                     </ThemedText>
                     <View style={styles.qrRow}>
                       <View style={[styles.qrWrapper, { backgroundColor: "#fff", borderColor: theme.primary + "33" }]}>
-                        <QRCode value={`spinalhub://join/${generatedCode}`} size={110} color="#000" backgroundColor="#fff" />
+                        <QRCode value={`https://spinal-hub.onrender.com/join/${generatedCode}`} size={110} color="#000" backgroundColor="#fff" />
                       </View>
                       <View style={styles.qrTextCol}>
                         <ThemedText type="caption" style={{ opacity: 0.5, marginBottom: 6 }}>Or enter manually</ThemedText>

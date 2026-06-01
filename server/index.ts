@@ -181,6 +181,55 @@ function configureExpoAndLanding(app: express.Application) {
     });
   });
 
+  // Care invite deep-link bridge (https → spinalhub:// scheme)
+  // Used in SMS/email shares because iMessage only auto-links https URLs.
+  app.get("/join/:code", (req, res) => {
+    const raw = String(req.params.code || "");
+    const code = raw.replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 12);
+    if (!code) return res.status(400).send("Invalid code.");
+    const deepLink = `spinalhub://join/${code}`;
+    const appStoreUrl = "https://apps.apple.com/app/id6753398787";
+    const playStoreUrl = "https://play.google.com/store/apps/details?id=com.spinalhub.app";
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Join Spinal Hub Care Team</title>
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; background: #0c1a0e; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .card { max-width: 380px; width: 100%; background: #14241a; border: 1px solid rgba(0,230,118,0.25); border-radius: 20px; padding: 28px; text-align: center; }
+  h1 { font-size: 22px; margin: 0 0 8px; font-weight: 700; }
+  p { color: rgba(255,255,255,0.7); line-height: 1.5; margin: 8px 0; font-size: 15px; }
+  .code { display: inline-block; background: #00e6761a; color: #00E676; padding: 10px 16px; border-radius: 10px; font-size: 22px; font-weight: 800; letter-spacing: 3px; margin: 16px 0; }
+  .btn { display: block; background: #00E676; color: #000; padding: 14px; border-radius: 12px; text-decoration: none; font-weight: 700; margin-top: 14px; }
+  .alt { color: rgba(255,255,255,0.5); font-size: 13px; margin-top: 18px; }
+  .alt a { color: #00E676; text-decoration: none; }
+</style>
+<script>
+  // Try to open the app immediately on page load
+  setTimeout(function () {
+    window.location.href = ${JSON.stringify(deepLink)};
+  }, 50);
+</script>
+</head>
+<body>
+  <div class="card">
+    <h1>Join Care Team</h1>
+    <p>Opening Spinal Hub…</p>
+    <div class="code">${code}</div>
+    <a class="btn" href="${deepLink}">Open Spinal Hub</a>
+    <p class="alt">
+      Don't have the app yet?<br />
+      <a href="${appStoreUrl}">App Store</a> &nbsp;·&nbsp; <a href="${playStoreUrl}">Google Play</a><br /><br />
+      Then open the app and enter code <strong>${code}</strong> in Care &gt; Join.
+    </p>
+  </div>
+</body>
+</html>`);
+  });
+
   // Static assets ONLY for non-API
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
   app.use("/", express.static(path.resolve(process.cwd(), "static-build")));
@@ -242,7 +291,23 @@ function setupExpoProxy(app: express.Application) {
     standardHeaders: true,
     legacyHeaders: false,
   });
+  const joinLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many join attempts. Try again in an hour." },
+  });
+  const chatLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many chat requests. Slow down." },
+  });
   app.use("/api/auth", authLimiter);
+  app.use("/api/care/join", joinLimiter);
+  app.use("/api/chat", chatLimiter);
   app.use("/api", apiLimiter);
 
   // 🔑 API routes MUST come first
