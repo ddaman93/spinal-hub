@@ -416,7 +416,7 @@ export default function VitalsLogScreen() {
 
   // Derive latest reading per vital type
   const latest: Record<string, VitalEntry> = {};
-  for (const e of [...entries].reverse()) {
+  for (const e of entries) {
     if (!latest[e.type]) latest[e.type] = e;
   }
 
