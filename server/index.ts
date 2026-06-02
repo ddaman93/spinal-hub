@@ -267,6 +267,7 @@ function setupExpoProxy(app: express.Application) {
 /* -------------------- bootstrap -------------------- */
 
 (async () => {
+  app.set("trust proxy", 1);
   setupCors(app);
   setupBodyParsing(app);
   setupRequestLogging(app);
