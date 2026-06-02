@@ -256,7 +256,7 @@ export default function CareHubScreen() {
         body: JSON.stringify({ code: joinCode.trim() }),
       });
       const data = await res.json();
-      if (res.status === 401) { Alert.alert("Session expired", "Please sign out and sign back in, then try the code again."); return; }
+      if (res.status === 401) { Alert.alert("Sign in required", "Please sign out and sign back in to Spinal Hub, then enter the code again."); return; }
       if (!res.ok) { Alert.alert("Error", data.message ?? "Invalid code."); return; }
       Alert.alert("Linked!", `You are now linked to ${data.patientName} as their ${ROLE_LABELS[data.role] ?? data.role}.`);
       setJoinCode("");
