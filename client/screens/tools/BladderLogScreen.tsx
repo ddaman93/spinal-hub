@@ -6,6 +6,7 @@ import {
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ThemedView } from "@/components/ThemedView";
 import { ThemedText } from "@/components/ThemedText";
@@ -39,9 +40,14 @@ const VOID_TYPES: { key: VoidType; label: string; shortLabel: string; color: str
 
 const QUICK_VOLUMES = [100, 200, 300, 400, 500];
 const DAILY_TARGET_ML = 1800;
-// SCI thresholds (Spinal Cord Injury Rehabilitation - Continence Management guidelines)
-const HIGH_VOLUME_THRESHOLD = 500;
 const OVERDUE_HOURS = 5;
+// Industry default per Consortium for Spinal Cord Medicine continence guidelines
+const DEFAULT_HIGH_VOLUME_THRESHOLD = 500;
+const THRESHOLD_KEY_PREFIX = "bladder_threshold_v1:";
+
+function thresholdKey(patientId: string) {
+  return `${THRESHOLD_KEY_PREFIX}${patientId || "self"}`;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -88,6 +94,40 @@ export default function BladderLogScreen() {
   const [selectedType, setSelectedType] = useState<VoidType>("catheterization");
   const [volumeText, setVolumeText] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Custom high-volume threshold
+  const [highVolumeThreshold, setHighVolumeThreshold] = useState(DEFAULT_HIGH_VOLUME_THRESHOLD);
+  const [thresholdModalVisible, setThresholdModalVisible] = useState(false);
+  const [thresholdDraft, setThresholdDraft] = useState("");
+
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem(thresholdKey(patientId)).then((raw) => {
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      setHighVolumeThreshold(isNaN(parsed) ? DEFAULT_HIGH_VOLUME_THRESHOLD : parsed);
+    });
+  }, [patientId]));
+
+  const openThresholdModal = () => {
+    setThresholdDraft(String(highVolumeThreshold));
+    setThresholdModalVisible(true);
+  };
+
+  const saveThreshold = async () => {
+    const val = parseInt(thresholdDraft, 10);
+    if (isNaN(val) || val < 50 || val > 2000) {
+      Alert.alert("Invalid", "Enter a value between 50 and 2000 mL.");
+      return;
+    }
+    await AsyncStorage.setItem(thresholdKey(patientId), String(val));
+    setHighVolumeThreshold(val);
+    setThresholdModalVisible(false);
+  };
+
+  const resetThreshold = async () => {
+    await AsyncStorage.removeItem(thresholdKey(patientId));
+    setHighVolumeThreshold(DEFAULT_HIGH_VOLUME_THRESHOLD);
+    setThresholdModalVisible(false);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -169,13 +209,13 @@ export default function BladderLogScreen() {
   const leaksToday = todayEntries.filter((e) => e.type === "leak" || e.type === "accident").length;
   const outputProgress = Math.min(totalOutputMl / DAILY_TARGET_ML, 1);
 
-  // Last catheterization time for overdue warning
   const lastCath = entries.find((e) => e.type === "catheterization");
   const hoursSinceLastCath = lastCath ? hoursSince(lastCath.createdAt) : null;
   const cathOverdue = hoursSinceLastCath != null && hoursSinceLastCath >= OVERDUE_HOURS;
 
-  // High single volume alert
-  const highVolEntry = todayEntries.find((e) => (e.volumeMl ?? 0) > HIGH_VOLUME_THRESHOLD);
+  const highVolEntry = todayEntries.find((e) => (e.volumeMl ?? 0) > highVolumeThreshold);
+
+  const isCustomThreshold = highVolumeThreshold !== DEFAULT_HIGH_VOLUME_THRESHOLD;
 
   // Group all entries by date for history
   const groups: { label: string; items: BladderEntry[] }[] = [];
@@ -212,7 +252,7 @@ export default function BladderLogScreen() {
             <View style={{ flex: 1 }}>
               <ThemedText style={styles.alertTitle}>High Volume — Overdistension Risk</ThemedText>
               <ThemedText style={styles.alertBody}>
-                {highVolEntry.volumeMl} mL recorded at {formatTime(highVolEntry.createdAt)}. Volume &gt;500 mL increases AD risk.
+                {highVolEntry.volumeMl} mL recorded at {formatTime(highVolEntry.createdAt)}. Volume &gt;{highVolumeThreshold} mL increases AD risk.
               </ThemedText>
             </View>
           </View>
@@ -233,7 +273,6 @@ export default function BladderLogScreen() {
             </View>
           </View>
 
-          {/* 4 stat tiles */}
           <View style={styles.statsRow}>
             <StatTile label="Total Output" value={`${totalOutputMl}`} unit="mL" highlight />
             <StatTile label="Catheters" value={`${cathToday.length}`} unit="today" />
@@ -241,7 +280,6 @@ export default function BladderLogScreen() {
             <StatTile label="Leaks" value={`${leaksToday}`} unit={leaksToday !== 1 ? "events" : "event"} warn={leaksToday > 0} />
           </View>
 
-          {/* output progress */}
           <View style={styles.progressSection}>
             <View style={styles.progressLabelRow}>
               <ThemedText style={styles.progressLabel}>Daily Output</ThemedText>
@@ -261,6 +299,24 @@ export default function BladderLogScreen() {
           </View>
         </View>
 
+        {/* ── ALERT THRESHOLD SETTING ── */}
+        <Pressable
+          onPress={openThresholdModal}
+          style={[styles.thresholdRow, { backgroundColor: theme.backgroundDefault }]}
+        >
+          <View style={[styles.thresholdDot, { backgroundColor: "#ef4444" }]} />
+          <ThemedText style={[styles.thresholdLabel, { color: theme.textSecondary }]}>
+            High volume alert:{" "}
+            <ThemedText style={{ fontWeight: "700", color: theme.text }}>
+              {highVolumeThreshold} mL
+            </ThemedText>
+            {isCustomThreshold && (
+              <ThemedText style={{ color: theme.primary }}> (custom)</ThemedText>
+            )}
+          </ThemedText>
+          <Feather name="edit-2" size={13} color={theme.primary} />
+        </Pressable>
+
         {/* ── ENTRY TIMELINE ── */}
         {loading ? (
           <ActivityIndicator color={theme.primary} style={{ marginTop: Spacing.xl }} />
@@ -279,28 +335,24 @@ export default function BladderLogScreen() {
                 <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>{group.label.toUpperCase()}</ThemedText>
               </View>
 
-              {/* timeline */}
               <View style={styles.timeline}>
                 {group.items.map((entry, i) => {
                   const info = getTypeInfo(entry.type);
                   const isLast = i === group.items.length - 1;
-                  const highVol = (entry.volumeMl ?? 0) > HIGH_VOLUME_THRESHOLD;
+                  const highVol = (entry.volumeMl ?? 0) > highVolumeThreshold;
                   return (
                     <View key={entry.id} style={styles.timelineRow}>
-                      {/* time column */}
                       <View style={styles.timeCol}>
                         <ThemedText style={[styles.timeText, { color: theme.text }]}>
                           {formatTime(entry.createdAt)}
                         </ThemedText>
                       </View>
 
-                      {/* dot + line */}
                       <View style={styles.timelineTrack}>
                         <View style={[styles.timelineDot, { backgroundColor: highVol ? "#ef4444" : info.color }]} />
                         {!isLast && <View style={[styles.timelineLine, { backgroundColor: theme.border ?? "#E0E0E0" }]} />}
                       </View>
 
-                      {/* content card */}
                       <Pressable
                         onLongPress={() => handleDelete(entry.id)}
                         style={[
@@ -364,7 +416,6 @@ export default function BladderLogScreen() {
           </View>
 
           <KeyboardAwareScrollViewCompat style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
-            {/* type selector */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary }]}>EVENT TYPE</ThemedText>
             <View style={styles.typeGrid}>
               {VOID_TYPES.map((t) => (
@@ -386,31 +437,32 @@ export default function BladderLogScreen() {
               ))}
             </View>
 
-            {/* volume */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>VOLUME (mL)</ThemedText>
 
-            {/* quick picks */}
             <View style={styles.quickRow}>
-              {QUICK_VOLUMES.map((v) => (
-                <Pressable
-                  key={v}
-                  onPress={() => setVolumeText(String(v))}
-                  style={[
-                    styles.quickVolumeBtn,
-                    volumeText === String(v)
-                      ? { backgroundColor: theme.primary }
-                      : { backgroundColor: theme.backgroundDefault },
-                    v > HIGH_VOLUME_THRESHOLD && { borderWidth: 1, borderColor: "#ef444440" },
-                  ]}
-                >
-                  <ThemedText style={{ fontSize: 13, fontWeight: "700", color: volumeText === String(v) ? "#FFFFFF" : theme.text }}>
-                    {v}
-                  </ThemedText>
-                  {v >= HIGH_VOLUME_THRESHOLD && (
-                    <ThemedText style={{ fontSize: 9, color: volumeText === String(v) ? "rgba(255,255,255,0.8)" : "#ef4444" }}>⚠ high</ThemedText>
-                  )}
-                </Pressable>
-              ))}
+              {QUICK_VOLUMES.map((v) => {
+                const isHigh = v > highVolumeThreshold;
+                return (
+                  <Pressable
+                    key={v}
+                    onPress={() => setVolumeText(String(v))}
+                    style={[
+                      styles.quickVolumeBtn,
+                      volumeText === String(v)
+                        ? { backgroundColor: theme.primary }
+                        : { backgroundColor: theme.backgroundDefault },
+                      isHigh && { borderWidth: 1, borderColor: "#ef444440" },
+                    ]}
+                  >
+                    <ThemedText style={{ fontSize: 13, fontWeight: "700", color: volumeText === String(v) ? "#FFFFFF" : theme.text }}>
+                      {v}
+                    </ThemedText>
+                    {isHigh && (
+                      <ThemedText style={{ fontSize: 9, color: volumeText === String(v) ? "rgba(255,255,255,0.8)" : "#ef4444" }}>⚠ high</ThemedText>
+                    )}
+                  </Pressable>
+                );
+              })}
             </View>
 
             <TextInput
@@ -421,16 +473,15 @@ export default function BladderLogScreen() {
               keyboardType="number-pad"
               style={[styles.volumeInput, { backgroundColor: theme.backgroundDefault, color: theme.text }]}
             />
-            {volumeText && Number(volumeText) > HIGH_VOLUME_THRESHOLD && (
+            {volumeText && Number(volumeText) > highVolumeThreshold && (
               <View style={styles.highVolWarning}>
                 <Feather name="alert-triangle" size={13} color="#ef4444" />
                 <ThemedText style={{ fontSize: 12, color: "#ef4444" }}>
-                  {Number(volumeText)} mL exceeds 500 mL — overdistension and AD risk. Review catheterization schedule.
+                  {Number(volumeText)} mL exceeds your {highVolumeThreshold} mL threshold — overdistension and AD risk. Review catheterization schedule.
                 </ThemedText>
               </View>
             )}
 
-            {/* notes */}
             <ThemedText style={[styles.formLabel, { color: theme.textSecondary, marginTop: Spacing.lg }]}>NOTES (OPTIONAL)</ThemedText>
             <TextInput
               value={notes}
@@ -444,6 +495,45 @@ export default function BladderLogScreen() {
             <Button onPress={handleSave} disabled={saving} style={styles.saveButton}>
               {saving ? "Saving…" : "Add to Diary"}
             </Button>
+          </KeyboardAwareScrollViewCompat>
+        </View>
+      </Modal>
+
+      {/* ── THRESHOLD MODAL ── */}
+      <Modal visible={thresholdModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setThresholdModalVisible(false)}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.backgroundRoot }]}>
+          <View style={styles.modalHeader}>
+            <ThemedText type="h3">High Volume Alert</ThemedText>
+            <Pressable onPress={() => setThresholdModalVisible(false)}>
+              <ThemedText type="body" style={{ color: theme.primary }}>Cancel</ThemedText>
+            </Pressable>
+          </View>
+
+          <KeyboardAwareScrollViewCompat style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
+            <ThemedText style={{ fontSize: 13, color: theme.textSecondary, lineHeight: 19, marginBottom: Spacing.lg }}>
+              Set the single-void volume that triggers a high-volume alert. The Consortium for Spinal Cord Medicine guidelines recommend 400–500 mL as the upper safe limit, but your usual capacity may differ. Overnight drainage bags often exceed this — set a threshold that suits your routine.
+            </ThemedText>
+
+            <ThemedText style={[styles.formLabel, { color: theme.textSecondary }]}>ALERT THRESHOLD (mL)</ThemedText>
+            <TextInput
+              value={thresholdDraft}
+              onChangeText={setThresholdDraft}
+              keyboardType="number-pad"
+              placeholder="500"
+              placeholderTextColor={theme.textSecondary}
+              style={[styles.volumeInput, { backgroundColor: theme.backgroundDefault, color: theme.text, marginBottom: Spacing.sm }]}
+            />
+            <ThemedText style={{ fontSize: 12, color: theme.textSecondary, marginBottom: Spacing.lg }}>
+              Accepted range: 50–2000 mL. Default: {DEFAULT_HIGH_VOLUME_THRESHOLD} mL.
+            </ThemedText>
+
+            <Button onPress={saveThreshold} style={styles.saveButton}>Save threshold</Button>
+
+            {isCustomThreshold && (
+              <Pressable onPress={resetThreshold} style={{ alignItems: "center", paddingVertical: Spacing.md }}>
+                <ThemedText style={{ color: theme.error, fontSize: 14, fontWeight: "600" }}>Reset to default ({DEFAULT_HIGH_VOLUME_THRESHOLD} mL)</ThemedText>
+              </Pressable>
+            )}
           </KeyboardAwareScrollViewCompat>
         </View>
       </Modal>
@@ -498,6 +588,11 @@ const styles = StyleSheet.create({
   progressTrack: { height: 8, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 4 },
   progressGoalText: { fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: "700" },
+
+  /* threshold row */
+  thresholdRow: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: Spacing.lg, marginTop: Spacing.sm, marginBottom: Spacing.sm, paddingHorizontal: Spacing.md, paddingVertical: 10, borderRadius: BorderRadius.medium },
+  thresholdDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  thresholdLabel: { flex: 1, fontSize: 12 },
 
   /* section */
   section: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.md },
