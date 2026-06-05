@@ -224,8 +224,13 @@ export async function addBladderLog(req: Request, res: Response) {
   if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (!type) return res.status(400).json({ message: "type is required." });
   const authorName = await getAuthorName(requesterId);
-  const [row] = await db.insert(bladderLogs).values({ patientId: targetPatient, recordedById: requesterId, authorName, type, bagType: bagType ?? null, volumeMl: volumeMl ?? null, notes: notes ?? null }).returning();
-  res.status(201).json(row);
+  try {
+    const [row] = await db.insert(bladderLogs).values({ patientId: targetPatient, recordedById: requesterId, authorName, type, bagType: bagType ?? null, volumeMl: volumeMl ?? null, notes: notes ?? null }).returning();
+    res.status(201).json(row);
+  } catch (err: any) {
+    console.error("addBladderLog error:", err?.message);
+    res.status(500).json({ message: err?.message ?? "Failed to save entry." });
+  }
 }
 
 export async function deleteBladderLog(req: Request, res: Response) {
