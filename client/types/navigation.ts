@@ -58,6 +58,7 @@ export type MainStackParamList = {
 
   Settings: undefined;
   DisplaySettings: undefined;
+  ApiKeys: undefined;
   Feedback: undefined;
   FeatureTour: undefined;
   VitalsLog: { patientId: string; patientName: string };
