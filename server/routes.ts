@@ -6,7 +6,7 @@ import { getSciNews } from "./routes/sciNews";
 import { getChatMessages, postChatMessage, reportMessage, getAdminReports, deleteAdminMessage, deleteChatMessage, editChatMessage } from "./routes/chat";
 import { getProviderReviews, postProviderReview, reportProviderReview, deleteAdminProviderReview } from "./routes/providers";
 import { postFeedback } from "./routes/feedback";
-import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken } from "./routes/auth";
+import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractToken, signToken, createApiKey, listApiKeys, deleteApiKey, resolveApiKey } from "./routes/auth";
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport, syncRelationshipRolesForUser } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { getAuditLog } from "./routes/audit";
@@ -30,6 +30,18 @@ import { userProfiles } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // API key middleware — rewrite sh_ tokens to short-lived JWTs so existing requireAuth works unchanged
+  app.use("/api", async (req, _res, next) => {
+    const auth = req.headers.authorization;
+    if (auth?.startsWith("Bearer sh_")) {
+      const userId = await resolveApiKey(auth.slice(7)).catch(() => null);
+      if (userId) {
+        req.headers.authorization = `Bearer ${signToken({ id: userId, email: "", name: "api" })}`;
+      }
+    }
+    next();
+  });
+
   // Health check
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
@@ -40,6 +52,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", loginRoute);
   app.post("/api/auth/oauth", oauthRoute);
   app.get("/api/auth/me", meRoute);
+  app.get("/api/auth/api-keys", listApiKeys);
+  app.post("/api/auth/api-keys", createApiKey);
+  app.delete("/api/auth/api-keys/:id", deleteApiKey);
 
   // Delete account (Apple-required)
   app.delete("/api/auth/account", async (req: Request, res: Response) => {

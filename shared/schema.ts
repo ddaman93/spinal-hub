@@ -628,6 +628,19 @@ export const rehabGoals = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// api_keys — personal long-lived tokens for external integrations (e.g. AI OS)
+// ---------------------------------------------------------------------------
+
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  keyHash: text("key_hash").notNull().unique(),
+  label: text("label").notNull().default("My API Key"),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Zod schemas + types
 // ---------------------------------------------------------------------------
 

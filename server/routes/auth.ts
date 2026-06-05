@@ -2,7 +2,11 @@ import type { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import * as jose from "jose";
+import crypto from "crypto";
 import { authStorage } from "../storage";
+import { db } from "../db";
+import { apiKeys } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 const APPLE_JWKS = jose.createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
@@ -188,4 +192,65 @@ export async function meRoute(req: Request, res: Response) {
   } catch {
     return res.status(401).json({ message: "Invalid or expired token." });
   }
+}
+
+// ---------------------------------------------------------------------------
+// API key management
+// ---------------------------------------------------------------------------
+
+function requireAuthFromToken(req: Request, res: Response): string | null {
+  const token = extractToken(req);
+  if (!token) { res.status(401).json({ message: "Unauthorized." }); return null; }
+  try {
+    return verifyToken(token).id;
+  } catch {
+    res.status(401).json({ message: "Invalid or expired token." });
+    return null;
+  }
+}
+
+export async function createApiKey(req: Request, res: Response) {
+  const userId = requireAuthFromToken(req, res);
+  if (!userId) return;
+  const label = (req.body.label as string)?.trim() || "My API Key";
+  const rawKey = "sh_" + crypto.randomBytes(32).toString("hex");
+  const hash = crypto.createHash("sha256").update(rawKey).digest("hex");
+  try {
+    const [row] = await db.insert(apiKeys).values({ userId, keyHash: hash, label }).returning({
+      id: apiKeys.id, label: apiKeys.label, createdAt: apiKeys.createdAt,
+    });
+    res.status(201).json({ ...row, key: rawKey });
+  } catch (err: any) {
+    res.status(500).json({ message: err?.message ?? "Failed to create key." });
+  }
+}
+
+export async function listApiKeys(req: Request, res: Response) {
+  const userId = requireAuthFromToken(req, res);
+  if (!userId) return;
+  const rows = await db.select({
+    id: apiKeys.id, label: apiKeys.label,
+    lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt,
+  }).from(apiKeys).where(eq(apiKeys.userId, userId)).orderBy(desc(apiKeys.createdAt));
+  res.json(rows);
+}
+
+export async function deleteApiKey(req: Request, res: Response) {
+  const userId = requireAuthFromToken(req, res);
+  if (!userId) return;
+  const [row] = await db.select({ userId: apiKeys.userId }).from(apiKeys).where(eq(apiKeys.id, req.params.id)).limit(1);
+  if (!row) return res.status(404).json({ message: "Not found." });
+  if (row.userId !== userId) return res.status(403).json({ message: "Forbidden." });
+  await db.delete(apiKeys).where(eq(apiKeys.id, req.params.id));
+  res.json({ ok: true });
+}
+
+export async function resolveApiKey(bearerToken: string): Promise<string | null> {
+  if (!bearerToken.startsWith("sh_")) return null;
+  const hash = crypto.createHash("sha256").update(bearerToken).digest("hex");
+  const [row] = await db.select({ id: apiKeys.id, userId: apiKeys.userId })
+    .from(apiKeys).where(eq(apiKeys.keyHash, hash)).limit(1);
+  if (!row) return null;
+  db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, row.id)).catch(() => {});
+  return row.userId;
 }

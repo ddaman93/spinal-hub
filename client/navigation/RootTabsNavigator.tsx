@@ -19,6 +19,7 @@ import AccessibilitySettingsScreen from "@/screens/AccessibilitySettingsScreen";
 import DataBackupScreen from "@/screens/DataBackupScreen";
 import AboutScreen from "@/screens/AboutScreen";
 import HealthDefaultsScreen from "@/screens/HealthDefaultsScreen";
+import ApiKeysScreen from "@/screens/ApiKeysScreen";
 import FeedbackScreen from "@/screens/FeedbackScreen";
 import FeatureTourScreen from "@/screens/onboarding/FeatureTourScreen";
 import CommunityChatScreen from "@/screens/CommunityChatScreen";
@@ -784,6 +785,15 @@ function SettingsStackNavigator() {
         options={{
           ...opaqueScreenOptions,
           headerTitle: "Health Defaults",
+        }}
+      />
+
+      <SettingsStack.Screen
+        name="ApiKeys"
+        component={ApiKeysScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "API Access",
         }}
       />
 
