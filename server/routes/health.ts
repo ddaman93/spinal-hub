@@ -219,12 +219,12 @@ export async function getBladderLogs(req: Request, res: Response) {
 export async function addBladderLog(req: Request, res: Response) {
   const requesterId = requireAuth(req, res);
   if (!requesterId) return;
-  const { patientId, type, volumeMl, notes } = req.body;
+  const { patientId, type, bagType, volumeMl, notes } = req.body;
   const targetPatient = patientId || requesterId;
   if (!await requireClinicalAccess(requesterId, targetPatient, res)) return;
   if (!type) return res.status(400).json({ message: "type is required." });
   const authorName = await getAuthorName(requesterId);
-  const [row] = await db.insert(bladderLogs).values({ patientId: targetPatient, recordedById: requesterId, authorName, type, volumeMl: volumeMl ?? null, notes: notes ?? null }).returning();
+  const [row] = await db.insert(bladderLogs).values({ patientId: targetPatient, recordedById: requesterId, authorName, type, bagType: bagType ?? null, volumeMl: volumeMl ?? null, notes: notes ?? null }).returning();
   res.status(201).json(row);
 }
 
