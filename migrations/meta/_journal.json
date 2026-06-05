@@ -15,6 +15,13 @@
       "when": 1778416738030,
       "tag": "0001_add_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748908800000,
+      "tag": "0006_bladder_bag_type",
+      "breakpoints": true
     }
   ]
 }
