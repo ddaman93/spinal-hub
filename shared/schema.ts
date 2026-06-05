@@ -339,8 +339,10 @@ export const bladderLogs = pgTable(
     patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     recordedById: varchar("recorded_by_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     authorName: text("author_name").notNull(),
-    // catheterization | spontaneous | leak | accident
+    // catheterization | spontaneous | leak | accident | bag_attach
     type: text("type").notNull(),
+    // day | night — null treated as "day" for legacy entries
+    bagType: text("bag_type"),
     volumeMl: integer("volume_ml"),
     notes: text("notes"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
