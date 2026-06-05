@@ -19,6 +19,34 @@
     {
       "idx": 2,
       "version": "7",
+      "when": 1778500000000,
+      "tag": "0002_care_hub",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778500001000,
+      "tag": "0003_health_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778500002000,
+      "tag": "0004_remaining_health_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778500003000,
+      "tag": "0005_invite_codes",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
       "when": 1748908800000,
       "tag": "0006_bladder_bag_type",
       "breakpoints": true
