@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import {
   View, StyleSheet, ScrollView, Pressable, Image, Alert,
-  ActivityIndicator, Modal, TextInput, Platform, ActionSheetIOS,
+  ActivityIndicator, Modal, TextInput, Platform, ActionSheetIOS, Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useHeaderHeight } from "@react-navigation/elements";
@@ -9,6 +9,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
@@ -169,22 +170,75 @@ export default function MyDocumentsScreen() {
     }
   }
 
+  async function pickDocument() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "application/msword",
+               "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+               "image/*", "*/*"],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+      const asset = result.assets[0];
+      const dir = await ensureDocsDir();
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const ext = asset.name?.split(".").pop()?.toLowerCase() || "pdf";
+      const newUri = `${dir}${id}.${ext}`;
+      await FileSystem.copyAsync({ from: asset.uri, to: newUri });
+      const info = await FileSystem.getInfoAsync(newUri);
+      const sizeBytes = info.exists && "size" in info && typeof info.size === "number" ? info.size : 0;
+      const mime = asset.mimeType || (ext === "pdf" ? "application/pdf" : "application/octet-stream");
+      const meta: DocMeta = {
+        id,
+        displayName: asset.name?.replace(/\.[^.]+$/, "") || `Document ${new Date().toLocaleDateString("en-NZ")}`,
+        category: "discharge",
+        addedAt: new Date().toISOString(),
+        uri: newUri,
+        mimeType: mime,
+        sizeBytes,
+      };
+      const next = [meta, ...docs];
+      await persistDocs(next);
+      setEditingDoc(meta);
+      setEditName(meta.displayName);
+      setEditCategory(meta.category);
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Could not import", "Failed to import the file.");
+    }
+  }
+
   function showAddSource() {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
-        { options: ["Take Photo", "Choose from Library", "Cancel"], cancelButtonIndex: 2, title: "Add Document" },
+        { options: ["Take Photo", "Choose from Library", "Import File (PDF, Word…)", "Cancel"], cancelButtonIndex: 3, title: "Add Document" },
         (index) => {
           if (index === 0) pickPhoto(true);
           if (index === 1) pickPhoto(false);
+          if (index === 2) pickDocument();
         }
       );
     } else {
       Alert.alert("Add Document", "Choose source", [
         { text: "Take Photo", onPress: () => pickPhoto(true) },
         { text: "Choose from Library", onPress: () => pickPhoto(false) },
+        { text: "Import File (PDF, Word…)", onPress: () => pickDocument() },
         { text: "Cancel", style: "cancel" },
       ]);
     }
+  }
+
+  function getUTI(mimeType: string): string {
+    if (mimeType === "image/png") return "public.png";
+    if (mimeType.startsWith("image/")) return "public.jpeg";
+    if (mimeType === "application/pdf") return "com.adobe.pdf";
+    if (mimeType.includes("word")) return "com.microsoft.word.doc";
+    return "public.data";
+  }
+
+  function isImage(doc: DocMeta): boolean {
+    return doc.mimeType.startsWith("image/");
   }
 
   async function shareDoc(doc: DocMeta) {
@@ -197,9 +251,41 @@ export default function MyDocumentsScreen() {
       await Sharing.shareAsync(doc.uri, {
         mimeType: doc.mimeType,
         dialogTitle: doc.displayName,
-        UTI: doc.mimeType === "image/png" ? "public.png" : "public.jpeg",
+        UTI: getUTI(doc.mimeType),
       });
     } catch {}
+  }
+
+  async function openDoc(doc: DocMeta) {
+    if (isImage(doc)) {
+      setPreviewDoc(doc);
+      return;
+    }
+    // For PDFs/docs open via system viewer (iOS Quick Look / Android viewer)
+    try {
+      const can = await Linking.canOpenURL(doc.uri);
+      if (can) {
+        await Linking.openURL(doc.uri);
+      } else {
+        // Fallback: share sheet opens in any compatible app
+        await shareDoc(doc);
+      }
+    } catch {
+      await shareDoc(doc);
+    }
+  }
+
+  function getDocIcon(mimeType: string): keyof typeof Feather.glyphMap {
+    if (mimeType === "application/pdf") return "file-text";
+    if (mimeType.includes("word")) return "file";
+    if (mimeType.startsWith("image/")) return "image";
+    return "file";
+  }
+
+  function getDocIconColor(mimeType: string): string {
+    if (mimeType === "application/pdf") return "#D32F2F";
+    if (mimeType.includes("word")) return "#1565C0";
+    return "#5C6BC0";
   }
 
   async function deleteDoc(doc: DocMeta) {
@@ -240,7 +326,7 @@ export default function MyDocumentsScreen() {
         contentContainerStyle={{ paddingTop: headerHeight + Spacing.md, paddingBottom: insets.bottom + 100, paddingHorizontal: Spacing.lg }}
       >
         <ThemedText type="body" style={[styles.intro, { color: theme.textSecondary }]}>
-          Snap or upload photos of your medical documents — discharge letters, test results, prescriptions. Share with your GP or carers using the share button on each document.
+          Store photos and files from your medical journey — discharge letters, test results, prescriptions, scan reports. Share with your GP or carers anytime.
         </ThemedText>
 
         {loading ? (
@@ -264,10 +350,16 @@ export default function MyDocumentsScreen() {
               {g.items.map((doc) => (
                 <Pressable
                   key={doc.id}
-                  onPress={() => setPreviewDoc(doc)}
+                  onPress={() => openDoc(doc)}
                   style={[styles.docRow, { backgroundColor: theme.backgroundDefault }]}
                 >
-                  <Image source={{ uri: doc.uri }} style={styles.thumb} />
+                  {isImage(doc) ? (
+                    <Image source={{ uri: doc.uri }} style={styles.thumb} />
+                  ) : (
+                    <View style={[styles.thumb, styles.docIconThumb, { backgroundColor: getDocIconColor(doc.mimeType) + "18" }]}>
+                      <Feather name={getDocIcon(doc.mimeType)} size={24} color={getDocIconColor(doc.mimeType)} />
+                    </View>
+                  )}
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.docName} numberOfLines={1}>{doc.displayName}</ThemedText>
                     <ThemedText style={[styles.docMeta, { color: theme.textSecondary }]}>
@@ -304,7 +396,7 @@ export default function MyDocumentsScreen() {
         <View style={[styles.tipCard, { backgroundColor: theme.backgroundDefault, borderColor: theme.primary + "30" }]}>
           <Feather name="info" size={14} color={theme.primary} />
           <ThemedText style={[styles.tipText, { color: theme.textSecondary }]}>
-            Documents are stored only on this device. PDF support and care team sharing are coming in a future update.
+            Documents are stored only on this device. Tap any document to view it, or use the share button to send to your GP or carers.
           </ThemedText>
         </View>
       </ScrollView>
@@ -355,7 +447,16 @@ export default function MyDocumentsScreen() {
 
           <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.lg }}>
             {editingDoc && (
-              <Image source={{ uri: editingDoc.uri }} style={styles.editThumb} resizeMode="cover" />
+              isImage(editingDoc) ? (
+                <Image source={{ uri: editingDoc.uri }} style={styles.editThumb} resizeMode="cover" />
+              ) : (
+                <View style={[styles.editThumb, styles.editDocIcon, { backgroundColor: getDocIconColor(editingDoc.mimeType) + "18" }]}>
+                  <Feather name={getDocIcon(editingDoc.mimeType)} size={48} color={getDocIconColor(editingDoc.mimeType)} />
+                  <ThemedText style={{ color: getDocIconColor(editingDoc.mimeType), fontWeight: "600", marginTop: 8 }}>
+                    {editingDoc.mimeType === "application/pdf" ? "PDF Document" : "Document"}
+                  </ThemedText>
+                </View>
+              )
             )}
 
             <View>
@@ -423,6 +524,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   thumb: { width: 48, height: 48, borderRadius: 8, backgroundColor: "#222" },
+  docIconThumb: { alignItems: "center", justifyContent: "center" },
   docName: { fontSize: 14, fontWeight: "600" },
   docMeta: { fontSize: 11, marginTop: 2 },
   iconBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
@@ -456,6 +558,7 @@ const styles = StyleSheet.create({
   editContainer: { flex: 1 },
   editHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: Spacing.lg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.08)" },
   editThumb: { width: "100%", height: 180, borderRadius: BorderRadius.medium },
+  editDocIcon: { alignItems: "center", justifyContent: "center" },
   formLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.8, marginBottom: 8 },
   input: { borderRadius: BorderRadius.medium, padding: Spacing.md, fontSize: 16 },
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
