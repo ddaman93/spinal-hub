@@ -3,7 +3,7 @@
     "name": "Spinal Hub",
     "slug": "spinal-hub",
     "owner": "spinal-hub",
-    "version": "1.2.3",
+    "version": "1.2.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "spinalhub",
@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.spinalhub.app",
-      "buildNumber": "12",
+      "buildNumber": "13",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Spinal Hub uses your location to show local weather, nearby accessible transport, and carer services in your area.",
         "NSCameraUsageDescription": "Spinal Hub uses your camera to document wound progress photos.",
@@ -38,7 +38,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.spinalhub.app",
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -58,12 +58,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/icon.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#007AFF",
+          "backgroundColor": "#060E08",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#060E08"
           }
         }
       ],
