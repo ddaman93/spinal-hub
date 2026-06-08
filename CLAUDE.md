@@ -2,6 +2,23 @@
 
 ## CRITICAL: Branch & File Rules
 
+**`.env.local` must NEVER exist in this project.**
+- Expo bundler auto-loads `.env.local` before `.env`, so any value there overrides production config and gets baked into OTA bundles.
+- Local dev overrides (e.g. `EXPO_PUBLIC_DOMAIN`) belong in `dev.command` — it writes `.env.local` at runtime and has a `trap cleanup EXIT` to always delete it on exit.
+- If `.env.local` is ever found: delete it immediately. Do not create it. Do not suggest it.
+
+**`EXPO_PUBLIC_DOMAIN` must NOT be set in `.env`.**
+- Production and OTA builds rely on the hardcoded fallback in `getApiUrl()` → `https://spinal-hub.onrender.com`.
+- If `EXPO_PUBLIC_DOMAIN` is in `.env`, Metro can cache a stale LAN IP and bake it into OTA bundles even after `.env.local` is deleted.
+- Never add it back to `.env`.
+
+**Always push OTAs with Metro cache cleared:**
+```bash
+EXPO_NO_CACHE=1 npx eas update --channel production --message "..."
+```
+- Metro transform cache persists between builds and can bake stale env values into bundles silently.
+- `EXPO_NO_CACHE=1` forces a clean export every time.
+
 **`dev.command` must NEVER be committed to `main`.**
 - It is local dev tooling only — it starts a local server and Expo on LAN.
 - `main` runs on Render (production server). `dev.command` has no place there.
@@ -12,6 +29,20 @@
   git restore main -- dev.command
   git commit
   ```
+
+## Database Migration Rules
+
+**Every new migration file must have a `when` timestamp higher than the previous entry in `_journal.json`.**
+- Drizzle orders migrations by `when` — a lower value than an already-applied migration causes it to be silently skipped.
+- Last used values: 0005 = `1778500003000`, 0006 = `1778500010000`, 0007 = `1778500020000`.
+- Pattern: increment by 10000 each time (e.g. next migration = `1778500030000`).
+- After adding a migration, always run the SQL manually in Supabase first if Render deploys before you can verify — the `IF NOT EXISTS` guards make it safe to run twice.
+
+**New migration checklist:**
+1. Create `migrations/XXXX_description.sql` with `IF NOT EXISTS` / `IF EXISTS` guards on all statements
+2. Add entry to `migrations/meta/_journal.json` with `when` = previous `when` + 10000
+3. Update the schema in `shared/schema.ts`
+4. Merge to main → Render redeploys → migrator runs automatically
 
 ## App Store Build Rules
 
