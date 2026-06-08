@@ -228,21 +228,29 @@ export async function createApiKey(req: Request, res: Response) {
 export async function listApiKeys(req: Request, res: Response) {
   const userId = requireAuthFromToken(req, res);
   if (!userId) return;
-  const rows = await db.select({
-    id: apiKeys.id, label: apiKeys.label,
-    lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt,
-  }).from(apiKeys).where(eq(apiKeys.userId, userId)).orderBy(desc(apiKeys.createdAt));
-  res.json(rows);
+  try {
+    const rows = await db.select({
+      id: apiKeys.id, label: apiKeys.label,
+      lastUsedAt: apiKeys.lastUsedAt, createdAt: apiKeys.createdAt,
+    }).from(apiKeys).where(eq(apiKeys.userId, userId)).orderBy(desc(apiKeys.createdAt));
+    res.json(rows);
+  } catch (err: any) {
+    res.status(500).json({ message: err?.message ?? "Failed to list keys." });
+  }
 }
 
 export async function deleteApiKey(req: Request, res: Response) {
   const userId = requireAuthFromToken(req, res);
   if (!userId) return;
-  const [row] = await db.select({ userId: apiKeys.userId }).from(apiKeys).where(eq(apiKeys.id, req.params.id)).limit(1);
-  if (!row) return res.status(404).json({ message: "Not found." });
-  if (row.userId !== userId) return res.status(403).json({ message: "Forbidden." });
-  await db.delete(apiKeys).where(eq(apiKeys.id, req.params.id));
-  res.json({ ok: true });
+  try {
+    const [row] = await db.select({ userId: apiKeys.userId }).from(apiKeys).where(eq(apiKeys.id, req.params.id)).limit(1);
+    if (!row) return res.status(404).json({ message: "Not found." });
+    if (row.userId !== userId) return res.status(403).json({ message: "Forbidden." });
+    await db.delete(apiKeys).where(eq(apiKeys.id, req.params.id));
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ message: err?.message ?? "Failed to delete key." });
+  }
 }
 
 export async function resolveApiKey(bearerToken: string): Promise<string | null> {
