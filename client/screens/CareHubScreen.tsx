@@ -584,32 +584,6 @@ export default function CareHubScreen() {
                 </View>
               </View>
 
-              {/* My Organisations */}
-              <View style={[styles.section, { paddingTop: 0 }]}>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>MY ORGANISATIONS</ThemedText>
-                  <Pressable onPress={() => setShowCreateOrg(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                    <Feather name="plus" size={14} color={theme.primary} />
-                    <ThemedText style={{ color: theme.primary, fontSize: 13, fontWeight: "600" }}>Create</ThemedText>
-                  </Pressable>
-                </View>
-                {orgs.length === 0 ? (
-                  <ThemedText type="caption" style={{ opacity: 0.35 }}>No organisations yet. Create one to manage a care team.</ThemedText>
-                ) : (
-                  orgs.map((org) => (
-                    <Pressable key={org.id} onPress={() => navigation.navigate("OrgAdmin", { orgId: org.id, orgName: org.name })}
-                      style={({ pressed }) => [styles.orgReportBtn, { borderColor: theme.border, opacity: pressed ? 0.7 : 1, marginBottom: 6 }]}>
-                      <Feather name="briefcase" size={15} color={theme.primary} />
-                      <View style={{ flex: 1, marginLeft: 8 }}>
-                        <ThemedText type="small" style={{ fontWeight: "700" }}>{org.name}</ThemedText>
-                        <ThemedText type="caption" style={{ opacity: 0.45 }}>{org.type.replace("_", " ")} · {org.myRole}</ThemedText>
-                      </View>
-                      <Feather name="chevron-right" size={15} color={theme.textSecondary} style={{ opacity: 0.4 }} />
-                    </Pressable>
-                  ))
-                )}
-              </View>
-
               {/* Org Report button */}
               {patients.length > 0 && (
                 <View style={[styles.section, { paddingTop: 0 }]}>
@@ -737,6 +711,32 @@ export default function CareHubScreen() {
               )}
             </>
           )}
+
+          {/* ── MY ORGANISATIONS — visible in both modes ── */}
+          <View style={[styles.section, { paddingTop: Spacing.lg }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>MY ORGANISATIONS</ThemedText>
+              <Pressable onPress={() => setShowCreateOrg(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Feather name="plus" size={14} color={theme.primary} />
+                <ThemedText style={{ color: theme.primary, fontSize: 13, fontWeight: "600" }}>Create</ThemedText>
+              </Pressable>
+            </View>
+            {orgs.length === 0 ? (
+              <ThemedText type="caption" style={{ opacity: 0.35 }}>No organisations yet. Create one to manage a care team.</ThemedText>
+            ) : (
+              orgs.map((org) => (
+                <Pressable key={org.id} onPress={() => navigation.navigate("OrgAdmin", { orgId: org.id, orgName: org.name })}
+                  style={({ pressed }) => [styles.orgReportBtn, { borderColor: theme.border, opacity: pressed ? 0.7 : 1, marginBottom: 6 }]}>
+                  <Feather name="briefcase" size={15} color={theme.primary} />
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <ThemedText type="small" style={{ fontWeight: "700" }}>{org.name}</ThemedText>
+                    <ThemedText type="caption" style={{ opacity: 0.45 }}>{org.type.replace("_", " ")} · {org.myRole}</ThemedText>
+                  </View>
+                  <Feather name="chevron-right" size={15} color={theme.textSecondary} style={{ opacity: 0.4 }} />
+                </Pressable>
+              ))
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
