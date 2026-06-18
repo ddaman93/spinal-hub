@@ -78,6 +78,7 @@ export type MainStackParamList = {
   RehabGoals: { patientId: string; patientName: string };
   AuditTrail: { patientId: string; patientName: string };
   OrgReport: undefined;
+  OrgAdmin: { orgId: string; orgName: string };
 
   PressureInjuryTracker: undefined;
   PressureInjuryDetail: {

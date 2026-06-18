@@ -57,6 +57,13 @@
       "when": 1778500020000,
       "tag": "0007_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778500030000,
+      "tag": "0008_org_foundation",
+      "breakpoints": true
     }
   ]
 }

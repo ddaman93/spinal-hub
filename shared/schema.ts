@@ -699,3 +699,84 @@ export const auditLogs = pgTable(
 );
 
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// organizations  (care company / rehab unit / ACC vendor tenant)
+// ---------------------------------------------------------------------------
+
+export const organizations = pgTable("organizations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  // care_company | rehab | acc_vendor
+  type: text("type").notNull().default("care_company"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// org_members  (staff belonging to an org)
+// ---------------------------------------------------------------------------
+
+export const orgMembers = pgTable(
+  "org_members",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    // owner | admin | staff
+    role: text("role").notNull().default("staff"),
+    status: text("status").notNull().default("active"), // active | removed
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    orgStatusIdx: index("org_members_org_status_idx").on(t.orgId, t.status),
+    userIdx: index("org_members_user_idx").on(t.userId),
+    uniquePair: uniqueIndex("org_members_unique_pair").on(t.orgId, t.userId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// org_patients  (org-owned patient roster; survives staff turnover)
+// ---------------------------------------------------------------------------
+
+export const orgPatients = pgTable(
+  "org_patients",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    addedBy: varchar("added_by").references(() => users.id, { onDelete: "set null" }),
+    // active | discharged
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    orgStatusIdx: index("org_patients_org_status_idx").on(t.orgId, t.status),
+    uniquePair: uniqueIndex("org_patients_unique_pair").on(t.orgId, t.patientId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// staff_assignments  (which staff cover which patient within an org)
+// ---------------------------------------------------------------------------
+
+export const staffAssignments = pgTable(
+  "staff_assignments",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    orgId: varchar("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    staffUserId: varchar("staff_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("active"), // active | removed
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    staffIdx: index("staff_assignments_staff_idx").on(t.staffUserId, t.status),
+    patientIdx: index("staff_assignments_patient_idx").on(t.patientId, t.status),
+    uniquePair: uniqueIndex("staff_assignments_unique_pair").on(t.orgId, t.staffUserId, t.patientId),
+  }),
+);
+
+export type Organization = typeof organizations.$inferSelect;
+export type OrgMember = typeof orgMembers.$inferSelect;
+export type OrgPatient = typeof orgPatients.$inferSelect;
+export type StaffAssignment = typeof staffAssignments.$inferSelect;

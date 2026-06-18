@@ -128,6 +128,13 @@ export default function CareHubScreen() {
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
 
+  // Org state
+  type OrgSummary = { id: string; name: string; type: string; myRole: string };
+  const [orgs, setOrgs] = useState<OrgSummary[]>([]);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [orgNameInput, setOrgNameInput] = useState("");
+  const [showCreateOrg, setShowCreateOrg] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -135,11 +142,12 @@ export default function CareHubScreen() {
       if (token) { const uid = getUserIdFromToken(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [relsRes, patientsRes, profileRes, alertsRes] = await Promise.all([
+      const [relsRes, patientsRes, profileRes, alertsRes, orgsRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/care/relationships`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients`, { headers }),
         fetch(`${getApiUrl()}/api/profile`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients/alerts`, { headers }),
+        fetch(`${getApiUrl()}/api/org`, { headers }),
       ]);
 
       let profileRole: string | null = null;
@@ -167,6 +175,7 @@ export default function CareHubScreen() {
         for (const a of arr) map[a.patientId] = a;
         setPatientAlerts(map);
       }
+      if (orgsRes.ok) setOrgs(await orgsRes.json());
     } catch {
       // silent
     } finally {
@@ -575,6 +584,32 @@ export default function CareHubScreen() {
                 </View>
               </View>
 
+              {/* My Organisations */}
+              <View style={[styles.section, { paddingTop: 0 }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>MY ORGANISATIONS</ThemedText>
+                  <Pressable onPress={() => setShowCreateOrg(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Feather name="plus" size={14} color={theme.primary} />
+                    <ThemedText style={{ color: theme.primary, fontSize: 13, fontWeight: "600" }}>Create</ThemedText>
+                  </Pressable>
+                </View>
+                {orgs.length === 0 ? (
+                  <ThemedText type="caption" style={{ opacity: 0.35 }}>No organisations yet. Create one to manage a care team.</ThemedText>
+                ) : (
+                  orgs.map((org) => (
+                    <Pressable key={org.id} onPress={() => navigation.navigate("OrgAdmin", { orgId: org.id, orgName: org.name })}
+                      style={({ pressed }) => [styles.orgReportBtn, { borderColor: theme.border, opacity: pressed ? 0.7 : 1, marginBottom: 6 }]}>
+                      <Feather name="briefcase" size={15} color={theme.primary} />
+                      <View style={{ flex: 1, marginLeft: 8 }}>
+                        <ThemedText type="small" style={{ fontWeight: "700" }}>{org.name}</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.45 }}>{org.type.replace("_", " ")} · {org.myRole}</ThemedText>
+                      </View>
+                      <Feather name="chevron-right" size={15} color={theme.textSecondary} style={{ opacity: 0.4 }} />
+                    </Pressable>
+                  ))
+                )}
+              </View>
+
               {/* Org Report button */}
               {patients.length > 0 && (
                 <View style={[styles.section, { paddingTop: 0 }]}>
@@ -934,6 +969,62 @@ export default function CareHubScreen() {
               </>
             )}
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* ── CREATE ORG MODAL ── */}
+      <Modal visible={showCreateOrg} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: theme.backgroundDefault, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }}>
+            <ThemedText style={{ fontWeight: "800", fontSize: 17, marginBottom: Spacing.md }}>Create Organisation</ThemedText>
+            <ThemedText type="caption" style={{ opacity: 0.55, marginBottom: Spacing.md }}>
+              A care company or rehab team account. You become the owner.
+            </ThemedText>
+            <TextInput
+              value={orgNameInput}
+              onChangeText={setOrgNameInput}
+              placeholder="Organisation name"
+              placeholderTextColor={theme.textSecondary}
+              style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 12, color: theme.text, fontSize: 16, marginBottom: Spacing.lg }}
+            />
+            <View style={{ flexDirection: "row", gap: Spacing.md }}>
+              <Pressable onPress={() => { setShowCreateOrg(false); setOrgNameInput(""); }}
+                style={{ flex: 1, alignItems: "center", padding: Spacing.md, borderRadius: 10, backgroundColor: theme.border }}>
+                <ThemedText style={{ fontWeight: "600" }}>Cancel</ThemedText>
+              </Pressable>
+              <Pressable
+                disabled={creatingOrg || !orgNameInput.trim()}
+                onPress={async () => {
+                  if (!orgNameInput.trim()) return;
+                  setCreatingOrg(true);
+                  try {
+                    const token = await getToken();
+                    const res = await fetch(`${getApiUrl()}/api/org`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ name: orgNameInput.trim(), type: "care_company" }),
+                    });
+                    if (!res.ok) { const b = await res.json(); Alert.alert("Error", b.message); return; }
+                    const org = await res.json();
+                    setShowCreateOrg(false);
+                    setOrgNameInput("");
+                    load();
+                    navigation.navigate("OrgAdmin", { orgId: org.id, orgName: org.name });
+                  } catch {
+                    Alert.alert("Error", "Could not create organisation.");
+                  } finally {
+                    setCreatingOrg(false);
+                  }
+                }}
+                style={{ flex: 1, alignItems: "center", padding: Spacing.md, borderRadius: 10, backgroundColor: theme.primary, opacity: orgNameInput.trim() ? 1 : 0.5 }}
+              >
+                {creatingOrg
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <ThemedText style={{ color: "#fff", fontWeight: "700" }}>Create</ThemedText>
+                }
+              </Pressable>
+            </View>
+          </View>
         </View>
       </Modal>
     </ThemedView>
