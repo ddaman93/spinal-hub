@@ -1,9 +1,9 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
 import {
-  organizations, orgMembers, orgPatients, staffAssignments, users, inviteCodes,
+  organizations, orgMembers, orgPatients, staffAssignments, careRelationships, users, inviteCodes,
 } from "@shared/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 
 function requireAuth(req: Request, res: Response): string | null {
@@ -272,14 +272,16 @@ export async function assignStaff(req: Request, res: Response) {
 
   if (existing) {
     if (existing.status === "removed") {
-      await db.update(staffAssignments).set({ status: "active" }).where(eq(staffAssignments.id, existing.id));
-      return res.json({ message: "Assignment reactivated." });
+      // Re-request requires patient approval again
+      await db.update(staffAssignments).set({ status: "pending" }).where(eq(staffAssignments.id, existing.id));
+      return res.json({ message: "Access re-requested. Awaiting patient approval." });
     }
-    return res.status(400).json({ message: "Already assigned." });
+    return res.status(400).json({ message: "Already assigned or pending." });
   }
 
-  const [a] = await db.insert(staffAssignments).values({ orgId, staffUserId, patientId }).returning();
-  res.status(201).json(a);
+  // Patient must approve before staff get data access
+  const [a] = await db.insert(staffAssignments).values({ orgId, staffUserId, patientId, status: "pending" }).returning();
+  res.status(201).json({ ...a, message: "Access requested. Awaiting patient approval." });
 }
 
 // DELETE /api/org/:orgId/assignments — remove a staff assignment
@@ -325,6 +327,84 @@ export async function removeMember(req: Request, res: Response) {
 
   await db.update(orgMembers).set({ status: "removed" }).where(eq(orgMembers.id, memberId));
   res.json({ message: "Member removed." });
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/org/pending-assignments — pending access requests for current patient
+// ---------------------------------------------------------------------------
+export async function getPendingAssignments(req: Request, res: Response) {
+  const patientId = requireAuth(req, res);
+  if (!patientId) return;
+
+  const rows = await db
+    .select({
+      assignmentId: staffAssignments.id,
+      orgId: staffAssignments.orgId,
+      staffUserId: staffAssignments.staffUserId,
+      requestedAt: staffAssignments.createdAt,
+      orgName: organizations.name,
+      orgType: organizations.type,
+      staffName: users.name,
+      staffEmail: users.email,
+    })
+    .from(staffAssignments)
+    .innerJoin(organizations, eq(staffAssignments.orgId, organizations.id))
+    .innerJoin(users, eq(staffAssignments.staffUserId, users.id))
+    .where(and(eq(staffAssignments.patientId, patientId), eq(staffAssignments.status, "pending")))
+    .orderBy(desc(staffAssignments.createdAt));
+
+  res.json(rows);
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/org/assignments/:assignmentId/approve — patient approves access
+// ---------------------------------------------------------------------------
+export async function approveAssignment(req: Request, res: Response) {
+  const patientId = requireAuth(req, res);
+  if (!patientId) return;
+
+  const { assignmentId } = req.params;
+  const [assignment] = await db.select().from(staffAssignments)
+    .where(and(eq(staffAssignments.id, assignmentId), eq(staffAssignments.patientId, patientId), eq(staffAssignments.status, "pending")));
+
+  if (!assignment) return res.status(404).json({ message: "Pending assignment not found." });
+
+  // Activate assignment
+  await db.update(staffAssignments).set({ status: "active" }).where(eq(staffAssignments.id, assignmentId));
+
+  // Create care_relationship so existing canAccessPatient() grants access
+  const [existing] = await db.select().from(careRelationships).where(
+    and(eq(careRelationships.patientId, patientId), eq(careRelationships.caregiverId, assignment.staffUserId))
+  );
+  if (!existing) {
+    await db.insert(careRelationships).values({
+      patientId,
+      caregiverId: assignment.staffUserId,
+      role: "carer",
+      status: "active",
+    });
+  } else if (existing.status === "revoked") {
+    await db.update(careRelationships).set({ status: "active" }).where(eq(careRelationships.id, existing.id));
+  }
+
+  res.json({ message: "Access approved." });
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/org/assignments/:assignmentId/decline — patient declines access
+// ---------------------------------------------------------------------------
+export async function declineAssignment(req: Request, res: Response) {
+  const patientId = requireAuth(req, res);
+  if (!patientId) return;
+
+  const { assignmentId } = req.params;
+  const [assignment] = await db.select().from(staffAssignments)
+    .where(and(eq(staffAssignments.id, assignmentId), eq(staffAssignments.patientId, patientId), eq(staffAssignments.status, "pending")));
+
+  if (!assignment) return res.status(404).json({ message: "Pending assignment not found." });
+
+  await db.update(staffAssignments).set({ status: "removed" }).where(eq(staffAssignments.id, assignmentId));
+  res.json({ message: "Access declined." });
 }
 
 // ---------------------------------------------------------------------------

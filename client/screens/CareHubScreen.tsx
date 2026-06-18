@@ -130,7 +130,12 @@ export default function CareHubScreen() {
 
   // Org state
   type OrgSummary = { id: string; name: string; type: string; myRole: string };
+  type PendingAssignment = {
+    assignmentId: string; orgId: string; staffUserId: string;
+    orgName: string; orgType: string; staffName: string; staffEmail: string; requestedAt: string;
+  };
   const [orgs, setOrgs] = useState<OrgSummary[]>([]);
+  const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [orgNameInput, setOrgNameInput] = useState("");
   const [showCreateOrg, setShowCreateOrg] = useState(false);
@@ -142,12 +147,13 @@ export default function CareHubScreen() {
       if (token) { const uid = getUserIdFromToken(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [relsRes, patientsRes, profileRes, alertsRes, orgsRes] = await Promise.all([
+      const [relsRes, patientsRes, profileRes, alertsRes, orgsRes, pendingRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/care/relationships`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients`, { headers }),
         fetch(`${getApiUrl()}/api/profile`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients/alerts`, { headers }),
         fetch(`${getApiUrl()}/api/org`, { headers }),
+        fetch(`${getApiUrl()}/api/org/pending-assignments`, { headers }),
       ]);
 
       let profileRole: string | null = null;
@@ -176,6 +182,7 @@ export default function CareHubScreen() {
         setPatientAlerts(map);
       }
       if (orgsRes.ok) setOrgs(await orgsRes.json());
+      if (pendingRes.ok) setPendingAssignments(await pendingRes.json());
     } catch {
       // silent
     } finally {
@@ -473,6 +480,58 @@ export default function CareHubScreen() {
                   </ElevatedCard>
                 </Pressable>
               </View>
+
+              {/* ── PENDING ACCESS REQUESTS ── */}
+              {pendingAssignments.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={[styles.sectionDot, { backgroundColor: "#FF9800" }]} />
+                    <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                      ACCESS REQUESTS
+                    </ThemedText>
+                  </View>
+                  {pendingAssignments.map((a) => (
+                    <View key={a.assignmentId} style={[styles.pendingCard, { backgroundColor: theme.backgroundSecondary, borderColor: "#FF980033" }]}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText type="small" style={{ fontWeight: "700" }}>{a.staffName}</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.55, marginTop: 1 }}>
+                          {a.orgName} · wants to view your care data
+                        </ThemedText>
+                      </View>
+                      <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              const token = await getToken();
+                              await fetch(`${getApiUrl()}/api/org/assignments/${a.assignmentId}/decline`, {
+                                method: "POST", headers: { Authorization: `Bearer ${token}` },
+                              });
+                              setPendingAssignments((prev) => prev.filter((x) => x.assignmentId !== a.assignmentId));
+                            } catch { Alert.alert("Error", "Could not decline."); }
+                          }}
+                          style={[styles.pendingBtn, { borderColor: "#FF3B30", backgroundColor: "#FF3B3014" }]}
+                        >
+                          <ThemedText style={{ color: "#FF3B30", fontWeight: "700", fontSize: 13 }}>Decline</ThemedText>
+                        </Pressable>
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              const token = await getToken();
+                              await fetch(`${getApiUrl()}/api/org/assignments/${a.assignmentId}/approve`, {
+                                method: "POST", headers: { Authorization: `Bearer ${token}` },
+                              });
+                              setPendingAssignments((prev) => prev.filter((x) => x.assignmentId !== a.assignmentId));
+                            } catch { Alert.alert("Error", "Could not approve."); }
+                          }}
+                          style={[styles.pendingBtn, { borderColor: theme.primary, backgroundColor: theme.primary + "14" }]}
+                        >
+                          <ThemedText style={{ color: theme.primary, fontWeight: "700", fontSize: 13 }}>Allow Access</ThemedText>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               {/* ── D: MY HEALTH RECORDS ── */}
               <View style={styles.section}>
@@ -1128,6 +1187,14 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     borderWidth: 1, borderRadius: BorderRadius.medium,
     paddingHorizontal: Spacing.md, paddingVertical: 12,
+  },
+  pendingCard: {
+    borderWidth: 1, borderRadius: BorderRadius.medium,
+    padding: Spacing.md, marginBottom: 8,
+  },
+  pendingBtn: {
+    flex: 1, alignItems: "center", paddingVertical: 8,
+    borderRadius: 8, borderWidth: 1,
   },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tile: { position: "relative" },

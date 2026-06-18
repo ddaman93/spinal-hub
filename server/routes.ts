@@ -10,7 +10,7 @@ import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractTok
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport, syncRelationshipRolesForUser } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { getAuditLog } from "./routes/audit";
-import { createOrg, getMyOrgs, getOrg, inviteMember, joinOrg, addOrgPatient, dischargeOrgPatient, assignStaff, removeAssignment, removeMember } from "./routes/org";
+import { createOrg, getMyOrgs, getOrg, inviteMember, joinOrg, addOrgPatient, dischargeOrgPatient, assignStaff, removeAssignment, removeMember, getPendingAssignments, approveAssignment, declineAssignment } from "./routes/org";
 import {
   getVitals, addVital, deleteVital,
   getMedications, addMedication, updateMedication, deleteMedication,
@@ -180,9 +180,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Org (care company / rehab tenant)
   app.post("/api/org", createOrg);
   app.get("/api/org", getMyOrgs);
+  // static routes before :orgId param to avoid conflicts
+  app.get("/api/org/pending-assignments", getPendingAssignments);
+  app.post("/api/org/join", joinOrg);
+  app.post("/api/org/assignments/:assignmentId/approve", approveAssignment);
+  app.post("/api/org/assignments/:assignmentId/decline", declineAssignment);
   app.get("/api/org/:orgId", getOrg);
   app.post("/api/org/:orgId/invite-member", inviteMember);
-  app.post("/api/org/join", joinOrg);
   app.post("/api/org/:orgId/patients", addOrgPatient);
   app.delete("/api/org/:orgId/patients/:patientId", dischargeOrgPatient);
   app.post("/api/org/:orgId/assignments", assignStaff);
