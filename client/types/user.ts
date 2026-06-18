@@ -1,4 +1,4 @@
-export type UserRole = "sci_patient" | "caregiver" | "health_professional" | "family_member";
+export type UserRole = "sci_patient" | "caregiver" | "health_professional" | "family_member" | "care_manager";
 
 export type UserProfile = {
   id: string;

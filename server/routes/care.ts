@@ -7,6 +7,7 @@ function profileRoleToRelationshipRole(profileRole: string | null | undefined): 
   if (profileRole === "health_professional") return "clinician";
   if (profileRole === "family_member") return "family";
   if (profileRole === "caregiver") return "carer";
+  if (profileRole === "care_manager") return "carer";
   return null; // sci_patient or unknown — caller uses invite role fallback
 }
 import { eq, and, count, desc, inArray, notInArray, sql, gte } from "drizzle-orm";
