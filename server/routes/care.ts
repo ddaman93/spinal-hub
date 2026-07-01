@@ -1,11 +1,13 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
 import { careRelationships, inviteCodes, users, userProfiles, pressureInjuries, careNotes, handoverReads, medicationLogs, rehabGoals, auditLogs } from "@shared/schema";
+import { canAccessPatientViaOrg } from "./org";
 
 function profileRoleToRelationshipRole(profileRole: string | null | undefined): string | null {
   if (profileRole === "health_professional") return "clinician";
   if (profileRole === "family_member") return "family";
   if (profileRole === "caregiver") return "carer";
+  if (profileRole === "care_manager") return "carer";
   return null; // sci_patient or unknown — caller uses invite role fallback
 }
 import { eq, and, count, desc, inArray, notInArray, sql, gte } from "drizzle-orm";
@@ -149,7 +151,9 @@ export async function revokeRelationship(req: Request, res: Response) {
   res.json({ message: "Relationship revoked." });
 }
 
-// Middleware helper — verify the requesting user has access to a patient's data
+// Middleware helper — verify the requesting user has access to a patient's data.
+// Access granted if: requester is the patient, has a direct care relationship,
+// or is org staff/admin assigned to the patient via an org.
 export async function canAccessPatient(requesterId: string, patientId: string): Promise<boolean> {
   if (requesterId === patientId) return true;
   const [rel] = await db.select().from(careRelationships).where(
@@ -159,7 +163,8 @@ export async function canAccessPatient(requesterId: string, patientId: string): 
       eq(careRelationships.status, "active")
     )
   );
-  return !!rel;
+  if (rel) return true;
+  return canAccessPatientViaOrg(requesterId, patientId);
 }
 
 // Returns the requester's role relative to the patient ("patient" | "carer" | "family" | "clinician" | null)

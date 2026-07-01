@@ -20,8 +20,9 @@ type RoleOption = {
 
 const ROLES: RoleOption[] = [
   { role: "sci_patient",          icon: "user",      title: "SCI Patient",         description: "I have a spinal cord injury" },
-  { role: "caregiver",            icon: "heart",     title: "Caregiver",           description: "I support someone with SCI" },
-  { role: "health_professional",  icon: "briefcase", title: "Health Professional", description: "I work in SCI healthcare" },
+  { role: "caregiver",            icon: "heart",     title: "Support Worker",      description: "I provide hands-on care for someone with SCI" },
+  { role: "care_manager",         icon: "briefcase", title: "Care Coordinator",    description: "I manage a team of carers or run a care agency" },
+  { role: "health_professional",  icon: "activity",  title: "Health Professional", description: "I work in SCI healthcare (nurse, physio, GP)" },
   { role: "family_member",        icon: "users",     title: "Family Member",       description: "I have a family member with SCI" },
 ];
 

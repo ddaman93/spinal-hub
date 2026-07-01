@@ -10,6 +10,8 @@ import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractTok
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport, syncRelationshipRolesForUser } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { getAuditLog } from "./routes/audit";
+import { connectRtilink, syncRtilink, getFesConfig, getFesSessions, disconnectRtilink } from "./routes/fes";
+import { createOrg, getMyOrgs, getOrg, inviteMember, joinOrg, addOrgPatient, dischargeOrgPatient, assignStaff, removeAssignment, removeMember, getPendingAssignments, approveAssignment, declineAssignment } from "./routes/org";
 import {
   getVitals, addVital, deleteVital,
   getMedications, addMedication, updateMedication, deleteMedication,
@@ -176,6 +178,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Audit trail
   app.get("/api/audit/:patientId", getAuditLog);
 
+  // Org (care company / rehab tenant)
+  app.post("/api/org", createOrg);
+  app.get("/api/org", getMyOrgs);
+  // static routes before :orgId param to avoid conflicts
+  app.get("/api/org/pending-assignments", getPendingAssignments);
+  app.post("/api/org/join", joinOrg);
+  app.post("/api/org/assignments/:assignmentId/approve", approveAssignment);
+  app.post("/api/org/assignments/:assignmentId/decline", declineAssignment);
+  app.get("/api/org/:orgId", getOrg);
+  app.post("/api/org/:orgId/invite-member", inviteMember);
+  app.post("/api/org/:orgId/patients", addOrgPatient);
+  app.delete("/api/org/:orgId/patients/:patientId", dischargeOrgPatient);
+  app.post("/api/org/:orgId/assignments", assignStaff);
+  app.delete("/api/org/:orgId/assignments", removeAssignment);
+  app.delete("/api/org/:orgId/members/:memberId", removeMember);
+
   // Pressure injury tracker
   app.get("/api/pressure-injuries", getInjuries);
   app.post("/api/pressure-injuries", createInjury);
@@ -285,6 +303,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to save profile." });
     }
   });
+
+  // FES bike (RTILink integration)
+  app.post("/api/fes/connect", connectRtilink);
+  app.post("/api/fes/sync", syncRtilink);
+  app.get("/api/fes/config", getFesConfig);
+  app.get("/api/fes/sessions", getFesSessions);
+  app.delete("/api/fes/disconnect", disconnectRtilink);
 
   const httpServer = createServer(app);
   return httpServer;

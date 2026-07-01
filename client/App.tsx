@@ -9,7 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/lib/query-client";
+import { queryClient, getApiUrl } from "@/lib/query-client";
 
 import RootTabsNavigator from "@/navigation/RootTabsNavigator";
 import OnboardingStack from "@/navigation/OnboardingStack";
@@ -73,7 +73,22 @@ function AppContent(): React.JSX.Element {
   useEffect(() => {
     (async () => {
       const token = await getToken();
-      const loggedIn = token !== null;
+      let loggedIn = false;
+      if (token) {
+        try {
+          const res = await fetch(`${getApiUrl()}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            loggedIn = true;
+          } else {
+            await clearToken();
+          }
+        } catch {
+          // Server unreachable — trust the stored token so offline still works
+          loggedIn = true;
+        }
+      }
       const onboarded = loggedIn
         ? (await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY)) === "true"
         : false;
@@ -100,6 +115,8 @@ function AppContent(): React.JSX.Element {
 
   async function handleSignOut() {
     await clearToken();
+    await AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY);
+    queryClient.clear();
     setIsLoggedIn(false);
     setOnboardingDone(false);
   }

@@ -76,8 +76,10 @@ export type MainStackParamList = {
   SkinCheckLog: { patientId: string; patientName: string };
   CarePreferences: { patientId: string; patientName: string };
   RehabGoals: { patientId: string; patientName: string };
+  FesBike: undefined;
   AuditTrail: { patientId: string; patientName: string };
   OrgReport: undefined;
+  OrgAdmin: { orgId: string; orgName: string };
 
   PressureInjuryTracker: undefined;
   PressureInjuryDetail: {

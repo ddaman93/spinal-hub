@@ -128,6 +128,18 @@ export default function CareHubScreen() {
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
 
+  // Org state
+  type OrgSummary = { id: string; name: string; type: string; myRole: string };
+  type PendingAssignment = {
+    assignmentId: string; orgId: string; staffUserId: string;
+    orgName: string; orgType: string; staffName: string; staffEmail: string; requestedAt: string;
+  };
+  const [orgs, setOrgs] = useState<OrgSummary[]>([]);
+  const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [orgNameInput, setOrgNameInput] = useState("");
+  const [showCreateOrg, setShowCreateOrg] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -135,11 +147,13 @@ export default function CareHubScreen() {
       if (token) { const uid = getUserIdFromToken(token); if (uid) setJwtUserId(uid); }
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [relsRes, patientsRes, profileRes, alertsRes] = await Promise.all([
+      const [relsRes, patientsRes, profileRes, alertsRes, orgsRes, pendingRes] = await Promise.all([
         fetch(`${getApiUrl()}/api/care/relationships`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients`, { headers }),
         fetch(`${getApiUrl()}/api/profile`, { headers }),
         fetch(`${getApiUrl()}/api/care/patients/alerts`, { headers }),
+        fetch(`${getApiUrl()}/api/org`, { headers }),
+        fetch(`${getApiUrl()}/api/org/pending-assignments`, { headers }),
       ]);
 
       let profileRole: string | null = null;
@@ -152,10 +166,12 @@ export default function CareHubScreen() {
       if (relsRes.ok) {
         const rels = await relsRes.json();
         setRelationships(rels);
-        // sci_patient profile role always defaults to patient mode
-        // other roles default to carer mode if they have patients but no carers
+        // sci_patient always patient mode; care_manager always carer mode
+        // others: carer mode if they have patients but no carers linked as patient
         if (profileRole === "sci_patient") {
           setMode("patient");
+        } else if (profileRole === "care_manager") {
+          setMode("carer");
         } else if (rels.asCarer.length > 0 && rels.asPatient.length === 0) {
           setMode("carer");
         }
@@ -167,6 +183,8 @@ export default function CareHubScreen() {
         for (const a of arr) map[a.patientId] = a;
         setPatientAlerts(map);
       }
+      if (orgsRes.ok) setOrgs(await orgsRes.json());
+      if (pendingRes.ok) setPendingAssignments(await pendingRes.json());
     } catch {
       // silent
     } finally {
@@ -465,6 +483,58 @@ export default function CareHubScreen() {
                 </Pressable>
               </View>
 
+              {/* ── PENDING ACCESS REQUESTS ── */}
+              {pendingAssignments.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <View style={[styles.sectionDot, { backgroundColor: "#FF9800" }]} />
+                    <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                      ACCESS REQUESTS
+                    </ThemedText>
+                  </View>
+                  {pendingAssignments.map((a) => (
+                    <View key={a.assignmentId} style={[styles.pendingCard, { backgroundColor: theme.backgroundSecondary, borderColor: "#FF980033" }]}>
+                      <View style={{ flex: 1 }}>
+                        <ThemedText type="small" style={{ fontWeight: "700" }}>{a.staffName}</ThemedText>
+                        <ThemedText type="caption" style={{ opacity: 0.55, marginTop: 1 }}>
+                          {a.orgName} · wants to view your care data
+                        </ThemedText>
+                      </View>
+                      <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              const token = await getToken();
+                              await fetch(`${getApiUrl()}/api/org/assignments/${a.assignmentId}/decline`, {
+                                method: "POST", headers: { Authorization: `Bearer ${token}` },
+                              });
+                              setPendingAssignments((prev) => prev.filter((x) => x.assignmentId !== a.assignmentId));
+                            } catch { Alert.alert("Error", "Could not decline."); }
+                          }}
+                          style={[styles.pendingBtn, { borderColor: "#FF3B30", backgroundColor: "#FF3B3014" }]}
+                        >
+                          <ThemedText style={{ color: "#FF3B30", fontWeight: "700", fontSize: 13 }}>Decline</ThemedText>
+                        </Pressable>
+                        <Pressable
+                          onPress={async () => {
+                            try {
+                              const token = await getToken();
+                              await fetch(`${getApiUrl()}/api/org/assignments/${a.assignmentId}/approve`, {
+                                method: "POST", headers: { Authorization: `Bearer ${token}` },
+                              });
+                              setPendingAssignments((prev) => prev.filter((x) => x.assignmentId !== a.assignmentId));
+                            } catch { Alert.alert("Error", "Could not approve."); }
+                          }}
+                          style={[styles.pendingBtn, { borderColor: theme.primary, backgroundColor: theme.primary + "14" }]}
+                        >
+                          <ThemedText style={{ color: theme.primary, fontWeight: "700", fontSize: 13 }}>Allow Access</ThemedText>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {/* ── D: MY HEALTH RECORDS ── */}
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -702,6 +772,32 @@ export default function CareHubScreen() {
               )}
             </>
           )}
+
+          {/* ── MY ORGANISATIONS — visible in both modes ── */}
+          <View style={[styles.section, { paddingTop: Spacing.lg }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <ThemedText type="small" style={[styles.sectionTitle, { color: theme.textSecondary }]}>MY ORGANISATIONS</ThemedText>
+              <Pressable onPress={() => setShowCreateOrg(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Feather name="plus" size={14} color={theme.primary} />
+                <ThemedText style={{ color: theme.primary, fontSize: 13, fontWeight: "600" }}>Create</ThemedText>
+              </Pressable>
+            </View>
+            {orgs.length === 0 ? (
+              <ThemedText type="caption" style={{ opacity: 0.35 }}>No organisations yet. Create one to manage a care team.</ThemedText>
+            ) : (
+              orgs.map((org) => (
+                <Pressable key={org.id} onPress={() => navigation.navigate("OrgAdmin", { orgId: org.id, orgName: org.name })}
+                  style={({ pressed }) => [styles.orgReportBtn, { borderColor: theme.border, opacity: pressed ? 0.7 : 1, marginBottom: 6 }]}>
+                  <Feather name="briefcase" size={15} color={theme.primary} />
+                  <View style={{ flex: 1, marginLeft: 8 }}>
+                    <ThemedText type="small" style={{ fontWeight: "700" }}>{org.name}</ThemedText>
+                    <ThemedText type="caption" style={{ opacity: 0.45 }}>{org.type.replace("_", " ")} · {org.myRole}</ThemedText>
+                  </View>
+                  <Feather name="chevron-right" size={15} color={theme.textSecondary} style={{ opacity: 0.4 }} />
+                </Pressable>
+              ))
+            )}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -936,6 +1032,62 @@ export default function CareHubScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* ── CREATE ORG MODAL ── */}
+      <Modal visible={showCreateOrg} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: theme.backgroundDefault, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: Spacing.xl, paddingBottom: insets.bottom + Spacing.xl }}>
+            <ThemedText style={{ fontWeight: "800", fontSize: 17, marginBottom: Spacing.md }}>Create Organisation</ThemedText>
+            <ThemedText type="caption" style={{ opacity: 0.55, marginBottom: Spacing.md }}>
+              A care company or rehab team account. You become the owner.
+            </ThemedText>
+            <TextInput
+              value={orgNameInput}
+              onChangeText={setOrgNameInput}
+              placeholder="Organisation name"
+              placeholderTextColor={theme.textSecondary}
+              style={{ borderWidth: 1, borderColor: theme.border, borderRadius: 10, padding: 12, color: theme.text, fontSize: 16, marginBottom: Spacing.lg }}
+            />
+            <View style={{ flexDirection: "row", gap: Spacing.md }}>
+              <Pressable onPress={() => { setShowCreateOrg(false); setOrgNameInput(""); }}
+                style={{ flex: 1, alignItems: "center", padding: Spacing.md, borderRadius: 10, backgroundColor: theme.border }}>
+                <ThemedText style={{ fontWeight: "600" }}>Cancel</ThemedText>
+              </Pressable>
+              <Pressable
+                disabled={creatingOrg || !orgNameInput.trim()}
+                onPress={async () => {
+                  if (!orgNameInput.trim()) return;
+                  setCreatingOrg(true);
+                  try {
+                    const token = await getToken();
+                    const res = await fetch(`${getApiUrl()}/api/org`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ name: orgNameInput.trim(), type: "care_company" }),
+                    });
+                    if (!res.ok) { const b = await res.json(); Alert.alert("Error", b.message); return; }
+                    const org = await res.json();
+                    setShowCreateOrg(false);
+                    setOrgNameInput("");
+                    load();
+                    navigation.navigate("OrgAdmin", { orgId: org.id, orgName: org.name });
+                  } catch {
+                    Alert.alert("Error", "Could not create organisation.");
+                  } finally {
+                    setCreatingOrg(false);
+                  }
+                }}
+                style={{ flex: 1, alignItems: "center", padding: Spacing.md, borderRadius: 10, backgroundColor: theme.primary, opacity: orgNameInput.trim() ? 1 : 0.5 }}
+              >
+                {creatingOrg
+                  ? <ActivityIndicator color="#fff" size="small" />
+                  : <ThemedText style={{ color: "#fff", fontWeight: "700" }}>Create</ThemedText>
+                }
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ThemedView>
   );
 }
@@ -1037,6 +1189,14 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     borderWidth: 1, borderRadius: BorderRadius.medium,
     paddingHorizontal: Spacing.md, paddingVertical: 12,
+  },
+  pendingCard: {
+    borderWidth: 1, borderRadius: BorderRadius.medium,
+    padding: Spacing.md, marginBottom: 8,
+  },
+  pendingBtn: {
+    flex: 1, alignItems: "center", paddingVertical: 8,
+    borderRadius: 8, borderWidth: 1,
   },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tile: { position: "relative" },

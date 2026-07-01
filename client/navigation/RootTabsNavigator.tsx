@@ -43,8 +43,10 @@ import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
 import BladderLogScreen from "@/screens/tools/BladderLogScreen";
 import BowelLogScreen from "@/screens/tools/BowelLogScreen";
 import RehabGoalsScreen from "@/screens/tools/RehabGoalsScreen";
+import FesBikeScreen from "@/screens/tools/FesBikeScreen";
 import AuditTrailScreen from "@/screens/tools/AuditTrailScreen";
 import OrgReportScreen from "@/screens/tools/OrgReportScreen";
+import OrgAdminScreen from "@/screens/tools/OrgAdminScreen";
 import PressureInjuryTrackerScreen from "@/screens/tools/PressureInjuryTrackerScreen";
 import PressureInjuryDetailScreen from "@/screens/tools/PressureInjuryDetailScreen";
 import AddPressureCheckScreen from "@/screens/tools/AddPressureCheckScreen";
@@ -605,6 +607,16 @@ function ToolsStackNavigator() {
         }}
       />
 
+      {/* FES BIKE */}
+      <ToolsStack.Screen
+        name="FesBike"
+        component={FesBikeScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "FES Bike",
+        }}
+      />
+
       {/* AUDIT TRAIL */}
       <ToolsStack.Screen
         name="AuditTrail"
@@ -955,6 +967,14 @@ function CareStackNavigator() {
         name="OrgReport"
         component={OrgReportScreen}
         options={{ ...opaqueScreenOptions, headerTitle: "Org Report" }}
+      />
+      <CareStack.Screen
+        name="OrgAdmin"
+        component={OrgAdminScreen}
+        options={({ route }) => ({
+          ...opaqueScreenOptions,
+          headerTitle: (route.params as any)?.orgName ?? "Organisation",
+        })}
       />
       <CareStack.Screen
         name="PainJournal"
