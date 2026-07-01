@@ -43,6 +43,7 @@ import SkinCheckLogScreen from "@/screens/tools/SkinCheckLogScreen";
 import BladderLogScreen from "@/screens/tools/BladderLogScreen";
 import BowelLogScreen from "@/screens/tools/BowelLogScreen";
 import RehabGoalsScreen from "@/screens/tools/RehabGoalsScreen";
+import FesBikeScreen from "@/screens/tools/FesBikeScreen";
 import AuditTrailScreen from "@/screens/tools/AuditTrailScreen";
 import OrgReportScreen from "@/screens/tools/OrgReportScreen";
 import OrgAdminScreen from "@/screens/tools/OrgAdminScreen";
@@ -603,6 +604,16 @@ function ToolsStackNavigator() {
         options={{
           ...opaqueScreenOptions,
           headerTitle: "Rehab Goals",
+        }}
+      />
+
+      {/* FES BIKE */}
+      <ToolsStack.Screen
+        name="FesBike"
+        component={FesBikeScreen}
+        options={{
+          ...opaqueScreenOptions,
+          headerTitle: "FES Bike",
         }}
       />
 

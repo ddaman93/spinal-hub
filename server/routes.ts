@@ -10,6 +10,7 @@ import { registerRoute, loginRoute, oauthRoute, meRoute, verifyToken, extractTok
 import { createInvite, joinWithCode, getRelationships, revokeRelationship, getMyPatients, getPatientAlerts, getCareNotes, addCareNote, markNoteRead, getPatientProfile, getOrgReport, syncRelationshipRolesForUser } from "./routes/care";
 import { getInjuries, createInjury, updateInjury, deleteInjury, getChecks, addCheck } from "./routes/pressureInjuries";
 import { getAuditLog } from "./routes/audit";
+import { connectRtilink, syncRtilink, getFesConfig, getFesSessions, disconnectRtilink } from "./routes/fes";
 import { createOrg, getMyOrgs, getOrg, inviteMember, joinOrg, addOrgPatient, dischargeOrgPatient, assignStaff, removeAssignment, removeMember, getPendingAssignments, approveAssignment, declineAssignment } from "./routes/org";
 import {
   getVitals, addVital, deleteVital,
@@ -302,6 +303,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to save profile." });
     }
   });
+
+  // FES bike (RTILink integration)
+  app.post("/api/fes/connect", connectRtilink);
+  app.post("/api/fes/sync", syncRtilink);
+  app.get("/api/fes/config", getFesConfig);
+  app.get("/api/fes/sessions", getFesSessions);
+  app.delete("/api/fes/disconnect", disconnectRtilink);
 
   const httpServer = createServer(app);
   return httpServer;

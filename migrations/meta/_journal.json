@@ -64,6 +64,13 @@
       "when": 1778500030000,
       "tag": "0008_org_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778500040000,
+      "tag": "0009_fes_bike",
+      "breakpoints": true
     }
   ]
 }

@@ -568,6 +568,15 @@ export default function DashboardScreen() {
                 </LinearGradient>
               </Pressable>
 
+              {/* FES Bike */}
+              <Pressable style={({ pressed }) => [styles.tile, { opacity: pressed ? 0.72 : 1 }]} onPress={() => navigateTile("FesBike", false)}>
+                <LinearGradient colors={isDark ? ["#1c201c", "#171b17"] : ["#ffffff", "#f5f8f5"]} style={[styles.tileGradient, { borderColor: isDark ? "#10b98130" : "#10b98120" }]}>
+                  <IconCircle color="#10b981" name="zap" size={20} />
+                  <ThemedText style={styles.tileLabel}>FES Bike</ThemedText>
+                  <ThemedText style={[styles.tileValue, { color: "#10b981" }]} numberOfLines={1}>Track</ThemedText>
+                </LinearGradient>
+              </Pressable>
+
             </View>
           </SectionCard>
         </View>

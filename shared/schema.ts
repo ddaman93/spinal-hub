@@ -780,3 +780,52 @@ export type Organization = typeof organizations.$inferSelect;
 export type OrgMember = typeof orgMembers.$inferSelect;
 export type OrgPatient = typeof orgPatients.$inferSelect;
 export type StaffAssignment = typeof staffAssignments.$inferSelect;
+
+// ---------------------------------------------------------------------------
+// fes_rtilink_config
+// ---------------------------------------------------------------------------
+
+export const fesRtilinkConfig = pgTable("fes_rtilink_config", {
+  patientId: varchar("patient_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  rtilinkUsername: varchar("rtilink_username").notNull(),
+  rtilinkPin: varchar("rtilink_pin").notNull(),
+  upperLegTherapyId: varchar("upper_leg_therapy_id"),
+  lowerLegTherapyId: varchar("lower_leg_therapy_id"),
+  armsTherapyId: varchar("arms_therapy_id"),
+  lastSyncedAt: timestamp("last_synced_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// fes_sessions
+// ---------------------------------------------------------------------------
+
+export const fesSessions = pgTable(
+  "fes_sessions",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    patientId: varchar("patient_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    therapyType: varchar("therapy_type").notNull(),
+    sessionDate: timestamp("session_date").notNull(),
+    distanceMiles: real("distance_miles"),
+    energyKcal: real("energy_kcal"),
+    energyPerHour: real("energy_per_hour"),
+    avgPowerWatts: real("avg_power_watts"),
+    avgPowerActiveWatts: real("avg_power_active_watts"),
+    maxPowerActiveWatts: real("max_power_active_watts"),
+    avgCrankVelocity: real("avg_crank_velocity"),
+    avgResistance: real("avg_resistance"),
+    avgResistanceActive: real("avg_resistance_active"),
+    avgStimulationUc: real("avg_stimulation_uc"),
+    avgSymmetryPct: real("avg_symmetry_pct"),
+    timeOffMotorSupportS: integer("time_off_motor_support_s"),
+    sessionDurationS: integer("session_duration_s"),
+    metMinutes: real("met_minutes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => ({
+    patientDateIdx: index("fes_sessions_patient_date_idx").on(t.patientId, t.sessionDate.desc()),
+  }),
+);
+
+export type FesSession = typeof fesSessions.$inferSelect;
