@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { db } from "../db";
 import { fesRtilinkConfig, fesSessions } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 import { verifyToken, extractToken } from "./auth";
 
 function requireAuth(req: Request, res: Response): string | null {
@@ -282,15 +282,19 @@ export async function getFesSessions(req: Request, res: Response) {
   if (!patientId) return;
 
   const therapyType = req.query.therapyType as string | undefined;
+  const since = req.query.since as string | undefined;
+  const sinceDate = since ? new Date(since) : null;
 
-  const conditions = therapyType
-    ? and(eq(fesSessions.patientId, patientId), eq(fesSessions.therapyType, therapyType))
-    : eq(fesSessions.patientId, patientId);
+  const filters = [
+    eq(fesSessions.patientId, patientId),
+    ...(therapyType ? [eq(fesSessions.therapyType, therapyType)] : []),
+    ...(sinceDate && !isNaN(sinceDate.getTime()) ? [gte(fesSessions.sessionDate, sinceDate)] : []),
+  ];
 
   const rows = await db
     .select()
     .from(fesSessions)
-    .where(conditions)
+    .where(and(...filters))
     .orderBy(desc(fesSessions.sessionDate))
     .limit(500);
 

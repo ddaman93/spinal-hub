@@ -1029,6 +1029,11 @@ function CareStackNavigator() {
         component={MyDocumentsScreen}
         options={{ ...opaqueScreenOptions, headerTitle: "My Documents" }}
       />
+      <CareStack.Screen
+        name="FesBike"
+        component={FesBikeScreen}
+        options={{ ...opaqueScreenOptions, headerTitle: "FES Bike" }}
+      />
     </CareStack.Navigator>
   );
 }
